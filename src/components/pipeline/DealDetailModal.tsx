@@ -1,0 +1,213 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { DealRecord, DealStageHistory, Office, SpecialtyTeam } from "@/lib/types";
+import { DEAL_STAGES } from "@/lib/types";
+
+interface Props {
+  dealId: string;
+  offices: Office[];
+  teams: SpecialtyTeam[];
+  onClose: () => void;
+  onChanged: (deal: DealRecord) => void;
+}
+
+export default function DealDetailModal({ dealId, offices, teams, onClose, onChanged }: Props) {
+  const [deal, setDeal] = useState<DealRecord | null>(null);
+  const [history, setHistory] = useState<DealStageHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const supabase = createClient();
+      const [d, h] = await Promise.all([
+        supabase.from("deals").select("*").eq("id", dealId).single(),
+        supabase.from("deal_stage_history").select("*").eq("deal_id", dealId).order("occurred_on", { ascending: true })
+      ]);
+      if (d.data) setDeal(d.data as DealRecord);
+      if (h.data) setHistory(h.data as DealStageHistory[]);
+      setLoading(false);
+    };
+    load();
+  }, [dealId]);
+
+  async function advance() {
+    if (!deal || deal.stage === "Closed") return;
+    const idx = DEAL_STAGES.indexOf(deal.stage);
+    const next = DEAL_STAGES[idx + 1];
+    const supabase = createClient();
+    const subStatus = next === "Closed" ? "Won" : null;
+    const { data, error } = await supabase
+      .from("deals")
+      .update({ stage: next, sub_status: subStatus })
+      .eq("id", deal.id)
+      .select()
+      .single();
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    const { data: h } = await supabase
+      .from("deal_stage_history")
+      .insert({ deal_id: deal.id, stage: next, note: next === "Closed" ? "Deal closed - Won" : "Stage advanced" })
+      .select()
+      .single();
+    if (data) {
+      setDeal(data as DealRecord);
+      onChanged(data as DealRecord);
+    }
+    if (h) setHistory((prev) => [...prev, h as DealStageHistory]);
+  }
+
+  async function markLost() {
+    if (!deal) return;
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("deals")
+      .update({ stage: "Closed", sub_status: "Lost" })
+      .eq("id", deal.id)
+      .select()
+      .single();
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    const { data: h } = await supabase
+      .from("deal_stage_history")
+      .insert({ deal_id: deal.id, stage: "Closed", note: "Deal closed - Lost" })
+      .select()
+      .single();
+    if (data) {
+      setDeal(data as DealRecord);
+      onChanged(data as DealRecord);
+    }
+    if (h) setHistory((prev) => [...prev, h as DealStageHistory]);
+  }
+
+  const office = deal ? offices.find((o) => o.id === deal.office_id) : null;
+  const relevantTeams = deal
+    ? teams.filter((t) => t.name === "Capital Services" || (deal.sectors || []).includes(t.name))
+    : [];
+
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-panel" style={{ maxWidth: 680 }}>
+        <button className="modal-close" onClick={onClose}>×</button>
+        {loading || !deal ? (
+          <p style={{ color: "var(--gray-500)" }}>Loading…</p>
+        ) : (
+          <>
+            <h2 style={{ fontSize: 18, color: "var(--navy)" }}>{deal.deal_name}</h2>
+            <p style={{ fontSize: 13, color: "var(--gray-500)", marginBottom: 12 }}>{deal.property_address}</p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, margin: "16px 0", padding: 16, background: "var(--gray-50)", borderRadius: 8 }}>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Contact</span>
+                <div><strong>{deal.contact_name || "—"}</strong></div>
+                {deal.account_name && <div style={{ fontSize: 12, color: "var(--gray-500)" }}>{deal.account_name}</div>}
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Broker</span>
+                <div><strong>{deal.assigned_broker_name || "—"}</strong></div>
+                {office && <span className={`office-badge ${office.code.toLowerCase()}`}>{office.code}</span>}
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Stage</span>
+                <div>
+                  <span className={`stage-badge ${deal.stage === "Closed" && deal.sub_status === "Lost" ? "stage-closed-lost" : "stage-" + deal.stage.toLowerCase()}`}>
+                    {deal.stage}
+                  </span>{" "}
+                  {deal.sub_status && <span className={`substatus-${deal.sub_status.toLowerCase()}`}>{deal.sub_status}</span>}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Value</span>
+                <div><strong>{deal.deal_value ? "$" + deal.deal_value.toLocaleString() : "—"}</strong></div>
+              </div>
+            </div>
+
+            {deal.om_link && (
+              <div style={{ marginBottom: 14 }}>
+                <a href={deal.om_link} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: "inline-flex", padding: "8px 14px", fontSize: 13 }}>
+                  View Offering Memorandum
+                </a>
+              </div>
+            )}
+
+            {deal.notes && (
+              <div style={{ padding: 10, background: "#fdf8ec", borderRadius: 6, fontSize: 13, marginBottom: 14 }}>
+                <strong>Notes:</strong> {deal.notes}
+              </div>
+            )}
+
+            <h3 style={{ fontSize: 14, color: "var(--navy)", marginBottom: 8 }}>Stage History</h3>
+            <div style={{ borderLeft: "2px solid var(--gray-200)", marginLeft: 8, paddingLeft: 16, marginBottom: 18 }}>
+              {history.map((h, i) => (
+                <div key={h.id} style={{ marginBottom: 12, position: "relative" }}>
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: -22,
+                      top: 2,
+                      width: 12,
+                      height: 12,
+                      borderRadius: "50%",
+                      background: i === history.length - 1 ? "var(--gold)" : "var(--gray-300)",
+                      border: "2px solid white"
+                    }}
+                  />
+                  <div style={{ fontSize: 12, color: "var(--gray-500)" }}>{h.occurred_on}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    {h.stage}
+                    {h.note && (
+                      <>
+                        {" — "}
+                        <span style={{ fontWeight: 400, color: "var(--gray-600)" }}>{h.note}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {relevantTeams.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ fontSize: 14, color: "var(--navy)", marginBottom: 10 }}>Specialty Group Contacts</h3>
+                {relevantTeams.map((t) => (
+                  <div
+                    key={t.id}
+                    style={{
+                      marginBottom: 10,
+                      padding: 10,
+                      borderLeft: `3px solid ${t.color}`,
+                      background: `${t.color}08`,
+                      borderRadius: 6
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 700, color: t.color, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      {t.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--gray-500)" }}>{t.description}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {deal.stage !== "Closed" && (
+              <div style={{ display: "flex", gap: 8, paddingTop: 14, borderTop: "1px solid var(--gray-200)" }}>
+                <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={advance}>
+                  Advance to {DEAL_STAGES[DEAL_STAGES.indexOf(deal.stage) + 1]}
+                </button>
+                <button className="btn-outline" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={markLost}>
+                  Mark Lost
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
