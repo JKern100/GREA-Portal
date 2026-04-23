@@ -43,12 +43,13 @@ export default function AppHeader({ profile, officeCode }: Props) {
             gap: 12
           }}
         >
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: 0.5 }}>
-              <span style={{ color: "var(--gold)" }}>GREA</span> Contacts Portal
-            </h1>
-            <div style={{ fontSize: 12, color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
-              Cross-Office Contact & Deal Tool
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <img src="/logo-white.svg" alt="GREA" height={34} style={{ height: 34, width: "auto" }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.5 }}>Contacts Portal</div>
+              <div style={{ fontSize: 11, color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 1, marginTop: 1 }}>
+                Cross-Office Contact & Deal Tool
+              </div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
