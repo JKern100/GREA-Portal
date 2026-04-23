@@ -208,6 +208,12 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
     return profile.role === "office_admin" || profile.role === "superadmin";
   }
 
+  function canAddContacts() {
+    if (profile.role === "superadmin" || profile.role === "office_admin") return true;
+    const myOffice = offices.find((o) => o.id === profile.office_id);
+    return myOffice?.can_add_contacts ?? false;
+  }
+
   function onContactAdded(newContact: ContactRecord) {
     setContacts((prev) => [newContact, ...prev]);
     setShowAdd(false);
@@ -290,9 +296,11 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
           <button className="btn-primary" style={{ padding: "12px 22px" }} onClick={runSearch}>
             Search
           </button>
-          <button className="btn-outline" style={{ padding: "12px 18px" }} onClick={() => setShowAdd(true)}>
-            + Add Contact
-          </button>
+          {canAddContacts() && (
+            <button className="btn-outline" style={{ padding: "12px 18px" }} onClick={() => setShowAdd(true)}>
+              + Add Contact
+            </button>
+          )}
         </div>
         <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
           {([

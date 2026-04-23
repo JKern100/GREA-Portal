@@ -94,6 +94,7 @@ export default function OfficesAdmin({ offices: initial }: Props) {
               <th>Code</th>
               <th>Name</th>
               <th>Last Updated</th>
+              <th>Can Add Contacts</th>
               <th></th>
             </tr>
           </thead>
@@ -123,6 +124,13 @@ export default function OfficesAdmin({ offices: initial }: Props) {
                     style={{ padding: "4px 8px", fontSize: 13, width: 150 }}
                     value={o.last_updated ?? ""}
                     onChange={(e) => updateOffice(o.id, { last_updated: e.target.value || null })}
+                  />
+                </td>
+                <td style={{ textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={o.can_add_contacts}
+                    onChange={(e) => updateOffice(o.id, { can_add_contacts: e.target.checked })}
                   />
                 </td>
                 <td style={{ whiteSpace: "nowrap" }}>

@@ -19,6 +19,45 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
   const [saving, setSaving] = useState<string | null>(null);
   const [impersonating, setImpersonating] = useState<string | null>(null);
 
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteRole, setInviteRole] = useState<UserRole>("broker");
+  const [inviteOfficeId, setInviteOfficeId] = useState<string>("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteErr, setInviteErr] = useState<string | null>(null);
+  const [inviteOk, setInviteOk] = useState<string | null>(null);
+
+  async function sendInvite() {
+    setInviteErr(null);
+    setInviteOk(null);
+    const email = inviteEmail.trim();
+    if (!email) {
+      setInviteErr("Email is required.");
+      return;
+    }
+    setInviting(true);
+    const res = await fetch("/api/invite-user", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email,
+        name: inviteName.trim() || undefined,
+        role: inviteRole,
+        officeId: inviteOfficeId || null
+      })
+    });
+    setInviting(false);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setInviteErr(body.error ?? "Failed to send invite.");
+      return;
+    }
+    setInviteOk(`Invite sent to ${email}.`);
+    setInviteEmail("");
+    setInviteName("");
+    router.refresh();
+  }
+
   async function updateProfile(id: string, patch: Partial<Profile>) {
     setSaving(id);
     const supabase = createClient();
@@ -54,10 +93,65 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
     <div>
       <h2 style={{ fontSize: 22, color: "var(--navy)" }}>Users</h2>
       <p style={{ fontSize: 13, color: "var(--gray-500)", marginBottom: 18 }}>
-        Assign offices and roles. Users are created by signing up at /login — new accounts default to <strong>broker</strong>.
-        Click <strong>Impersonate</strong> to see the app as that user; a banner will appear at the top of every page and a
-        Stop button returns you to your own view.
+        Assign offices and roles, or invite users directly below. Click <strong>Impersonate</strong> to see the app as that
+        user; a banner will appear at the top of every page and a Stop button returns you to your own view.
       </p>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", marginBottom: 10 }}>Invite User</div>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label className="form-label">Email *</label>
+            <input
+              className="form-input"
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label className="form-label">Name</label>
+            <input className="form-input" value={inviteName} onChange={(e) => setInviteName(e.target.value)} />
+          </div>
+          <div>
+            <label className="form-label">Role</label>
+            <select
+              className="form-input"
+              style={{ width: 150 }}
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as UserRole)}
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {r.replace("_", " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Office</label>
+            <select
+              className="form-input"
+              style={{ width: 140 }}
+              value={inviteOfficeId}
+              onChange={(e) => setInviteOfficeId(e.target.value)}
+            >
+              <option value="">—</option>
+              {offices.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.code}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="btn-primary" onClick={sendInvite} disabled={inviting}>
+            {inviting ? "Sending…" : "Send Invite"}
+          </button>
+        </div>
+        {inviteErr && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 8 }}>{inviteErr}</div>}
+        {inviteOk && <div style={{ color: "#15803d", fontSize: 12, marginTop: 8 }}>{inviteOk}</div>}
+      </div>
       <div className="card" style={{ padding: 0, overflow: "auto" }}>
         <table className="data-table">
           <thead>

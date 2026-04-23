@@ -65,6 +65,16 @@ export async function requireSuperadmin(): Promise<Profile> {
   return effective;
 }
 
+export async function requireOfficeAdminOrSuperadmin(): Promise<Profile> {
+  const real = await getRealProfile();
+  if (!real) redirect("/login");
+  const effective = await getCurrentProfile();
+  if (!effective || (effective.role !== "office_admin" && effective.role !== "superadmin")) {
+    redirect("/contacts");
+  }
+  return effective;
+}
+
 export async function listOffices(): Promise<Office[]> {
   const supabase = createClient();
   const { data } = await supabase.from("offices").select("*").order("code");
