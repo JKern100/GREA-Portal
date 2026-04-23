@@ -38,6 +38,11 @@ export interface Profile {
   office_id: string | null;
   role: UserRole;
   is_active: boolean;
+  /**
+   * When a superadmin is impersonating another user, this holds the
+   * superadmin's own profile. Undefined on real (non-impersonated) profiles.
+   */
+  _impersonatedBy?: Profile;
 }
 
 export interface ContactRecord {

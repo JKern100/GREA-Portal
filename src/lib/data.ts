@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import type { ContactRecord, DealRecord, Office, Profile, SpecialtyTeam } from "@/lib/types";
 import { redirect } from "next/navigation";
+
+export const IMPERSONATE_COOKIE = "grea_impersonate_user_id";
 
 export async function getSessionUser() {
   const supabase = createClient();
@@ -11,7 +14,10 @@ export async function getSessionUser() {
   return user;
 }
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+/**
+ * Returns the real signed-in user's profile, ignoring any impersonation cookie.
+ */
+export async function getRealProfile(): Promise<Profile | null> {
   const supabase = createClient();
   const {
     data: { user }
@@ -21,6 +27,28 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   return data ? (data as unknown as Profile) : null;
 }
 
+/**
+ * Returns the "effective" profile for the current request. If the real user
+ * is a superadmin and an impersonation cookie is set, returns the impersonated
+ * user's profile with _impersonatedBy populated. Otherwise returns the real
+ * profile.
+ */
+export async function getCurrentProfile(): Promise<Profile | null> {
+  const real = await getRealProfile();
+  if (!real) return null;
+
+  if (real.role !== "superadmin") return real;
+
+  const impersonateId = cookies().get(IMPERSONATE_COOKIE)?.value;
+  if (!impersonateId || impersonateId === real.id) return real;
+
+  const supabase = createClient();
+  const { data } = await supabase.from("profiles").select("*").eq("id", impersonateId).maybeSingle();
+  if (!data) return real;
+
+  return { ...(data as unknown as Profile), _impersonatedBy: real };
+}
+
 export async function requireProfile(): Promise<Profile> {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
@@ -28,9 +56,13 @@ export async function requireProfile(): Promise<Profile> {
 }
 
 export async function requireSuperadmin(): Promise<Profile> {
-  const profile = await requireProfile();
-  if (profile.role !== "superadmin") redirect("/contacts");
-  return profile;
+  // Admin pages must check the REAL user — a superadmin impersonating a
+  // broker should not be able to access /admin while impersonating.
+  const real = await getRealProfile();
+  if (!real) redirect("/login");
+  const effective = await getCurrentProfile();
+  if (!effective || effective.role !== "superadmin") redirect("/contacts");
+  return effective;
 }
 
 export async function listOffices(): Promise<Office[]> {

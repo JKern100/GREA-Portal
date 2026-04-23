@@ -48,7 +48,7 @@ function LoginForm() {
 
   return (
     <div className="card" style={{ maxWidth: 420, width: "100%" }}>
-      <img src="/logo.svg" alt="GREA" style={{ height: 40, width: "auto", marginBottom: 8 }} />
+      <img src="/grea-logo.svg" alt="GREA" style={{ height: 36, width: "auto", marginBottom: 10 }} />
       <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>Contacts Portal</div>
       <p style={{ color: "var(--gray-500)", fontSize: 13, marginTop: 2, marginBottom: 20 }}>
         {mode === "signin" ? "Sign in to your account" : "Create a new account"}
