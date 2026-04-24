@@ -13,7 +13,7 @@ interface Props {
   teams: SpecialtyTeam[];
 }
 
-type SortField = "deal_name" | "contact_name" | "office" | "stage" | "deal_value" | "assigned_broker_name";
+type SortField = "deal_name" | "seller_name" | "office" | "stage" | "deal_value" | "assigned_broker_name";
 
 function formatValue(v: number | null) {
   if (!v) return "—";
@@ -46,8 +46,9 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
       list = list.filter(
         (d) =>
           d.deal_name.toLowerCase().includes(q) ||
-          (d.contact_name || "").toLowerCase().includes(q) ||
-          (d.account_name || "").toLowerCase().includes(q) ||
+          (d.seller_name || "").toLowerCase().includes(q) ||
+          (d.buyer_name || "").toLowerCase().includes(q) ||
+          (d.property_type || "").toLowerCase().includes(q) ||
           (d.property_address || "").toLowerCase().includes(q) ||
           (d.assigned_broker_name || "").toLowerCase().includes(q)
       );
@@ -140,7 +141,8 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
           <thead>
             <tr>
               <th onClick={() => setSort("deal_name")}>Deal{arrow("deal_name")}</th>
-              <th onClick={() => setSort("contact_name")}>Contact / Account{arrow("contact_name")}</th>
+              <th>Type</th>
+              <th onClick={() => setSort("seller_name")}>Seller / Buyer{arrow("seller_name")}</th>
               <th onClick={() => setSort("office")}>Office{arrow("office")}</th>
               <th onClick={() => setSort("stage")}>Stage{arrow("stage")}</th>
               <th onClick={() => setSort("deal_value")}>Value{arrow("deal_value")}</th>
@@ -151,7 +153,7 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 24, color: "var(--gray-400)" }}>
+                <td colSpan={8} style={{ textAlign: "center", padding: 24, color: "var(--gray-400)" }}>
                   No deals match your filters.
                 </td>
               </tr>
@@ -170,11 +172,16 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
                         <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.property_address}</div>
                       )}
                     </td>
-                    <td>
-                      {d.contact_name || "—"}
-                      {d.account_name && (
-                        <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.account_name}</div>
-                      )}
+                    <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{d.property_type || "—"}</td>
+                    <td style={{ fontSize: 12 }}>
+                      <div>
+                        <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>S:</span>{" "}
+                        {d.seller_name || "—"}
+                      </div>
+                      <div>
+                        <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>B:</span>{" "}
+                        {d.buyer_name || "—"}
+                      </div>
                     </td>
                     <td>
                       {office ? <span className={`office-badge ${office.code.toLowerCase()}`}>{office.code}</span> : "—"}

@@ -1,0 +1,6 @@
+GREA Contacts Portal — Deal Pipeline Submission Template,,,,,,,,,,,,
+Deal Name *,Address,Property Type *,Amount ($),Stage *,Office *,Broker *,Seller,Buyer,Sectors,OM Link,Date Added *,Notes
+Required,Optional,Required,Optional,Required,Required,Required,Optional,Optional,Optional,Optional,Required,Optional
+125 W 72nd St Portfolio,"125 W 72nd St, New York, NY",Multifamily,"12,500,000",Listing,NYC,Michael Tortorici,Goldberg Family Trust,Chen Properties Group,Multifamily,https://drive.google.com/file/d/example-om/view,2026-01-10,"Exclusive listing — 48-unit walkup, UWS"
+Newark Mixed-Use Assemblage,"44-52 Market St, Newark, NJ",Mixed-Use,"8,750,000",Lead,NJ,Patricia Sullivan,Sorrento Holdings,,"Multifamily, General",,2026-03-15,Off-market — confidential
+Atlanta Student Portfolio,"Various, Atlanta, GA",Multifamily,"22,000,000",Contract,ATL,Derek Poole,SFR Capital Partners,Apex Student Housing REIT,Student Housing,https://drive.google.com/file/d/example-atl/view,2025-12-01,3-property portfolio near Georgia Tech

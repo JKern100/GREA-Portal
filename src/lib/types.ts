@@ -74,8 +74,9 @@ export interface DealRecord {
   id: string;
   deal_name: string;
   property_address: string;
-  contact_name: string;
-  account_name: string;
+  property_type: string | null;
+  seller_name: string | null;
+  buyer_name: string | null;
   office_id: string;
   assigned_broker_id: string | null;
   assigned_broker_name: string;
@@ -85,6 +86,7 @@ export interface DealRecord {
   sectors: string[];
   notes: string | null;
   om_link: string | null;
+  date_added: string | null;
   is_confidential: boolean;
   created_by: string | null;
   created_at: string;

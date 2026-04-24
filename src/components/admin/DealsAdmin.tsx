@@ -33,8 +33,9 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
       if (!q) return true;
       return (
         d.deal_name.toLowerCase().includes(q) ||
-        (d.contact_name || "").toLowerCase().includes(q) ||
-        (d.account_name || "").toLowerCase().includes(q)
+        (d.seller_name || "").toLowerCase().includes(q) ||
+        (d.buyer_name || "").toLowerCase().includes(q) ||
+        (d.property_type || "").toLowerCase().includes(q)
       );
     });
   }, [deals, search, officeFilter]);
@@ -95,7 +96,8 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
           <thead>
             <tr>
               <th>Deal</th>
-              <th>Contact</th>
+              <th>Type</th>
+              <th>Seller / Buyer</th>
               <th>Office</th>
               <th>Stage</th>
               <th>Value</th>
@@ -113,9 +115,14 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                     <strong>{d.deal_name}</strong>
                     {d.property_address && <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.property_address}</div>}
                   </td>
-                  <td>
-                    {d.contact_name || "—"}
-                    {d.account_name && <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.account_name}</div>}
+                  <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{d.property_type || "—"}</td>
+                  <td style={{ fontSize: 12 }}>
+                    <div>
+                      <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase" }}>S:</span> {d.seller_name || "—"}
+                    </div>
+                    <div>
+                      <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase" }}>B:</span> {d.buyer_name || "—"}
+                    </div>
                   </td>
                   <td>{office && <span className={`office-badge ${office.code.toLowerCase()}`}>{office.code}</span>}</td>
                   <td>

@@ -49,9 +49,16 @@ export default function DealDetailModal({ dealId, offices, teams, onClose }: Pro
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, margin: "16px 0", padding: 16, background: "var(--gray-50)", borderRadius: 8 }}>
               <div>
-                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Contact</span>
-                <div><strong>{deal.contact_name || "—"}</strong></div>
-                {deal.account_name && <div style={{ fontSize: 12, color: "var(--gray-500)" }}>{deal.account_name}</div>}
+                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Seller</span>
+                <div><strong>{deal.seller_name || "—"}</strong></div>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Buyer</span>
+                <div><strong>{deal.buyer_name || "—"}</strong></div>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Property Type</span>
+                <div><strong>{deal.property_type || "—"}</strong></div>
               </div>
               <div>
                 <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Broker</span>
