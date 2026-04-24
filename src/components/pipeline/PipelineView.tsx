@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { DealRecord, DealStage, Office, Profile, SpecialtyTeam } from "@/lib/types";
 import { DEAL_STAGES } from "@/lib/types";
 import DealDetailModal from "./DealDetailModal";
@@ -206,7 +207,15 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
                     <td style={{ whiteSpace: "nowrap" }}>
                       <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => setDetailId(d.id)}>
                         View
-                      </button>
+                      </button>{" "}
+                      <Link
+                        href={`/feedback?submit=1&deal=${d.id}&context_url=/pipeline&title=${encodeURIComponent("Issue with deal: " + d.deal_name)}`}
+                        className="btn-outline"
+                        style={{ padding: "3px 10px", fontSize: 11, textDecoration: "none" }}
+                        title="Report an issue with this deal"
+                      >
+                        Report
+                      </Link>
                     </td>
                   </tr>
                 );

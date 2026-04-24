@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import type {
   ContactRecord,
   DealRecord,
+  FeedbackItem,
   MailingListEntry,
   Office,
   Profile,
@@ -125,4 +126,13 @@ export async function listMailingListEntries(): Promise<MailingListEntry[]> {
     .select("*")
     .order("name", { ascending: true });
   return (data as MailingListEntry[]) ?? [];
+}
+
+export async function listFeedbackItems(): Promise<FeedbackItem[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("feedback_items")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return (data as FeedbackItem[]) ?? [];
 }

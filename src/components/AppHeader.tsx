@@ -15,7 +15,8 @@ export default function AppHeader({ profile, officeCode }: Props) {
   const tabs = [
     { href: "/contacts", label: "Contacts" },
     { href: "/pipeline", label: "Pipeline" },
-    { href: "/mailing-list", label: "Mailing List" }
+    { href: "/mailing-list", label: "Mailing List" },
+    { href: "/feedback", label: "Feedback" }
   ];
   if (profile.role === "office_admin") {
     tabs.push({ href: "/my-office", label: "My Office" });

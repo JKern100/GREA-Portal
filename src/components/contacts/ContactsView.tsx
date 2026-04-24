@@ -17,6 +17,7 @@ type SearchType = "all" | "contact" | "account";
 interface OfficeGroupEntry {
   office: string;
   officeId: string;
+  contactId: string;
   brokerName: string;
   brokerPhone: string;
   listing: string | null;
@@ -126,6 +127,7 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
       const entry: OfficeGroupEntry = {
         office: officeCode,
         officeId: item.office_id,
+        contactId: item.id,
         brokerName: item.broker_name_snapshot || "",
         brokerPhone: item.broker_phone_snapshot || "",
         listing: item.listing,
@@ -518,6 +520,14 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                               Request Intro
                             </a>
                           )}
+                          <a
+                            className="btn-outline"
+                            style={{ padding: "4px 10px", fontSize: 11 }}
+                            href={`/feedback?submit=1&contact=${o.contactId}&context_url=/contacts&title=${encodeURIComponent("Issue with contact: " + g.contactName + " (" + o.office + ")")}`}
+                            title="Report an issue with this contact"
+                          >
+                            Report
+                          </a>
                         </div>
                       ))}
                     </div>

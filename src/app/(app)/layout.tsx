@@ -1,4 +1,5 @@
 import AppHeader from "@/components/AppHeader";
+import FeedbackLauncher from "@/components/FeedbackLauncher";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import { listOffices, requireProfile } from "@/lib/data";
 
@@ -18,6 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       )}
       <AppHeader profile={profile} officeCode={officeCode} />
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px" }}>{children}</main>
+      <FeedbackLauncher />
     </>
   );
 }

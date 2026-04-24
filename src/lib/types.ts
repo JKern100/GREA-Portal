@@ -119,3 +119,33 @@ export interface MailingListEntry {
   updated_at: string;
 }
 
+export type FeedbackCategory = "bug" | "suggestion" | "question" | "other";
+export type FeedbackStatus = "open" | "in_progress" | "resolved" | "closed";
+
+export const FEEDBACK_CATEGORIES: FeedbackCategory[] = ["bug", "suggestion", "question", "other"];
+export const FEEDBACK_STATUSES: FeedbackStatus[] = ["open", "in_progress", "resolved", "closed"];
+
+export interface FeedbackItem {
+  id: string;
+  title: string;
+  body: string;
+  category: FeedbackCategory;
+  status: FeedbackStatus;
+  submitted_by: string | null;
+  assigned_to: string | null;
+  related_contact_id: string | null;
+  related_deal_id: string | null;
+  context_url: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeedbackComment {
+  id: string;
+  item_id: string;
+  author_id: string | null;
+  body: string;
+  created_at: string;
+}
+
