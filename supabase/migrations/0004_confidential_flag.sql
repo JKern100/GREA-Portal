@@ -6,6 +6,10 @@
 --     (plus superadmins).
 -- ============================================================
 
+-- Drop the policy from 0002 that referenced offices.can_add_contacts
+-- before we can drop the column itself.
+drop policy if exists contacts_insert on public.contacts;
+
 alter table public.offices drop column if exists can_add_contacts;
 
 alter table public.contacts
