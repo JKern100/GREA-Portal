@@ -44,7 +44,7 @@ function cls(s: string) {
 }
 
 export default function ContactsView({ profile, offices, initialContacts }: Props) {
-  const [contacts, setContacts] = useState<ContactRecord[]>(initialContacts);
+  const [contacts] = useState<ContactRecord[]>(initialContacts);
   const [query, setQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("all");
   const [lastQuery, setLastQuery] = useState("");

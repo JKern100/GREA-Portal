@@ -28,6 +28,11 @@ export async function POST(request: Request) {
   const email = body.email?.trim().toLowerCase();
   if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
+  const ALLOWED_ROLES: UserRole[] = ["broker", "office_admin", "superadmin"];
+  if (body.role && !ALLOWED_ROLES.includes(body.role)) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+
   let role: UserRole;
   let officeId: string | null;
 
