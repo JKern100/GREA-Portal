@@ -58,6 +58,21 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
     if (data) setContacts((prev) => prev.map((c) => (c.id === id ? (data as ContactRecord) : c)));
   }
 
+  async function toggleConfidential(id: string, next: boolean) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("contacts")
+      .update({ is_confidential: next })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    if (data) setContacts((prev) => prev.map((c) => (c.id === id ? (data as ContactRecord) : c)));
+  }
+
   return (
     <div>
       <h2 style={{ fontSize: 22, color: "var(--navy)" }}>Contacts</h2>
@@ -86,6 +101,7 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
               <th>Tags</th>
               <th>Sectors</th>
               <th>Added</th>
+              <th>Confidential</th>
               <th></th>
             </tr>
           </thead>
@@ -121,6 +137,13 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
                     ))}
                   </td>
                   <td style={{ fontSize: 12 }}>{c.date_added}</td>
+                  <td style={{ textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={c.is_confidential}
+                      onChange={(e) => toggleConfidential(c.id, e.target.checked)}
+                    />
+                  </td>
                   <td><button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => remove(c.id)}>Delete</button></td>
                 </tr>
               );

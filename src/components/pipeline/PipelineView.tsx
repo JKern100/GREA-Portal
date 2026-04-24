@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import type { DealRecord, DealStage, Office, Profile, SpecialtyTeam } from "@/lib/types";
 import { DEAL_STAGES } from "@/lib/types";
 import DealDetailModal from "./DealDetailModal";
@@ -23,7 +22,7 @@ function formatValue(v: number | null) {
 }
 
 export default function PipelineView({ profile, offices, initialDeals, teams }: Props) {
-  const [deals, setDeals] = useState<DealRecord[]>(initialDeals);
+  const [deals] = useState<DealRecord[]>(initialDeals);
   const [stageFilter, setStageFilter] = useState<string>("");
   const [officeFilter, setOfficeFilter] = useState<string>("");
   const [search, setSearch] = useState("");
@@ -99,31 +98,6 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
 
   function arrow(f: SortField) {
     return f === sortField ? (sortAsc ? " ▲" : " ▼") : "";
-  }
-
-  async function advance(dealId: string) {
-    const deal = deals.find((d) => d.id === dealId);
-    if (!deal || deal.stage === "Closed") return;
-    const idx = DEAL_STAGES.indexOf(deal.stage);
-    const next = DEAL_STAGES[idx + 1];
-    const supabase = createClient();
-    const subStatus = next === "Closed" ? "Won" : null;
-    const { error } = await supabase
-      .from("deals")
-      .update({ stage: next, sub_status: subStatus })
-      .eq("id", dealId);
-    if (error) {
-      alert(error.message);
-      return;
-    }
-    await supabase.from("deal_stage_history").insert({
-      deal_id: dealId,
-      stage: next,
-      note: next === "Closed" ? "Deal closed - Won" : "Stage advanced"
-    });
-    setDeals((prev) =>
-      prev.map((d) => (d.id === dealId ? { ...d, stage: next, sub_status: subStatus } : d))
-    );
   }
 
   const totalPipelineValue = deals.reduce((s, d) => s + (d.deal_value || 0), 0);
@@ -207,18 +181,32 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
                     <td>
                       <span className={`stage-badge ${stageClass}`}>{d.stage}</span>{" "}
                       {d.sub_status && <span className={`substatus-${d.sub_status.toLowerCase()}`}>{d.sub_status}</span>}
+                      {d.is_confidential && (
+                        <span
+                          title="Confidential"
+                          style={{
+                            marginLeft: 6,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                            background: "#fee2e2",
+                            color: "#991b1b",
+                            border: "1px solid #fecaca"
+                          }}
+                        >
+                          Confidential
+                        </span>
+                      )}
                     </td>
                     <td style={{ fontWeight: 600 }}>{formatValue(d.deal_value)}</td>
                     <td>{d.assigned_broker_name || "—"}</td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => setDetailId(d.id)}>
                         View
-                      </button>{" "}
-                      {d.stage !== "Closed" && (
-                        <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => advance(d.id)}>
-                          Advance
-                        </button>
-                      )}
+                      </button>
                     </td>
                   </tr>
                 );
@@ -234,9 +222,6 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
           offices={offices}
           teams={teams}
           onClose={() => setDetailId(null)}
-          onChanged={(updated) => {
-            setDeals((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-          }}
         />
       )}
     </>

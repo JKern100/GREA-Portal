@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import MyOfficeAdmin from "@/components/office-admin/MyOfficeAdmin";
 import { createClient } from "@/lib/supabase/server";
 import { listOffices, requireOfficeAdminOrSuperadmin } from "@/lib/data";
-import type { Office, Profile } from "@/lib/types";
+import type { ContactRecord, DealRecord, Office, Profile } from "@/lib/types";
 
 export default async function MyOfficePage() {
   const profile = await requireOfficeAdminOrSuperadmin();
@@ -26,16 +26,26 @@ export default async function MyOfficePage() {
   if (!office) redirect("/contacts");
 
   const supabase = createClient();
-  const { data: members } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("office_id", profile.office_id)
-    .order("name");
+  const [membersRes, contactsRes, dealsRes] = await Promise.all([
+    supabase.from("profiles").select("*").eq("office_id", profile.office_id).order("name"),
+    supabase
+      .from("contacts")
+      .select("*")
+      .eq("office_id", profile.office_id)
+      .order("contact_name"),
+    supabase
+      .from("deals")
+      .select("*")
+      .eq("office_id", profile.office_id)
+      .order("deal_name")
+  ]);
 
   return (
     <MyOfficeAdmin
       office={office}
-      members={(members as Profile[]) ?? []}
+      members={(membersRes.data as Profile[]) ?? []}
+      contacts={(contactsRes.data as ContactRecord[]) ?? []}
+      deals={(dealsRes.data as DealRecord[]) ?? []}
       currentUserId={profile.id}
     />
   );

@@ -3,17 +3,15 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { DealRecord, DealStageHistory, Office, SpecialtyTeam } from "@/lib/types";
-import { DEAL_STAGES } from "@/lib/types";
 
 interface Props {
   dealId: string;
   offices: Office[];
   teams: SpecialtyTeam[];
   onClose: () => void;
-  onChanged: (deal: DealRecord) => void;
 }
 
-export default function DealDetailModal({ dealId, offices, teams, onClose, onChanged }: Props) {
+export default function DealDetailModal({ dealId, offices, teams, onClose }: Props) {
   const [deal, setDeal] = useState<DealRecord | null>(null);
   const [history, setHistory] = useState<DealStageHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,59 +30,6 @@ export default function DealDetailModal({ dealId, offices, teams, onClose, onCha
     };
     load();
   }, [dealId]);
-
-  async function advance() {
-    if (!deal || deal.stage === "Closed") return;
-    const idx = DEAL_STAGES.indexOf(deal.stage);
-    const next = DEAL_STAGES[idx + 1];
-    const supabase = createClient();
-    const subStatus = next === "Closed" ? "Won" : null;
-    const { data, error } = await supabase
-      .from("deals")
-      .update({ stage: next, sub_status: subStatus })
-      .eq("id", deal.id)
-      .select()
-      .single();
-    if (error) {
-      alert(error.message);
-      return;
-    }
-    const { data: h } = await supabase
-      .from("deal_stage_history")
-      .insert({ deal_id: deal.id, stage: next, note: next === "Closed" ? "Deal closed - Won" : "Stage advanced" })
-      .select()
-      .single();
-    if (data) {
-      setDeal(data as DealRecord);
-      onChanged(data as DealRecord);
-    }
-    if (h) setHistory((prev) => [...prev, h as DealStageHistory]);
-  }
-
-  async function markLost() {
-    if (!deal) return;
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("deals")
-      .update({ stage: "Closed", sub_status: "Lost" })
-      .eq("id", deal.id)
-      .select()
-      .single();
-    if (error) {
-      alert(error.message);
-      return;
-    }
-    const { data: h } = await supabase
-      .from("deal_stage_history")
-      .insert({ deal_id: deal.id, stage: "Closed", note: "Deal closed - Lost" })
-      .select()
-      .single();
-    if (data) {
-      setDeal(data as DealRecord);
-      onChanged(data as DealRecord);
-    }
-    if (h) setHistory((prev) => [...prev, h as DealStageHistory]);
-  }
 
   const office = deal ? offices.find((o) => o.id === deal.office_id) : null;
   const relevantTeams = deal
@@ -195,16 +140,6 @@ export default function DealDetailModal({ dealId, offices, teams, onClose, onCha
               </div>
             )}
 
-            {deal.stage !== "Closed" && (
-              <div style={{ display: "flex", gap: 8, paddingTop: 14, borderTop: "1px solid var(--gray-200)" }}>
-                <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={advance}>
-                  Advance to {DEAL_STAGES[DEAL_STAGES.indexOf(deal.stage) + 1]}
-                </button>
-                <button className="btn-outline" style={{ color: "var(--red)", borderColor: "var(--red)" }} onClick={markLost}>
-                  Mark Lost
-                </button>
-              </div>
-            )}
           </>
         )}
       </div>

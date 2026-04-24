@@ -24,6 +24,7 @@ interface OfficeGroupEntry {
   tags: string[];
   sectors: string[];
   dateAdded: string;
+  isConfidential: boolean;
 }
 
 interface Group {
@@ -131,7 +132,8 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         note: item.note,
         tags: item.tags || [],
         sectors: item.sectors || [],
-        dateAdded: item.date_added
+        dateAdded: item.date_added,
+        isConfidential: item.is_confidential
       };
 
       let merged = false;
@@ -411,6 +413,24 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                       )}
                     </div>
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      {g.offices.some((o) => o.isConfidential) && (
+                        <span
+                          title="Contains confidential records"
+                          style={{
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                            background: "#fee2e2",
+                            color: "#991b1b",
+                            border: "1px solid #fecaca"
+                          }}
+                        >
+                          Confidential
+                        </span>
+                      )}
                       {g.offices.map((o) => (
                         <span key={o.officeId} className={`office-badge ${o.office.toLowerCase()}`}>
                           {o.office}

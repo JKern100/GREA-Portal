@@ -58,6 +58,7 @@ export interface ContactRecord {
   tags: string[];
   sectors: string[];
   date_added: string;
+  is_confidential: boolean;
   created_by: string | null;
   created_at: string;
   // joined
@@ -80,6 +81,7 @@ export interface DealRecord {
   sectors: string[];
   notes: string | null;
   om_link: string | null;
+  is_confidential: boolean;
   created_by: string | null;
   created_at: string;
   office?: Office | null;

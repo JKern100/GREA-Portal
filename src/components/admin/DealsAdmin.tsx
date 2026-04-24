@@ -60,6 +60,21 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
     setDeals((prev) => prev.filter((d) => d.id !== id));
   }
 
+  async function toggleConfidential(id: string, next: boolean) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("deals")
+      .update({ is_confidential: next })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    if (data) setDeals((prev) => prev.map((d) => (d.id === id ? (data as DealRecord) : d)));
+  }
+
   return (
     <div>
       <h2 style={{ fontSize: 22, color: "var(--navy)" }}>Deals</h2>
@@ -85,6 +100,7 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
               <th>Stage</th>
               <th>Value</th>
               <th>Broker</th>
+              <th>Confidential</th>
               <th></th>
             </tr>
           </thead>
@@ -114,6 +130,13 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                   </td>
                   <td>{formatValue(d.deal_value)}</td>
                   <td style={{ fontSize: 12 }}>{d.assigned_broker_name}</td>
+                  <td style={{ textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={d.is_confidential}
+                      onChange={(e) => toggleConfidential(d.id, e.target.checked)}
+                    />
+                  </td>
                   <td><button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => remove(d.id)}>Delete</button></td>
                 </tr>
               );
