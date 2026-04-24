@@ -53,11 +53,15 @@ export interface ContactRecord {
   broker_id: string | null;
   broker_name_snapshot: string;
   broker_phone_snapshot: string;
+  contact_phone: string | null;
+  contact_email: string | null;
+  relationship_status: string | null;
   listing: string | null;
   note: string | null;
   tags: string[];
   sectors: string[];
   date_added: string;
+  last_contact_date: string | null;
   is_confidential: boolean;
   created_by: string | null;
   created_at: string;

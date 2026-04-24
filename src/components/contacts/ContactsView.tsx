@@ -20,6 +20,10 @@ interface OfficeGroupEntry {
   contactId: string;
   brokerName: string;
   brokerPhone: string;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  relationshipStatus: string | null;
+  lastContactDate: string | null;
   listing: string | null;
   note: string | null;
   tags: string[];
@@ -130,6 +134,10 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         contactId: item.id,
         brokerName: item.broker_name_snapshot || "",
         brokerPhone: item.broker_phone_snapshot || "",
+        contactPhone: item.contact_phone,
+        contactEmail: item.contact_email,
+        relationshipStatus: item.relationship_status,
+        lastContactDate: item.last_contact_date,
         listing: item.listing,
         note: item.note,
         tags: item.tags || [],
@@ -473,12 +481,44 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                             {o.office}
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--gray-800)" }}>{o.brokerName || "—"}</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--gray-800)" }}>{o.brokerName || "—"}</div>
+                              {o.relationshipStatus && (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    textTransform: "uppercase",
+                                    letterSpacing: 0.4,
+                                    padding: "1px 7px",
+                                    borderRadius: 10,
+                                    background: "var(--gray-100)",
+                                    color: "var(--gray-700)"
+                                  }}
+                                >
+                                  {o.relationshipStatus}
+                                </span>
+                              )}
+                            </div>
                             {o.brokerPhone && (
                               <div style={{ fontSize: 13, color: "var(--gray-500)" }}>
                                 <a href={`tel:${o.brokerPhone}`} style={{ color: "var(--navy)", textDecoration: "none" }}>
                                   {o.brokerPhone}
                                 </a>
+                              </div>
+                            )}
+                            {(o.contactEmail || o.contactPhone) && (
+                              <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                {o.contactEmail && (
+                                  <a href={`mailto:${o.contactEmail}`} style={{ color: "var(--navy)" }}>
+                                    {o.contactEmail}
+                                  </a>
+                                )}
+                                {o.contactPhone && (
+                                  <a href={`tel:${o.contactPhone}`} style={{ color: "var(--navy)" }}>
+                                    {o.contactPhone}
+                                  </a>
+                                )}
                               </div>
                             )}
                             {o.tags.length > 0 && (
@@ -491,7 +531,10 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                               </div>
                             )}
                             {o.note && <div style={{ fontSize: 12, color: "var(--gray-600)", marginTop: 4, fontStyle: "italic" }}>{o.note}</div>}
-                            <div style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 2 }}>Added: {o.dateAdded}</div>
+                            <div style={{ fontSize: 11, color: "var(--gray-400)", marginTop: 2 }}>
+                              Added: {o.dateAdded}
+                              {o.lastContactDate && <span> · Last contact: {o.lastContactDate}</span>}
+                            </div>
                           </div>
                           {o.listing && (
                             <span

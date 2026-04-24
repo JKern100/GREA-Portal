@@ -1,0 +1,6 @@
+GREA Contacts Portal — Office Contact Submission Template,,,,,,,,,,,,,
+Contact Name *,Account Name *,Office *,Managing Broker Name *,Managing Broker Phone *,Contact Phone,Contact Email,Relationship Status,Tags *,Sectors *,Date Added *,Last Contact Date,Listing,Note
+Required,Required,Required,Required,Required,Optional,Optional,Optional,Required,Required,Required,Optional,Optional,Optional
+John Smith,Smith Capital Partners,NYC,Michael Tortorici,(212) 555-1234 x10,(212) 555-9000,jsmith@smithcap.com,Active,"Client, Seller","Affordable Housing, Multifamily",2026-01-15,2026-04-10,125 Main St,"Active buyer — multifamily, interested in Bronx portfolios"
+Sarah Johnson,Johnson Development LLC,ATL,Derek Poole,(404) 555-2222 x05,(404) 555-8800,sjohnson@johnsondv.com,Active,"Active, Buyer",Student Housing,2025-11-01,2026-03-20,,"Seller — affordable housing, prefers off-market"
+Michael Chen,Chen Properties Group,NJ,Patricia Sullivan,(201) 555-5678 x20,,,Prospect,"Active, Buyer","Multifamily, General",2026-03-01,,400 Park Ave,
