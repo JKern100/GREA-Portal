@@ -27,7 +27,6 @@ export interface Office {
   code: string;
   name: string;
   last_updated: string | null;
-  can_add_contacts: boolean;
 }
 
 export interface Profile {
@@ -100,5 +99,21 @@ export interface SpecialtyTeam {
   name: string;
   description: string;
   color: string;
+}
+
+export interface MailingListEntry {
+  id: string;
+  name: string;
+  email: string | null;
+  organization: string | null;
+  title: string | null;
+  phone: string | null;
+  sectors: string[];
+  tags: string[];
+  notes: string | null;
+  source_office_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 

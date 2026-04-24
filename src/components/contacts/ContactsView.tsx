@@ -3,7 +3,6 @@
 import Fuse from "fuse.js";
 import { useMemo, useState } from "react";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
-import AddContactModal from "./AddContactModal";
 import StatsModal from "./StatsModal";
 import MyOfficeModal from "./MyOfficeModal";
 
@@ -54,7 +53,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
   const [sectorFilters, setSectorFilters] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
-  const [showAdd, setShowAdd] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showMyOffice, setShowMyOffice] = useState(false);
   const [selectedOffice, setSelectedOffice] = useState<string>(
@@ -208,17 +206,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
     return profile.role === "office_admin" || profile.role === "superadmin";
   }
 
-  function canAddContacts() {
-    if (profile.role === "superadmin" || profile.role === "office_admin") return true;
-    const myOffice = offices.find((o) => o.id === profile.office_id);
-    return myOffice?.can_add_contacts ?? false;
-  }
-
-  function onContactAdded(newContact: ContactRecord) {
-    setContacts((prev) => [newContact, ...prev]);
-    setShowAdd(false);
-  }
-
   return (
     <>
       {/* Office selector (admin-only) */}
@@ -296,11 +283,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
           <button className="btn-primary" style={{ padding: "12px 22px" }} onClick={runSearch}>
             Search
           </button>
-          {canAddContacts() && (
-            <button className="btn-outline" style={{ padding: "12px 18px" }} onClick={() => setShowAdd(true)}>
-              + Add Contact
-            </button>
-          )}
         </div>
         <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
           {([
@@ -527,14 +509,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         </>
       )}
 
-      {showAdd && (
-        <AddContactModal
-          offices={offices}
-          profile={profile}
-          onClose={() => setShowAdd(false)}
-          onCreated={onContactAdded}
-        />
-      )}
       {showStats && <StatsModal contacts={contacts} offices={offices} onClose={() => setShowStats(false)} />}
       {showMyOffice && canShowMyOffice() && (
         <MyOfficeModal

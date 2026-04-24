@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
-import type { ContactRecord, DealRecord, Office, Profile, SpecialtyTeam } from "@/lib/types";
+import type {
+  ContactRecord,
+  DealRecord,
+  MailingListEntry,
+  Office,
+  Profile,
+  SpecialtyTeam
+} from "@/lib/types";
 import { redirect } from "next/navigation";
 
 export const IMPERSONATE_COOKIE = "grea_impersonate_user_id";
@@ -109,4 +116,13 @@ export async function listSpecialtyTeams(): Promise<SpecialtyTeam[]> {
   const supabase = createClient();
   const { data } = await supabase.from("specialty_teams").select("*").order("name");
   return (data as SpecialtyTeam[]) ?? [];
+}
+
+export async function listMailingListEntries(): Promise<MailingListEntry[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("mailing_list_entries")
+    .select("*")
+    .order("name", { ascending: true });
+  return (data as MailingListEntry[]) ?? [];
 }

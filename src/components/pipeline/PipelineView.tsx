@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { DealRecord, DealStage, Office, Profile, SpecialtyTeam } from "@/lib/types";
 import { DEAL_STAGES } from "@/lib/types";
-import NewDealModal from "./NewDealModal";
 import DealDetailModal from "./DealDetailModal";
 
 interface Props {
@@ -30,7 +29,6 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>("stage");
   const [sortAsc, setSortAsc] = useState(true);
-  const [showNew, setShowNew] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const officeById = useMemo(() => {
@@ -128,11 +126,6 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
     );
   }
 
-  function onDealCreated(d: DealRecord) {
-    setDeals((prev) => [d, ...prev]);
-    setShowNew(false);
-  }
-
   const totalPipelineValue = deals.reduce((s, d) => s + (d.deal_value || 0), 0);
 
   return (
@@ -144,7 +137,6 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
             {deals.length} deals · {formatValue(totalPipelineValue)} total pipeline
           </p>
         </div>
-        <button className="btn-gold" onClick={() => setShowNew(true)}>+ New Deal</button>
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
@@ -236,14 +228,6 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
         </table>
       </div>
 
-      {showNew && (
-        <NewDealModal
-          profile={profile}
-          offices={offices}
-          onClose={() => setShowNew(false)}
-          onCreated={onDealCreated}
-        />
-      )}
       {detailId && (
         <DealDetailModal
           dealId={detailId}

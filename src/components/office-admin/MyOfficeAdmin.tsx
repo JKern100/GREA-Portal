@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import type { Office, Profile } from "@/lib/types";
 
 interface Props {
@@ -11,37 +10,15 @@ interface Props {
   currentUserId: string;
 }
 
-export default function MyOfficeAdmin({ office: initialOffice, members: initialMembers, currentUserId }: Props) {
+export default function MyOfficeAdmin({ office, members: initialMembers, currentUserId }: Props) {
   const router = useRouter();
-  const [office, setOffice] = useState(initialOffice);
-  const [members, setMembers] = useState(initialMembers);
-
-  const [toggling, setToggling] = useState(false);
-  const [toggleErr, setToggleErr] = useState<string | null>(null);
+  const [members] = useState(initialMembers);
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteErr, setInviteErr] = useState<string | null>(null);
   const [inviteOk, setInviteOk] = useState<string | null>(null);
-
-  async function toggleCanAddContacts(next: boolean) {
-    setToggling(true);
-    setToggleErr(null);
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("offices")
-      .update({ can_add_contacts: next })
-      .eq("id", office.id)
-      .select()
-      .single();
-    setToggling(false);
-    if (error) {
-      setToggleErr(error.message);
-      return;
-    }
-    if (data) setOffice(data as Office);
-  }
 
   async function sendInvite() {
     setInviteErr(null);
@@ -77,27 +54,6 @@ export default function MyOfficeAdmin({ office: initialOffice, members: initialM
       <p style={{ fontSize: 13, color: "var(--gray-500)", marginBottom: 18 }}>
         Manage your office&apos;s settings and invite brokers to the portal.
       </p>
-
-      <div className="card" style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", marginBottom: 10 }}>
-          Office Permissions
-        </div>
-        <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
-          <input
-            type="checkbox"
-            checked={office.can_add_contacts}
-            disabled={toggling}
-            onChange={(e) => toggleCanAddContacts(e.target.checked)}
-          />
-          <span>
-            <strong>Brokers can add contacts</strong>
-            <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
-              When disabled, only you (and superadmins) can add new contacts for this office.
-            </div>
-          </span>
-        </label>
-        {toggleErr && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 8 }}>{toggleErr}</div>}
-      </div>
 
       <div className="card" style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)", marginBottom: 10 }}>
