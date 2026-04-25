@@ -8,5 +8,10 @@ export default async function NetworkPage() {
     listContacts(),
     listDeals()
   ]);
-  return <NetworkView profile={profile} offices={offices} contacts={contacts} deals={deals} />;
+
+  // Hidden records don't count toward cross-office Network stats.
+  const visibleContacts = contacts.filter((c) => !c.is_confidential);
+  const visibleDeals = deals.filter((d) => !d.is_confidential);
+
+  return <NetworkView profile={profile} offices={offices} contacts={visibleContacts} deals={visibleDeals} />;
 }

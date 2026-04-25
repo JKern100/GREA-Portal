@@ -66,7 +66,7 @@ export default function MyOfficeDeals({ deals: initial }: Props) {
             <th>Stage</th>
             <th>Value</th>
             <th>Broker</th>
-            <th style={{ textAlign: "center" }}>Confidential</th>
+            <th style={{ textAlign: "center" }}>Hide</th>
           </tr>
         </thead>
         <tbody>

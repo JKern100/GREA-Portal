@@ -8,5 +8,9 @@ export default async function PipelinePage() {
     listDeals(),
     listSpecialtyTeams()
   ]);
-  return <PipelineView profile={profile} offices={offices} initialDeals={deals} teams={teams} />;
+
+  // "Hide" toggle: hidden deals never appear in the cross-office pipeline.
+  const visibleDeals = deals.filter((d) => !d.is_confidential);
+
+  return <PipelineView profile={profile} offices={offices} initialDeals={visibleDeals} teams={teams} />;
 }

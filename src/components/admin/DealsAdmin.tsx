@@ -102,7 +102,7 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
               <th>Stage</th>
               <th>Value</th>
               <th>Broker</th>
-              <th>Confidential</th>
+              <th>Hide</th>
               <th></th>
             </tr>
           </thead>

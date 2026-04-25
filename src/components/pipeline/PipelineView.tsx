@@ -189,25 +189,6 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
                     <td>
                       <span className={`stage-badge ${stageClass}`}>{d.stage}</span>{" "}
                       {d.sub_status && <span className={`substatus-${d.sub_status.toLowerCase()}`}>{d.sub_status}</span>}
-                      {d.is_confidential && (
-                        <span
-                          title="Confidential"
-                          style={{
-                            marginLeft: 6,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.4,
-                            background: "#fee2e2",
-                            color: "#991b1b",
-                            border: "1px solid #fecaca"
-                          }}
-                        >
-                          Confidential
-                        </span>
-                      )}
                     </td>
                     <td style={{ fontWeight: 600 }}>{formatValue(d.deal_value)}</td>
                     <td>{d.assigned_broker_name || "—"}</td>

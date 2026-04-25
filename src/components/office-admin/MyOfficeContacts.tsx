@@ -58,7 +58,7 @@ export default function MyOfficeContacts({ contacts: initial }: Props) {
             <th>Account</th>
             <th>Broker</th>
             <th>Added</th>
-            <th style={{ textAlign: "center" }}>Confidential</th>
+            <th style={{ textAlign: "center" }}>Hide</th>
           </tr>
         </thead>
         <tbody>

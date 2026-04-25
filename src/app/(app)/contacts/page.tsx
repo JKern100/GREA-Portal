@@ -8,5 +8,8 @@ export default async function ContactsPage() {
     listContacts()
   ]);
 
-  return <ContactsView profile={profile} offices={offices} initialContacts={contacts} />;
+  // "Hide" toggle: hidden contacts never appear in the cross-office search.
+  const visibleContacts = contacts.filter((c) => !c.is_confidential);
+
+  return <ContactsView profile={profile} offices={offices} initialContacts={visibleContacts} />;
 }

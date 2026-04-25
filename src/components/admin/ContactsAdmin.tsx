@@ -101,7 +101,7 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
               <th>Tags</th>
               <th>Sectors</th>
               <th>Added</th>
-              <th>Confidential</th>
+              <th>Hide</th>
               <th></th>
             </tr>
           </thead>
