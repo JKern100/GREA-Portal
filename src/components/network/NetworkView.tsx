@@ -54,52 +54,53 @@ function StatTile({ label, value, sub }: { label: string; value: string | number
 }
 
 function FreshnessRing({ days }: { days: number | null }) {
-  // Map 0..90 days onto 0..360°, capped. Fully green at 0d, fully red past 90d.
+  // Treat future-dated last_updated (negative days) as fresh.
+  const safeDays = days == null ? null : Math.max(0, days);
+  // Map 0..90 days onto 0..360°. Empty ring at 0d (current), fills as it ages.
   const cap = 90;
-  const pct = days == null ? 1 : Math.min(1, days / cap);
-  const { color, label } = freshnessFor(days);
-  const size = 56;
+  const pct = safeDays == null ? 1 : Math.min(1, safeDays / cap);
+  const { color, label } = freshnessFor(safeDays);
+  const size = 52;
   const stroke = 6;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const dashOffset = c * pct;
 
   return (
-    <div style={{ position: "relative", width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--gray-200)" strokeWidth={stroke} fill="none" />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke={color}
-          strokeWidth={stroke}
-          fill="none"
-          strokeDasharray={c}
-          strokeDashoffset={dashOffset}
-          strokeLinecap="round"
-        />
-      </svg>
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          fontSize: 10,
-          color: "var(--gray-700)",
-          fontWeight: 700,
-          textAlign: "center"
-        }}
-      >
-        <div style={{ fontSize: 14, color }}>{days == null ? "—" : days}</div>
-        <div style={{ fontSize: 9, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3 }}>
-          {days == null ? "" : "days"}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+      <div style={{ position: "relative", width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--gray-200)" strokeWidth={stroke} fill="none" />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={color}
+            strokeWidth={stroke}
+            fill="none"
+            strokeDasharray={c}
+            strokeDashoffset={dashOffset}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            textAlign: "center"
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, color, lineHeight: 1 }}>{safeDays == null ? "—" : safeDays}</div>
+          <div style={{ fontSize: 8, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, marginTop: 2 }}>
+            {safeDays == null ? "" : "days"}
+          </div>
         </div>
       </div>
-      <div style={{ position: "absolute", left: size + 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color, fontWeight: 600, whiteSpace: "nowrap" }}>
+      <div style={{ fontSize: 10, color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>
         {label}
       </div>
     </div>
