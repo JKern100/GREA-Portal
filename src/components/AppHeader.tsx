@@ -59,15 +59,32 @@ export default function AppHeader({ profile, officeCode }: Props) {
           <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
             <Link
               href="/network"
+              title="Network"
+              aria-label="Network"
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 34,
+                height: 34,
+                borderRadius: 8,
                 color: pathname.startsWith("/network") ? "var(--gold)" : "rgba(255,255,255,0.85)",
+                background: pathname.startsWith("/network") ? "rgba(255,255,255,0.08)" : "transparent",
                 textDecoration: "none",
-                letterSpacing: 0.3
+                transition: "background 0.15s, color 0.15s"
               }}
             >
-              Network
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="2.2" />
+                <circle cx="5" cy="5" r="2" />
+                <circle cx="19" cy="5" r="2" />
+                <circle cx="5" cy="19" r="2" />
+                <circle cx="19" cy="19" r="2" />
+                <line x1="6.4" y1="6.4" x2="10.5" y2="10.5" />
+                <line x1="17.6" y1="6.4" x2="13.5" y2="10.5" />
+                <line x1="6.4" y1="17.6" x2="10.5" y2="13.5" />
+                <line x1="17.6" y1="17.6" x2="13.5" y2="13.5" />
+              </svg>
             </Link>
             <div style={{ textAlign: "right", fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
               <div style={{ fontWeight: 600, color: "white" }}>{profile.name || profile.email}</div>
