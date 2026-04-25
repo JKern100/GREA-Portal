@@ -13,11 +13,9 @@ export default function AppHeader({ profile, officeCode }: Props) {
   const pathname = usePathname();
 
   const tabs = [
-    { href: "/network", label: "Network" },
     { href: "/contacts", label: "Contacts" },
     { href: "/pipeline", label: "Pipeline" },
-    { href: "/mailing-list", label: "Mailing List" },
-    { href: "/feedback", label: "Feedback" }
+    { href: "/mailing-list", label: "Mailing List" }
   ];
   if (profile.role === "office_admin") {
     tabs.push({ href: "/my-office", label: "My Office" });
