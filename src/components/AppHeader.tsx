@@ -13,6 +13,7 @@ export default function AppHeader({ profile, officeCode }: Props) {
   const pathname = usePathname();
 
   const tabs = [
+    { href: "/network", label: "Network" },
     { href: "/contacts", label: "Contacts" },
     { href: "/pipeline", label: "Pipeline" },
     { href: "/mailing-list", label: "Mailing List" },

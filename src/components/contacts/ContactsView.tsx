@@ -3,7 +3,6 @@
 import Fuse from "fuse.js";
 import { useMemo, useState } from "react";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
-import StatsModal from "./StatsModal";
 
 interface Props {
   profile: Profile;
@@ -58,7 +57,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
   const [sectorFilters, setSectorFilters] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
-  const [showStats, setShowStats] = useState(false);
 
   const officeById = useMemo(() => {
     const m: Record<string, Office> = {};
@@ -205,12 +203,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <button className="btn-gold" onClick={() => setShowStats(true)}>
-          Network Stats
-        </button>
-      </div>
-
       <section className="card" style={{ marginBottom: 20 }}>
         <label className="form-label" style={{ fontSize: 14, marginBottom: 10 }}>
           Search across all GREA offices
@@ -515,7 +507,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         </>
       )}
 
-      {showStats && <StatsModal contacts={contacts} offices={offices} onClose={() => setShowStats(false)} />}
     </>
   );
 }
