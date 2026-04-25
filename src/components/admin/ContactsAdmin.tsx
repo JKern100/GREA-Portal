@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { revalidateVisibilityCaches } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { ContactRecord, Office } from "@/lib/types";
 
@@ -71,6 +72,7 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
       return;
     }
     if (data) setContacts((prev) => prev.map((c) => (c.id === id ? (data as ContactRecord) : c)));
+    await revalidateVisibilityCaches();
   }
 
   return (

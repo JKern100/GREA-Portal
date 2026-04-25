@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { revalidateVisibilityCaches } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { DealRecord } from "@/lib/types";
 
@@ -43,6 +44,7 @@ export default function MyOfficeDeals({ deals: initial }: Props) {
       return;
     }
     if (data) setDeals((prev) => prev.map((d) => (d.id === id ? (data as DealRecord) : d)));
+    await revalidateVisibilityCaches();
   }
 
   return (
