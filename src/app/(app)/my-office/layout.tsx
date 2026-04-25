@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { listOffices, requireOfficeAdminOrSuperadmin } from "@/lib/data";
 
 const tabs = [
-  { href: "/my-office", label: "Overview" },
+  { href: "/my-office", label: "Office Members" },
   { href: "/my-office/contacts", label: "Contacts" },
   { href: "/my-office/deals", label: "Deals" }
 ];
