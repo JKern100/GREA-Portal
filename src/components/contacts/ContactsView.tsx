@@ -1,7 +1,6 @@
 "use client";
 
 import Fuse from "fuse.js";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
 
@@ -205,17 +204,9 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
   return (
     <>
       <section className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10, gap: 12, flexWrap: "wrap" }}>
-          <label className="form-label" style={{ fontSize: 14, marginBottom: 0 }}>
-            Search across all GREA offices
-          </label>
-          <Link
-            href="/network"
-            style={{ fontSize: 12, fontWeight: 600, color: "var(--navy)", textDecoration: "none" }}
-          >
-            View Network →
-          </Link>
-        </div>
+        <label className="form-label" style={{ fontSize: 14, marginBottom: 10 }}>
+          Search across all GREA offices
+        </label>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <input
             className="form-input"

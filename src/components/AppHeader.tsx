@@ -56,7 +56,19 @@ export default function AppHeader({ profile, officeCode }: Props) {
               </div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
+            <Link
+              href="/network"
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: pathname.startsWith("/network") ? "var(--gold)" : "rgba(255,255,255,0.85)",
+                textDecoration: "none",
+                letterSpacing: 0.3
+              }}
+            >
+              Network
+            </Link>
             <div style={{ textAlign: "right", fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
               <div style={{ fontWeight: 600, color: "white" }}>{profile.name || profile.email}</div>
               <div>

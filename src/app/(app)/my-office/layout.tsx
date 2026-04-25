@@ -5,7 +5,8 @@ import { listOffices, requireOfficeAdminOrSuperadmin } from "@/lib/data";
 const tabs = [
   { href: "/my-office", label: "Office Members" },
   { href: "/my-office/contacts", label: "Contacts" },
-  { href: "/my-office/deals", label: "Deals" }
+  { href: "/my-office/deals", label: "Deals" },
+  { href: "/feedback", label: "Feedback" }
 ];
 
 export default async function MyOfficeLayout({ children }: { children: React.ReactNode }) {

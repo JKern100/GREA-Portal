@@ -7,7 +7,8 @@ const tabs = [
   { href: "/admin/offices", label: "Offices" },
   { href: "/admin/teams", label: "Specialty Teams" },
   { href: "/admin/contacts", label: "Contacts" },
-  { href: "/admin/deals", label: "Deals" }
+  { href: "/admin/deals", label: "Deals" },
+  { href: "/feedback", label: "Feedback" }
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
