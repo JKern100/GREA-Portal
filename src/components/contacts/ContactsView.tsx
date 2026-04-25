@@ -4,7 +4,6 @@ import Fuse from "fuse.js";
 import { useMemo, useState } from "react";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
 import StatsModal from "./StatsModal";
-import MyOfficeModal from "./MyOfficeModal";
 
 interface Props {
   profile: Profile;
@@ -60,16 +59,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
   const [showStats, setShowStats] = useState(false);
-  const [showMyOffice, setShowMyOffice] = useState(false);
-  const [selectedOffice, setSelectedOffice] = useState<string>(
-    offices.find((o) => o.id === profile.office_id)?.code ?? ""
-  );
-
-  const officeByCode = useMemo(() => {
-    const m: Record<string, Office> = {};
-    offices.forEach((o) => (m[o.code] = o));
-    return m;
-  }, [offices]);
 
   const officeById = useMemo(() => {
     const m: Record<string, Office> = {};
@@ -214,64 +203,8 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
     setSectorFilters((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }
 
-  function canShowMyOffice() {
-    return profile.role === "office_admin" || profile.role === "superadmin";
-  }
-
   return (
     <>
-      {/* Office selector (admin-only) */}
-      {canShowMyOffice() && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 16,
-            padding: "10px 14px",
-            background: "#f8f9fa",
-            border: "1px solid var(--gray-300)",
-            borderRadius: 8,
-            flexWrap: "wrap"
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>Your Office:</span>
-          <select
-            className="form-input"
-            style={{ width: "auto", padding: "6px 10px", fontSize: 13 }}
-            value={selectedOffice}
-            onChange={(e) => setSelectedOffice(e.target.value)}
-          >
-            <option value="">Select office…</option>
-            {offices.map((o) => (
-              <option key={o.id} value={o.code}>
-                {o.code}
-              </option>
-            ))}
-          </select>
-          <button className="btn-gold" onClick={() => setShowMyOffice(true)}>
-            My Contacts
-          </button>
-          <span style={{ fontSize: 12, color: "var(--gray-500)" }}>
-            View and export all contacts contributed by your office
-          </span>
-          <span
-            style={{
-              marginLeft: "auto",
-              background: "#fff3cd",
-              border: "1px solid #e6b800",
-              borderRadius: 20,
-              padding: "3px 10px",
-              fontSize: 11,
-              fontWeight: 700,
-              color: "#7a5c00"
-            }}
-          >
-            Admin Only
-          </span>
-        </div>
-      )}
-
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button className="btn-gold" onClick={() => setShowStats(true)}>
           Network Stats
@@ -583,13 +516,6 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
       )}
 
       {showStats && <StatsModal contacts={contacts} offices={offices} onClose={() => setShowStats(false)} />}
-      {showMyOffice && canShowMyOffice() && (
-        <MyOfficeModal
-          contacts={contacts.filter((c) => officeByCode[selectedOffice]?.id === c.office_id)}
-          office={officeByCode[selectedOffice]?.code ?? ""}
-          onClose={() => setShowMyOffice(false)}
-        />
-      )}
     </>
   );
 }
