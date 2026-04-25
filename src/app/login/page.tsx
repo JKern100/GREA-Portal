@@ -53,7 +53,7 @@ function LoginForm() {
         alt="GREA"
         style={{ height: 36, width: "auto", marginBottom: 10 }}
       />
-      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>Contacts Portal</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>Portal</div>
       <p style={{ color: "var(--gray-500)", fontSize: 13, marginTop: 2, marginBottom: 20 }}>
         {mode === "signin" ? "Sign in to your account" : "Create a new account"}
       </p>

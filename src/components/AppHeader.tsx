@@ -51,9 +51,9 @@ export default function AppHeader({ profile, officeCode }: Props) {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <img src="/grea-logo.svg" alt="GREA" style={{ height: 30, width: "auto" }} />
             <div style={{ borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: 14 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.5 }}>Contacts Portal</div>
+              <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.5 }}>Portal</div>
               <div style={{ fontSize: 11, color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 1, marginTop: 1 }}>
-                Cross-Office Contact & Deal Tool
+                Cross-Office Collaboration Tool
               </div>
             </div>
           </div>
