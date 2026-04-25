@@ -18,9 +18,15 @@ Run:  python3 scripts/generate_seed_data.py
 """
 
 import random
+from datetime import date, timedelta
 from pathlib import Path
 
 random.seed(42)
+
+# Anchor "today" so the seed is deterministic and reproducible across runs.
+# All generated dates fall on or before this date so the Network freshness
+# ring never sees future-dated activity.
+TODAY = date(2026, 4, 25)
 
 OFFICES = {
     "NYC": {
@@ -222,10 +228,13 @@ def sql_array(items) -> str:
 
 
 def random_date(start_year: int = 2024, end_year: int = 2026) -> str:
-    year = random.randint(start_year, end_year)
-    month = random.randint(1, 12)
-    day = random.randint(1, 28)
-    return f"{year:04d}-{month:02d}-{day:02d}"
+    # Generate within [start_year-01-01, min(end_year-12-28, TODAY)] so
+    # demo data never appears in the future relative to the anchor.
+    earliest = date(start_year, 1, 1)
+    latest = min(date(end_year, 12, 28), TODAY)
+    span_days = (latest - earliest).days
+    d = earliest + timedelta(days=random.randint(0, span_days))
+    return d.isoformat()
 
 
 def gen_email(first: str, last: str) -> str:

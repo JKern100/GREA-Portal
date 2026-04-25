@@ -33,7 +33,17 @@ function freshnessFor(days: number | null): { tone: OfficeStats["freshness"]; co
   return { tone: "stale", color: "#dc2626", label: "Stale" };
 }
 
-function StatTile({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function StatTile({
+  label,
+  value,
+  sub,
+  icon
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  icon: React.ReactNode;
+}) {
   return (
     <div
       style={{
@@ -41,15 +51,87 @@ function StatTile({ label, value, sub }: { label: string; value: string | number
         borderRadius: 10,
         padding: "16px 18px",
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        border: "1px solid var(--gray-200)"
+        border: "1px solid var(--gray-200)",
+        display: "flex",
+        gap: 14,
+        alignItems: "flex-start"
       }}
     >
-      <div style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
-        {label}
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 8,
+          background: "rgba(33,142,194,0.10)",
+          color: "var(--navy)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0
+        }}
+      >
+        {icon}
       </div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: "var(--navy)", marginTop: 4, lineHeight: 1.1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: "var(--gray-500)", marginTop: 4 }}>{sub}</div>}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
+          {label}
+        </div>
+        <div style={{ fontSize: 26, fontWeight: 700, color: "var(--navy)", marginTop: 2, lineHeight: 1.1 }}>{value}</div>
+        {sub && <div style={{ fontSize: 11, color: "var(--gray-500)", marginTop: 4 }}>{sub}</div>}
+      </div>
     </div>
+  );
+}
+
+const ICON_PROPS = {
+  width: 20,
+  height: 20,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true
+};
+
+function OfficeIcon() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M3 21h18" />
+      <path d="M5 21V7l7-4 7 4v14" />
+      <path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01M9 17h.01M15 17h.01" />
+    </svg>
+  );
+}
+
+function ContactsIcon() {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20c0-3 2.7-5 6-5s6 2 6 5" />
+      <circle cx="17" cy="9" r="2.5" />
+      <path d="M15 20c0-2.5 2-4.5 4.5-4.5" />
+    </svg>
+  );
+}
+
+function ListingIcon() {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z" />
+    </svg>
+  );
+}
+
+function PipelineIcon() {
+  return (
+    <svg {...ICON_PROPS}>
+      <line x1="4" y1="20" x2="4" y2="10" />
+      <line x1="10" y1="20" x2="10" y2="6" />
+      <line x1="16" y1="20" x2="16" y2="13" />
+      <path d="M3 4l4 4 5-5 5 5 4-4" />
+    </svg>
   );
 }
 
@@ -193,10 +275,10 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
           marginBottom: 22
         }}
       >
-        <StatTile label="Offices" value={stats.length} />
-        <StatTile label="Total Contacts" value={totals.totalContacts.toLocaleString()} />
-        <StatTile label="Active Listings" value={totals.totalListings.toLocaleString()} sub="contacts with a listing" />
-        <StatTile label="Pipeline" value={totals.totalDeals.toLocaleString()} sub={fmtMoney(totals.totalValue) + " total value"} />
+        <StatTile label="Offices" value={stats.length} icon={<OfficeIcon />} />
+        <StatTile label="Total Contacts" value={totals.totalContacts.toLocaleString()} icon={<ContactsIcon />} />
+        <StatTile label="Active Listings" value={totals.totalListings.toLocaleString()} sub="contacts with a listing" icon={<ListingIcon />} />
+        <StatTile label="Pipeline" value={totals.totalDeals.toLocaleString()} sub={fmtMoney(totals.totalValue) + " total value"} icon={<PipelineIcon />} />
       </div>
 
       <div
@@ -295,11 +377,9 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
               >
                 <div>
                   <div style={{ color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
-                    Last refreshed
+                    Newest contact
                   </div>
-                  <div style={{ color: s.freshnessColor, fontWeight: 600 }}>
-                    {s.office.last_updated ?? "—"}
-                  </div>
+                  <div>{s.newestContact ?? "—"}</div>
                 </div>
                 <div>
                   <div style={{ color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
@@ -311,33 +391,32 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
                       : "—"}
                   </div>
                 </div>
-                <div>
-                  <div style={{ color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
-                    Newest contact
-                  </div>
-                  <div>{s.newestContact ?? "—"}</div>
-                </div>
-                <div>
-                  <div style={{ color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
-                    Oldest contact
-                  </div>
-                  <div>{s.oldestContact ?? "—"}</div>
-                </div>
               </div>
 
               {s.sectors.length > 0 && (
-                <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {s.sectors.slice(0, 6).map((sec) => (
+                <div
+                  style={{
+                    marginTop: 12,
+                    display: "flex",
+                    flexWrap: "nowrap",
+                    gap: 4,
+                    overflow: "hidden"
+                  }}
+                  title={s.sectors.join(", ")}
+                >
+                  {s.sectors.slice(0, 3).map((sec) => (
                     <span
                       key={sec}
                       className={`sector-badge sector-${sec.toLowerCase().replace(/\s+/g, "-")}`}
-                      style={{ fontSize: 10, padding: "2px 7px" }}
+                      style={{ fontSize: 10, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}
                     >
                       {sec}
                     </span>
                   ))}
-                  {s.sectors.length > 6 && (
-                    <span style={{ fontSize: 10, color: "var(--gray-500)" }}>+{s.sectors.length - 6} more</span>
+                  {s.sectors.length > 3 && (
+                    <span style={{ fontSize: 10, color: "var(--gray-500)", alignSelf: "center", whiteSpace: "nowrap" }}>
+                      +{s.sectors.length - 3} more
+                    </span>
                   )}
                 </div>
               )}
