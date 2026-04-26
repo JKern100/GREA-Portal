@@ -303,9 +303,14 @@ function FeedbackDetail({
     if (!body) return;
     setPosting(true);
     const supabase = createClient();
+    // RLS check on feedback_comments_insert is `author_id = auth.uid()`,
+    // which is the REAL signed-in user — not the impersonated profile. Use
+    // the real id when impersonating so the policy allows the insert and
+    // the audit trail correctly attributes the comment to the actual person.
+    const authorId = profile._impersonatedBy?.id ?? profile.id;
     const { data, error } = await supabase
       .from("feedback_comments")
-      .insert({ item_id: item.id, author_id: profile.id, body })
+      .insert({ item_id: item.id, author_id: authorId, body })
       .select()
       .single();
     setPosting(false);
@@ -496,13 +501,19 @@ function SubmitModal({
     }
     setSaving(true);
     const supabase = createClient();
+    // RLS check on feedback_items_insert is `submitted_by = auth.uid()`,
+    // which is the REAL signed-in user — not the impersonated profile. Use
+    // the real id when impersonating so the policy allows the insert and
+    // the audit trail correctly attributes the submission to the actual
+    // person clicking Submit.
+    const submittedBy = profile._impersonatedBy?.id ?? profile.id;
     const { data, error } = await supabase
       .from("feedback_items")
       .insert({
         title: title.trim(),
         body: body.trim(),
         category,
-        submitted_by: profile.id,
+        submitted_by: submittedBy,
         context_url: contextUrl,
         related_contact_id: relatedContactId,
         related_deal_id: relatedDealId
