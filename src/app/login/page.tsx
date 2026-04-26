@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,6 +16,25 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  // Auth providers (Supabase, etc.) put errors in the URL hash on a failed
+  // redirect — e.g. an expired invite link. Surface those once on mount so
+  // the user isn't left staring at a plain login form wondering why they
+  // can't get in.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash || !hash.includes("error")) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const desc = params.get("error_description");
+    if (desc) {
+      setError(
+        `${decodeURIComponent(desc.replace(/\+/g, " "))} — ask the person who invited you for a fresh link.`
+      );
+      // Clean the hash so a refresh doesn't re-show the banner.
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

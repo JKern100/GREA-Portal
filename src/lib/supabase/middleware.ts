@@ -28,7 +28,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isAuthRoute = pathname === "/login" || pathname.startsWith("/auth");
+  // /welcome is treated as an auth route: invitees land there with their
+  // Supabase tokens in the URL hash, which the client picks up. The server
+  // can't see those tokens, so without this allowlist the middleware would
+  // bounce them to /login and the hash (and the invite session) would be
+  // lost in the redirect.
+  const isAuthRoute =
+    pathname === "/login" || pathname === "/welcome" || pathname.startsWith("/auth");
   const isPublicAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||

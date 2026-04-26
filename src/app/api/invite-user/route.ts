@@ -59,7 +59,11 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  const redirectTo = new URL("/login", request.url).toString();
+  // Land invitees on /welcome, not /login. /welcome accepts the auth
+  // tokens from the Supabase verify redirect, prompts the new user to set
+  // a password, and routes them into the app. /login is a sign-in form
+  // expecting a password the new user doesn't have yet.
+  const redirectTo = new URL("/welcome", request.url).toString();
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
     type: "invite",
     email,
