@@ -57,6 +57,16 @@ export async function POST(request: Request) {
     officeId = real.office_id;
   }
 
+  // Brokers and office_admins are scoped to a single office — without one,
+  // their /contacts query is empty and /my-office redirects them away.
+  // Superadmins legitimately have no office (they manage globally).
+  if ((role === "broker" || role === "office_admin") && !officeId) {
+    return NextResponse.json(
+      { error: `Pick an office for the ${role.replace("_", " ")} you're inviting.` },
+      { status: 400 }
+    );
+  }
+
   const admin = createAdminClient();
 
   // Land invitees on /welcome, not /login. /welcome accepts the auth

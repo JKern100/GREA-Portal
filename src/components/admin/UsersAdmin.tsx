@@ -39,6 +39,10 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
       setInviteErr("Email is required.");
       return;
     }
+    if ((inviteRole === "broker" || inviteRole === "office_admin") && !inviteOfficeId) {
+      setInviteErr(`Pick an office for the ${inviteRole.replace("_", " ")} you're inviting.`);
+      return;
+    }
     setInviting(true);
     const res = await fetch("/api/invite-user", {
       method: "POST",
@@ -77,6 +81,22 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
   }
 
   async function updateProfile(id: string, patch: Partial<Profile>) {
+    // Brokers and office admins must have an office_id — without one, their
+    // /contacts query is empty and /my-office bounces them. Block at save
+    // time so the row can't end up in that state through a stray click.
+    const current = profiles.find((p) => p.id === id);
+    if (current) {
+      const nextRole = (patch.role ?? current.role) as UserRole;
+      const nextOfficeId =
+        patch.office_id !== undefined ? patch.office_id : current.office_id;
+      if ((nextRole === "broker" || nextRole === "office_admin") && !nextOfficeId) {
+        alert(
+          `${nextRole.replace("_", " ")}s must be assigned to an office. Pick an office before changing the role, or change the role to superadmin if no office applies.`
+        );
+        return;
+      }
+    }
+
     setSaving(id);
     const supabase = createClient();
     const { data, error } = await supabase.from("profiles").update(patch).eq("id", id).select().single();
@@ -269,19 +289,39 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
                     {isSelf && <span style={{ marginLeft: 6, color: "var(--gold)", fontWeight: 600 }}>(you)</span>}
                   </td>
                   <td>
-                    <select
-                      className="form-input"
-                      style={{ padding: "4px 8px", fontSize: 13, width: 120 }}
-                      value={p.office_id ?? ""}
-                      onChange={(e) => updateProfile(p.id, { office_id: e.target.value || null })}
-                    >
-                      <option value="">—</option>
-                      {offices.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.code}
-                        </option>
-                      ))}
-                    </select>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <select
+                        className="form-input"
+                        style={{ padding: "4px 8px", fontSize: 13, width: 120 }}
+                        value={p.office_id ?? ""}
+                        onChange={(e) => updateProfile(p.id, { office_id: e.target.value || null })}
+                      >
+                        <option value="">—</option>
+                        {offices.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.code}
+                          </option>
+                        ))}
+                      </select>
+                      {!p.office_id && (p.role === "broker" || p.role === "office_admin") && (
+                        <span
+                          title="This user can't see contacts or use My Office without an assigned office."
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                            padding: "2px 7px",
+                            borderRadius: 10,
+                            background: "#fee2e2",
+                            color: "#991b1b",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          Needs office
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <select
