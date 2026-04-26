@@ -219,8 +219,8 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
               <th>Tags</th>
               <th>Sectors</th>
               <th>Added</th>
-              <th>Hide</th>
-              <th></th>
+              <th style={{ width: 50 }}>Hide</th>
+              <th style={{ width: 90 }}></th>
             </tr>
           </thead>
           <tbody>
@@ -236,8 +236,10 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
                       aria-label={`Select ${c.contact_name}`}
                     />
                   </td>
-                  <td><strong>{c.contact_name}</strong></td>
-                  <td>{c.account_name}</td>
+                  <td style={{ minWidth: 120 }}>
+                    <strong>{c.contact_name}</strong>
+                  </td>
+                  <td style={{ minWidth: 140 }}>{c.account_name}</td>
                   <td>
                     <select
                       className="form-input"
@@ -248,21 +250,21 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
                       {offices.map((o) => <option key={o.id} value={o.id}>{o.code}</option>)}
                     </select>
                   </td>
-                  <td style={{ fontSize: 12 }}>
-                    {c.broker_name_snapshot}
+                  <td style={{ fontSize: 12, minWidth: 160, whiteSpace: "nowrap" }}>
+                    <div>{c.broker_name_snapshot}</div>
                     <div style={{ color: "var(--gray-400)" }}>{c.broker_phone_snapshot}</div>
                   </td>
-                  <td>
+                  <td style={{ minWidth: 110 }}>
                     {(c.tags || []).map((t) => (
                       <span key={t} className={`contact-tag tag-${cls(t)}`} style={{ marginRight: 4 }}>{t}</span>
                     ))}
                   </td>
-                  <td>
+                  <td style={{ minWidth: 160 }}>
                     {(c.sectors || []).map((s) => (
                       <span key={s} className={`sector-badge sector-${cls(s)}`} style={{ marginRight: 4 }}>{s}</span>
                     ))}
                   </td>
-                  <td style={{ fontSize: 12 }}>{c.date_added}</td>
+                  <td style={{ fontSize: 12, whiteSpace: "nowrap" }}>{c.date_added}</td>
                   <td style={{ textAlign: "center" }}>
                     <input
                       type="checkbox"
@@ -270,7 +272,9 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
                       onChange={(e) => toggleConfidential(c.id, e.target.checked)}
                     />
                   </td>
-                  <td><button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => remove(c.id)}>Delete</button></td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => remove(c.id)}>Delete</button>
+                  </td>
                 </tr>
               );
             })}

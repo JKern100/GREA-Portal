@@ -221,12 +221,12 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
               <th>Deal</th>
               <th>Type</th>
               <th>Seller / Buyer</th>
-              <th>Office</th>
-              <th>Stage</th>
+              <th style={{ width: 60 }}>Office</th>
+              <th style={{ width: 110 }}>Stage</th>
               <th>Value</th>
               <th>Broker</th>
-              <th>Hide</th>
-              <th></th>
+              <th style={{ width: 50 }}>Hide</th>
+              <th style={{ width: 90 }}></th>
             </tr>
           </thead>
           <tbody>
@@ -242,12 +242,12 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                       aria-label={`Select ${d.deal_name}`}
                     />
                   </td>
-                  <td>
+                  <td style={{ minWidth: 180 }}>
                     <strong>{d.deal_name}</strong>
                     {d.property_address && <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.property_address}</div>}
                   </td>
-                  <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{d.property_type || "—"}</td>
-                  <td style={{ fontSize: 12 }}>
+                  <td style={{ fontSize: 12, color: "var(--gray-600)", whiteSpace: "nowrap" }}>{d.property_type || "—"}</td>
+                  <td style={{ fontSize: 12, minWidth: 170, whiteSpace: "nowrap" }}>
                     <div>
                       <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase" }}>S:</span> {d.seller_name || "—"}
                     </div>
@@ -266,8 +266,8 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                       {DEAL_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
-                  <td>{formatValue(d.deal_value)}</td>
-                  <td style={{ fontSize: 12 }}>{d.assigned_broker_name}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>{formatValue(d.deal_value)}</td>
+                  <td style={{ fontSize: 12, minWidth: 130, whiteSpace: "nowrap" }}>{d.assigned_broker_name}</td>
                   <td style={{ textAlign: "center" }}>
                     <input
                       type="checkbox"
@@ -275,7 +275,9 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                       onChange={(e) => toggleConfidential(d.id, e.target.checked)}
                     />
                   </td>
-                  <td><button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => remove(d.id)}>Delete</button></td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => remove(d.id)}>Delete</button>
+                  </td>
                 </tr>
               );
             })}
