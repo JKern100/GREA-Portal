@@ -55,6 +55,12 @@ export default function MyOfficeContacts({ contacts: initial }: Props) {
       <div style={{ padding: "12px 14px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>Office Contacts ({contacts.length})</div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <a className="btn-outline" href="/api/contacts/export?format=csv">
+            Export CSV
+          </a>
+          <a className="btn-outline" href="/api/contacts/export?format=xlsx">
+            Export Excel
+          </a>
           <a className="btn-outline" href="/api/contacts/template?format=csv">
             Download template
           </a>
