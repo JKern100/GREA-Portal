@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { revalidateVisibilityCaches } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { ContactRecord } from "@/lib/types";
@@ -14,6 +14,13 @@ export default function MyOfficeContacts({ contacts: initial }: Props) {
   const [contacts, setContacts] = useState(initial);
   const [query, setQuery] = useState("");
   const [showImport, setShowImport] = useState(false);
+
+  // After a bulk import the modal calls router.refresh(), which re-runs the
+  // server component and produces a fresh `initial` prop. Sync it down so the
+  // table reflects the new data without requiring a full page reload.
+  useEffect(() => {
+    setContacts(initial);
+  }, [initial]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

@@ -338,8 +338,9 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     }
   }
 
-  // Audit trail. Failure here should not roll back the import — log only.
-  await admin.from("contact_imports").insert({
+  // Audit trail. Failure here should not roll back the import — log only so
+  // ops can spot a missing migration without breaking the user-visible flow.
+  const { error: auditErr } = await admin.from("contact_imports").insert({
     office_id: profile.office_id,
     imported_by: profile.id,
     imported_by_name: profile.name ?? "",
@@ -350,6 +351,9 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     skipped_count: skippedRows.length,
     skipped_rows: skippedRows
   });
+  if (auditErr) {
+    console.error("[contacts/import] audit insert failed:", auditErr.message);
+  }
 
   // Bust caches that depend on contacts.
   revalidatePath("/contacts");
