@@ -37,7 +37,9 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
         d.deal_name.toLowerCase().includes(q) ||
         (d.seller_name || "").toLowerCase().includes(q) ||
         (d.buyer_name || "").toLowerCase().includes(q) ||
-        (d.property_type || "").toLowerCase().includes(q)
+        (d.property_type || "").toLowerCase().includes(q) ||
+        (d.assigned_broker_name || "").toLowerCase().includes(q) ||
+        (d.property_address || "").toLowerCase().includes(q)
       );
     });
   }, [deals, search, officeFilter]);
