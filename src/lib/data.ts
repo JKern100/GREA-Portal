@@ -6,8 +6,7 @@ import type {
   FeedbackItem,
   MailingListEntry,
   Office,
-  Profile,
-  SpecialtyTeam
+  Profile
 } from "@/lib/types";
 import { redirect } from "next/navigation";
 
@@ -111,12 +110,6 @@ export async function listDeals(): Promise<DealRecord[]> {
     .select("*")
     .order("created_at", { ascending: false });
   return (data as DealRecord[]) ?? [];
-}
-
-export async function listSpecialtyTeams(): Promise<SpecialtyTeam[]> {
-  const supabase = createClient();
-  const { data } = await supabase.from("specialty_teams").select("*").order("name");
-  return (data as SpecialtyTeam[]) ?? [];
 }
 
 export async function listMailingListEntries(): Promise<MailingListEntry[]> {

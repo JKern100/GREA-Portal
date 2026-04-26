@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { officeBadgeStyle } from "@/lib/officeColor";
-import type { DealRecord, DealStageHistory, Office, SpecialtyTeam } from "@/lib/types";
+import type { DealRecord, DealStageHistory, Office, Profile } from "@/lib/types";
 
 interface Props {
   dealId: string;
   offices: Office[];
-  teams: SpecialtyTeam[];
+  profiles: Profile[];
   onClose: () => void;
 }
 
-export default function DealDetailModal({ dealId, offices, teams, onClose }: Props) {
+export default function DealDetailModal({ dealId, offices, profiles, onClose }: Props) {
   const [deal, setDeal] = useState<DealRecord | null>(null);
   const [history, setHistory] = useState<DealStageHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,9 +33,31 @@ export default function DealDetailModal({ dealId, offices, teams, onClose }: Pro
   }, [dealId]);
 
   const office = deal ? offices.find((o) => o.id === deal.office_id) : null;
-  const relevantTeams = deal
-    ? teams.filter((t) => t.name === "Capital Services" || (deal.sectors || []).includes(t.name))
-    : [];
+  const officeById = useMemo(() => {
+    const m: Record<string, Office> = {};
+    offices.forEach((o) => (m[o.id] = o));
+    return m;
+  }, [offices]);
+
+  // Brokers across the firm whose declared specialties intersect with the
+  // deal's sectors. Capital Services is always included even when the deal
+  // doesn't tag it, since financing is relevant on every transaction.
+  const specialists = useMemo(() => {
+    if (!deal) return [];
+    const wanted = new Set<string>(deal.sectors || []);
+    wanted.add("Capital Services");
+    const dealOffice = deal.office_id;
+    return profiles
+      .filter((p) => (p.specialties ?? []).some((s) => wanted.has(s)))
+      .filter((p) => p.id !== deal.assigned_broker_id)
+      .sort((a, b) => {
+        // Same-office specialists first, then alphabetical by name.
+        const aSame = a.office_id === dealOffice ? 0 : 1;
+        const bSame = b.office_id === dealOffice ? 0 : 1;
+        if (aSame !== bSame) return aSame - bSame;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+  }, [deal, profiles]);
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -125,26 +147,66 @@ export default function DealDetailModal({ dealId, offices, teams, onClose }: Pro
               ))}
             </div>
 
-            {relevantTeams.length > 0 && (
+            {specialists.length > 0 && (
               <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontSize: 14, color: "var(--navy)", marginBottom: 10 }}>Specialty Group Contacts</h3>
-                {relevantTeams.map((t) => (
-                  <div
-                    key={t.id}
-                    style={{
-                      marginBottom: 10,
-                      padding: 10,
-                      borderLeft: `3px solid ${t.color}`,
-                      background: `${t.color}08`,
-                      borderRadius: 6
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 700, color: t.color, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      {t.name}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--gray-500)" }}>{t.description}</div>
+                <h3 style={{ fontSize: 14, color: "var(--navy)", marginBottom: 10 }}>
+                  Specialists to loop in
+                </h3>
+                <p style={{ fontSize: 11, color: "var(--gray-500)", marginBottom: 10 }}>
+                  Brokers across GREA whose declared specialties match this deal&apos;s sectors.
+                </p>
+                <div style={{ display: "grid", gap: 6 }}>
+                  {specialists.slice(0, 8).map((p) => {
+                    const o = p.office_id ? officeById[p.office_id] : null;
+                    const matched = (p.specialties ?? []).filter(
+                      (s) => (deal.sectors || []).includes(s) || s === "Capital Services"
+                    );
+                    return (
+                      <div
+                        key={p.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "8px 10px",
+                          border: "1px solid var(--gray-200)",
+                          borderRadius: 6,
+                          fontSize: 12
+                        }}
+                      >
+                        {o && (
+                          <span
+                            className={`office-badge ${o.code.toLowerCase()}`}
+                            style={officeBadgeStyle(o, { fontSize: 10, padding: "2px 7px" })}
+                          >
+                            {o.code}
+                          </span>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, color: "var(--navy)" }}>
+                            {p.name || p.email}
+                          </div>
+                          <div style={{ color: "var(--gray-500)", fontSize: 11 }}>
+                            {p.title || "—"} · {matched.join(", ")}
+                          </div>
+                        </div>
+                        {p.email && (
+                          <a
+                            href={`mailto:${p.email}`}
+                            style={{ fontSize: 11, color: "var(--navy)", textDecoration: "underline" }}
+                          >
+                            {p.email}
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {specialists.length > 8 && (
+                  <div style={{ fontSize: 11, color: "var(--gray-500)", marginTop: 6 }}>
+                    + {specialists.length - 8} more
                   </div>
-                ))}
+                )}
               </div>
             )}
 

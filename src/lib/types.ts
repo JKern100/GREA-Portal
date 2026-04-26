@@ -39,6 +39,7 @@ export interface Profile {
   office_id: string | null;
   role: UserRole;
   is_active: boolean;
+  specialties: string[];
   /**
    * When a superadmin is impersonating another user, this holds the
    * superadmin's own profile. Undefined on real (non-impersonated) profiles.
@@ -101,13 +102,6 @@ export interface DealStageHistory {
   stage: DealStage;
   note: string | null;
   occurred_on: string;
-}
-
-export interface SpecialtyTeam {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
 }
 
 export interface MailingListEntry {

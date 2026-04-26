@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { DealRecord, DealStage, Office, Profile, SpecialtyTeam } from "@/lib/types";
+import type { DealRecord, DealStage, Office, Profile } from "@/lib/types";
 import { DEAL_STAGES } from "@/lib/types";
 import { officeBadgeStyle } from "@/lib/officeColor";
 import DealDetailModal from "./DealDetailModal";
@@ -11,7 +11,7 @@ interface Props {
   profile: Profile;
   offices: Office[];
   initialDeals: DealRecord[];
-  teams: SpecialtyTeam[];
+  profiles: Profile[];
 }
 
 type SortField = "deal_name" | "seller_name" | "office" | "stage" | "deal_value" | "assigned_broker_name";
@@ -23,7 +23,7 @@ function formatValue(v: number | null) {
   return `$${v.toLocaleString()}`;
 }
 
-export default function PipelineView({ profile, offices, initialDeals, teams }: Props) {
+export default function PipelineView({ profile, offices, initialDeals, profiles }: Props) {
   const [deals] = useState<DealRecord[]>(initialDeals);
   const [stageFilter, setStageFilter] = useState<string>("");
   const [officeFilter, setOfficeFilter] = useState<string>("");
@@ -230,7 +230,7 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
         <DealDetailModal
           dealId={detailId}
           offices={offices}
-          teams={teams}
+          profiles={profiles}
           onClose={() => setDetailId(null)}
         />
       )}

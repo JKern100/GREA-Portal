@@ -11,12 +11,10 @@ insert into public.offices (code, name, last_updated) values
   ('ATL', 'Atlanta',       current_date - 90)
 on conflict (code) do nothing;
 
--- Specialty teams
-insert into public.specialty_teams (name, description, color) values
-  ('Capital Services',  'Debt & equity placement, loan sales, and structured finance', '#2d6a4f'),
-  ('Affordable Housing','Affordable, rent-stabilized, and tax-credit housing transactions', '#7b2d8e'),
-  ('Student Housing',   'Student housing acquisitions, dispositions, and development', '#1a6fb5')
-on conflict (name) do nothing;
+-- Specialties are now a `text[]` column on profiles (migration 0012),
+-- using the same vocabulary as SECTOR_OPTIONS in src/lib/types.ts. There
+-- is no separate seed step — admins assign specialties on each broker
+-- profile via the Users admin tab.
 
 -- Sample contacts are created once real profiles exist.
 -- For now, insert a few rows with broker_name_snapshot only; broker_id stays null.

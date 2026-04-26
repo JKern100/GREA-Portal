@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { SECTOR_OPTIONS } from "@/lib/types";
 import type { Office, Profile, UserRole } from "@/lib/types";
 
 interface Props {
@@ -161,6 +162,7 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
               <th>Office</th>
               <th>Role</th>
               <th>Title</th>
+              <th>Specialties</th>
               <th>Active</th>
               <th></th>
             </tr>
@@ -218,6 +220,43 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
                       defaultValue={p.title ?? ""}
                       onBlur={(e) => e.target.value !== (p.title ?? "") && updateProfile(p.id, { title: e.target.value })}
                     />
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, maxWidth: 220 }}>
+                      {SECTOR_OPTIONS.map((s) => {
+                        const checked = (p.specialties ?? []).includes(s);
+                        return (
+                          <label
+                            key={s}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "2px 7px",
+                              borderRadius: 12,
+                              border: "1px solid " + (checked ? "var(--navy)" : "var(--gray-300)"),
+                              background: checked ? "var(--navy)" : "white",
+                              color: checked ? "white" : "var(--gray-700)",
+                              fontSize: 11,
+                              cursor: "pointer"
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? Array.from(new Set([...(p.specialties ?? []), s]))
+                                  : (p.specialties ?? []).filter((x) => x !== s);
+                                updateProfile(p.id, { specialties: next });
+                              }}
+                              style={{ display: "none" }}
+                            />
+                            {s}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </td>
                   <td>
                     <input

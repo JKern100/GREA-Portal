@@ -5,7 +5,6 @@ const tabs = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/offices", label: "Offices" },
-  { href: "/admin/teams", label: "Specialty Teams" },
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/deals", label: "Deals" },
   { href: "/feedback", label: "Feedback" }
