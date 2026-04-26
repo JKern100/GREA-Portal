@@ -14,5 +14,5 @@ export default async function MyOfficeContactsPage() {
     .eq("office_id", profile.office_id)
     .order("contact_name");
 
-  return <MyOfficeContacts contacts={(data as ContactRecord[]) ?? []} />;
+  return <MyOfficeContacts contacts={(data as ContactRecord[]) ?? []} officeId={profile.office_id} />;
 }

@@ -158,27 +158,21 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     const validInserts: Array<Record<string, unknown>> = [];
     const skippedRows: SkippedRow[] = [];
 
-    // De-duplicate by email within the file itself — a re-uploaded export
-    // can otherwise create N copies of the same person.
-    const seenEmails = new Set<string>();
-
+    // Per the "upload source as is" spec: don't skip duplicate emails. Both
+    // within-file and cross-file duplicates are inserted, then highlighted
+    // in red at display time so the admin can resolve manually. The only
+    // rows we skip here are ones with parse-level errors (missing required
+    // fields, malformed dates, etc.).
     for (const r of parsedRows) {
-      const errs = [...r.errors];
-
-      if (errs.length === 0 && seenEmails.has(r.email)) {
-        errs.push(`duplicate email "${r.email}" earlier in the file`);
-      }
-
-      if (errs.length > 0) {
+      if (r.errors.length > 0) {
         skippedRows.push({
           row: r.rowNumber,
-          errors: errs,
+          errors: r.errors,
           preview: { full_name: r.full_name, email: r.email, company_name: r.company_name }
         });
         continue;
       }
 
-      seenEmails.add(r.email);
       validInserts.push({
         name: r.full_name,
         email: r.email,
@@ -197,6 +191,21 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
         notes: r.notes,
         source_office_id: targetOfficeId,
         created_by: profile.id
+      });
+    }
+
+    // Refuse replace when the upload yielded no valid rows. Otherwise an
+    // all-bad file would wipe the existing list. Use replace_all if you
+    // want to wipe everything intentionally — that path requires an
+    // explicit double-confirm and inserts the (zero or more) valid rows
+    // afterwards.
+    if (mode === "replace" && validInserts.length === 0 && !replaceAll) {
+      return err(400, {
+        mode,
+        skipped: skippedRows.length,
+        skippedRows,
+        error:
+          "Replace blocked: the upload contains no valid rows, so running it would wipe the existing list and leave it empty. Fix the file or use Replace ALL with an explicit confirmation."
       });
     }
 

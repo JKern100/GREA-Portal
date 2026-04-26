@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { revalidateVisibilityCaches } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { ContactRecord } from "@/lib/types";
@@ -8,12 +9,18 @@ import ContactsImportModal from "./ContactsImportModal";
 
 interface Props {
   contacts: ContactRecord[];
+  officeId: string;
 }
 
-export default function MyOfficeContacts({ contacts: initial }: Props) {
+export default function MyOfficeContacts({ contacts: initial, officeId }: Props) {
+  const router = useRouter();
   const [contacts, setContacts] = useState(initial);
   const [query, setQuery] = useState("");
   const [showImport, setShowImport] = useState(false);
+  const [showWipe, setShowWipe] = useState(false);
+  const [wipeConfirmText, setWipeConfirmText] = useState("");
+  const [wiping, setWiping] = useState(false);
+  const [wipeErr, setWipeErr] = useState<string | null>(null);
 
   // After a bulk import the modal calls router.refresh(), which re-runs the
   // server component and produces a fresh `initial` prop. Sync it down so the
@@ -21,6 +28,22 @@ export default function MyOfficeContacts({ contacts: initial }: Props) {
   useEffect(() => {
     setContacts(initial);
   }, [initial]);
+
+  async function wipeAll() {
+    setWiping(true);
+    setWipeErr(null);
+    const supabase = createClient();
+    const { error } = await supabase.from("contacts").delete().eq("office_id", officeId);
+    setWiping(false);
+    if (error) {
+      setWipeErr(error.message);
+      return;
+    }
+    setContacts([]);
+    setShowWipe(false);
+    setWipeConfirmText("");
+    router.refresh();
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,6 +89,22 @@ export default function MyOfficeContacts({ contacts: initial }: Props) {
           </a>
           <button className="btn-primary" onClick={() => setShowImport(true)}>
             Upload contacts
+          </button>
+          <button
+            className="btn-danger"
+            onClick={() => {
+              setWipeErr(null);
+              setWipeConfirmText("");
+              setShowWipe(true);
+            }}
+            disabled={contacts.length === 0}
+            title={
+              contacts.length === 0
+                ? "No contacts to delete"
+                : "Delete every contact in your office (independent of upload)"
+            }
+          >
+            Delete all
           </button>
           <input
             className="form-input"
@@ -131,6 +170,73 @@ export default function MyOfficeContacts({ contacts: initial }: Props) {
         </tbody>
       </table>
       {showImport && <ContactsImportModal onClose={() => setShowImport(false)} />}
+
+      {showWipe && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && !wiping && setShowWipe(false)}
+        >
+          <div className="modal-panel" style={{ maxWidth: 480 }}>
+            <button
+              className="modal-close"
+              onClick={() => !wiping && setShowWipe(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h3 style={{ fontSize: 18, color: "#991b1b", marginBottom: 6 }}>
+              Delete every contact in this office?
+            </h3>
+            <p style={{ fontSize: 13, color: "var(--gray-700)", marginBottom: 12 }}>
+              This will permanently remove all <strong>{contacts.length}</strong> contact
+              {contacts.length === 1 ? "" : "s"} currently in your office&apos;s list — including
+              hidden ones. This action cannot be undone.
+            </p>
+            <p style={{ fontSize: 12, color: "var(--gray-600)", marginBottom: 8 }}>
+              Type <strong>DELETE</strong> to confirm:
+            </p>
+            <input
+              className="form-input"
+              autoFocus
+              value={wipeConfirmText}
+              onChange={(e) => setWipeConfirmText(e.target.value)}
+              placeholder="DELETE"
+              disabled={wiping}
+              style={{ marginBottom: 12 }}
+            />
+            {wipeErr && (
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 6,
+                  background: "#fee2e2",
+                  color: "#991b1b",
+                  fontSize: 12,
+                  marginBottom: 12
+                }}
+              >
+                {wipeErr}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                className="btn-outline"
+                onClick={() => setShowWipe(false)}
+                disabled={wiping}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-danger"
+                onClick={wipeAll}
+                disabled={wiping || wipeConfirmText !== "DELETE"}
+              >
+                {wiping ? "Deleting…" : `Delete ${contacts.length} contacts`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

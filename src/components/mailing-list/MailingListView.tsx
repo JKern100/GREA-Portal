@@ -65,6 +65,20 @@ export default function MailingListView({ profile, offices, initialEntries, mana
     return Array.from(s).sort();
   }, [entries]);
 
+  // Email → number of entries sharing that email. Anything > 1 is a
+  // duplicate and gets visually flagged in the email cell. Comparison is
+  // case-insensitive (cleanEmail already lowercases on import; we lower
+  // here too in case older rows came in mixed-case).
+  const emailCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    entries.forEach((e) => {
+      if (!e.email) return;
+      const k = e.email.toLowerCase();
+      m.set(k, (m.get(k) ?? 0) + 1);
+    });
+    return m;
+  }, [entries]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return entries.filter((e) => {
@@ -254,6 +268,7 @@ export default function MailingListView({ profile, offices, initialEntries, mana
               // either is missing — we don't want to render lone commas.
               const locParts = [e.city, e.state].filter(Boolean) as string[];
               const location = locParts.length ? locParts.join(", ") : "—";
+              const isDuplicate = !!e.email && (emailCounts.get(e.email.toLowerCase()) ?? 0) > 1;
               return (
                 <tr key={e.id} style={e.opted_out ? { background: "#fafafa", opacity: 0.7 } : undefined}>
                   <td style={{ fontWeight: 600, color: "var(--navy)" }}>
@@ -276,8 +291,23 @@ export default function MailingListView({ profile, offices, initialEntries, mana
                       </span>
                     )}
                   </td>
-                  <td style={{ fontSize: 12 }}>
-                    {e.email ? <a href={`mailto:${e.email}`}>{e.email}</a> : "—"}
+                  <td
+                    style={{
+                      fontSize: 12,
+                      ...(isDuplicate ? { color: "#dc2626", fontWeight: 600 } : null)
+                    }}
+                    title={isDuplicate ? "duplicate" : undefined}
+                  >
+                    {e.email ? (
+                      <a
+                        href={`mailto:${e.email}`}
+                        style={isDuplicate ? { color: "#dc2626" } : undefined}
+                      >
+                        {e.email}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td>{e.organization || "—"}</td>
                   <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{e.title || "—"}</td>

@@ -269,6 +269,26 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     });
   }
 
+  // Refuse replace when the upload yielded no valid rows. Otherwise an
+  // all-bad file would wipe the existing contacts and leave the office
+  // empty. Admins who actually want to clear the table can use the
+  // "Delete all" action on the contacts page.
+  if (mode === "replace" && validInserts.length === 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        mode,
+        inserted: 0,
+        deleted: 0,
+        skipped: skippedRows.length,
+        skippedRows,
+        error:
+          "Replace blocked: the upload contains no valid rows, so running it would wipe your existing contacts and leave the table empty. Fix the file or use the Delete all action explicitly."
+      },
+      { status: 400 }
+    );
+  }
+
   // Replace mode: delete all existing contacts for this office (including
   // confidential per spec) before inserting the new set.
   let deleted = 0;
