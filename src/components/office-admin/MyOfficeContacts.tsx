@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { revalidateVisibilityCaches } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { ContactRecord } from "@/lib/types";
+import ContactsImportModal from "./ContactsImportModal";
 
 interface Props {
   contacts: ContactRecord[];
@@ -12,6 +13,7 @@ interface Props {
 export default function MyOfficeContacts({ contacts: initial }: Props) {
   const [contacts, setContacts] = useState(initial);
   const [query, setQuery] = useState("");
+  const [showImport, setShowImport] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -45,13 +47,21 @@ export default function MyOfficeContacts({ contacts: initial }: Props) {
     <div className="card" style={{ padding: 0, overflow: "auto" }}>
       <div style={{ padding: "12px 14px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>Office Contacts ({contacts.length})</div>
-        <input
-          className="form-input"
-          style={{ marginLeft: "auto", width: 240 }}
-          placeholder="Filter contacts…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <a className="btn-outline" href="/api/contacts/template?format=csv">
+            Download template
+          </a>
+          <button className="btn-primary" onClick={() => setShowImport(true)}>
+            Upload contacts
+          </button>
+          <input
+            className="form-input"
+            style={{ width: 240 }}
+            placeholder="Filter contacts…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
       </div>
       <table className="data-table">
         <thead>
@@ -107,6 +117,7 @@ export default function MyOfficeContacts({ contacts: initial }: Props) {
           )}
         </tbody>
       </table>
+      {showImport && <ContactsImportModal onClose={() => setShowImport(false)} />}
     </div>
   );
 }
