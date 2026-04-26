@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { MailingListEntry, Office, Profile } from "@/lib/types";
 import MailingListImportModal from "./MailingListImportModal";
 
@@ -26,7 +27,19 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
     setEntries(initialEntries);
   }, [initialEntries]);
 
-  const canImport = profile.role === "office_admin";
+  const canImport = profile.role === "office_admin" || profile.role === "superadmin";
+  const canDelete = canImport;
+
+  async function deleteEntry(id: string, name: string) {
+    if (!confirm(`Delete "${name}" from the mailing list?`)) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("mailing_list_entries").delete().eq("id", id);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+  }
 
   const officeById = useMemo(() => {
     const m: Record<string, Office> = {};
@@ -224,6 +237,7 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
               <th>Tags</th>
               <th>Last Reg.</th>
               <th>Source</th>
+              {canDelete && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -264,11 +278,22 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
                 <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
                   {(e.source_office_id && officeById[e.source_office_id]?.code) || "—"}
                 </td>
+                {canDelete && (
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <button
+                      className="btn-outline"
+                      style={{ padding: "2px 8px", fontSize: 11 }}
+                      onClick={() => deleteEntry(e.id, e.name || e.email || "this entry")}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={10} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
+                <td colSpan={canDelete ? 11 : 10} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
                   No entries match your filters.
                 </td>
               </tr>
@@ -277,7 +302,13 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
         </table>
       </div>
 
-      {showImport && <MailingListImportModal onClose={() => setShowImport(false)} />}
+      {showImport && (
+        <MailingListImportModal
+          profile={profile}
+          offices={offices}
+          onClose={() => setShowImport(false)}
+        />
+      )}
     </div>
   );
 }

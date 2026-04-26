@@ -76,36 +76,62 @@ function err(
  *   - file:  CSV or XLSX file matching the template.
  *   - mode:  "replace" | "add_on".
  *
- * Replace mode deletes every existing entry whose `source_office_id` matches
- * the importer's office (their office's slice of the shared list) before
- * inserting. Add-on mode appends. Either way, new rows get the importer's
- * office_id stamped on `source_office_id`.
+ * Replace mode for an office admin deletes every entry whose `source_office_id`
+ * matches their office (their slice of the shared list) before inserting.
  *
- * Authorisation: effective profile must be office_admin (which covers
- * superadmins impersonating an office admin) AND must have an office_id.
+ * Superadmins can additionally:
+ *   - Target a specific office (target_office_id=<uuid>) or "global"
+ *     (target_office_id=global → source_office_id stamped null on inserts).
+ *   - Use the nuclear `replace_all` flag to wipe EVERY entry across all
+ *     offices before inserting. Honoured only when mode=replace.
+ *
+ * Add-on mode appends. New rows get `target_office_id` stamped on
+ * `source_office_id` (or null for global).
  */
 export async function POST(request: Request): Promise<NextResponse<ImportResponse>> {
   try {
     const profile = await getCurrentProfile();
     if (!profile) return err(401, { mode: "add_on", error: "Unauthorized" });
-    if (profile.role !== "office_admin") {
+
+    const isSuperadmin = profile.role === "superadmin";
+    const isOfficeAdmin = profile.role === "office_admin";
+    if (!isSuperadmin && !isOfficeAdmin) {
       return err(403, {
         mode: "add_on",
-        error:
-          "Only office admins can import the mailing list. Superadmins must impersonate an office admin to import."
+        error: "Only office admins or superadmins can import the mailing list."
       });
-    }
-    if (!profile.office_id) {
-      return err(400, { mode: "add_on", error: "You are not assigned to an office." });
     }
 
     const form = await request.formData();
     const file = form.get("file");
     const modeRaw = form.get("mode");
+    const targetRaw = form.get("target_office_id");
+    const replaceAllRaw = form.get("replace_all");
 
     if (!(file instanceof File)) return err(400, { mode: "add_on", error: "Missing file." });
     if (file.size > MAX_BYTES) return err(400, { mode: "add_on", error: "File exceeds 5 MB limit." });
     const mode: ImportMode = modeRaw === "replace" ? "replace" : "add_on";
+
+    // Resolve where new rows get tagged and what the "replace" scope means
+    // for this importer's role.
+    let targetOfficeId: string | null;
+    let replaceAll = false;
+
+    if (isSuperadmin) {
+      if (typeof targetRaw === "string" && targetRaw.length > 0 && targetRaw !== "global") {
+        targetOfficeId = targetRaw;
+      } else {
+        targetOfficeId = null; // "global" or omitted
+      }
+      replaceAll = replaceAllRaw === "true" && mode === "replace";
+    } else {
+      if (!profile.office_id) {
+        return err(400, { mode, error: "You are not assigned to an office." });
+      }
+      // Office admin: forced to own office; replace_all and target_office_id
+      // are ignored (security: an office admin must never wipe other offices).
+      targetOfficeId = profile.office_id;
+    }
 
     let rows: string[][];
     try {
@@ -183,7 +209,7 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
         sectors: r.sectors,
         tags: r.tags,
         notes: r.notes,
-        source_office_id: profile.office_id,
+        source_office_id: targetOfficeId,
         created_by: profile.id
       });
     }
@@ -192,10 +218,16 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
 
     let deleted = 0;
     if (mode === "replace") {
-      const { count, error: countErr } = await admin
+      const countQuery = admin
         .from("mailing_list_entries")
-        .select("id", { count: "exact", head: true })
-        .eq("source_office_id", profile.office_id);
+        .select("id", { count: "exact", head: true });
+      const scopedCount = replaceAll
+        ? countQuery
+        : targetOfficeId === null
+          ? countQuery.is("source_office_id", null)
+          : countQuery.eq("source_office_id", targetOfficeId);
+
+      const { count, error: countErr } = await scopedCount;
       if (countErr) {
         return err(500, {
           mode,
@@ -206,10 +238,17 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
       }
       deleted = count ?? 0;
 
-      const { error: delErr } = await admin
-        .from("mailing_list_entries")
-        .delete()
-        .eq("source_office_id", profile.office_id);
+      // Supabase delete() requires a filter. Use `id is not null` as a
+      // catch-all for the wipe-everything case so we don't trip the safety
+      // guard against unbounded deletes.
+      const delBase = admin.from("mailing_list_entries").delete();
+      const scopedDel = replaceAll
+        ? delBase.not("id", "is", null)
+        : targetOfficeId === null
+          ? delBase.is("source_office_id", null)
+          : delBase.eq("source_office_id", targetOfficeId);
+
+      const { error: delErr } = await scopedDel;
       if (delErr) {
         return err(500, {
           mode,
@@ -244,11 +283,11 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     }
 
     const { error: auditErr } = await admin.from("mailing_list_imports").insert({
-      source_office_id: profile.office_id,
+      source_office_id: targetOfficeId,
       imported_by: profile.id,
       imported_by_name: profile.name ?? "",
-      mode,
-      file_name: file.name,
+      mode: replaceAll ? "replace" : mode,
+      file_name: file.name + (replaceAll ? " [REPLACE_ALL]" : ""),
       inserted_count: inserted,
       deleted_count: deleted,
       skipped_count: skippedRows.length,
