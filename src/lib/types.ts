@@ -124,6 +124,13 @@ export interface MailingListEntry {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  opted_out: boolean;
+  last_registration_date: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  country: string | null;
 }
 
 export type FeedbackCategory = "bug" | "suggestion" | "question" | "other";
