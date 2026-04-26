@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { officeBadgeStyle } from "@/lib/officeColor";
 import type { ContactRecord, DealRecord, DealStage, Office, Profile } from "@/lib/types";
 
 interface Props {
@@ -447,7 +448,10 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span className={`office-badge ${s.office.code.toLowerCase()}`} style={{ fontSize: 13, padding: "3px 10px" }}>
+                    <span
+                      className={`office-badge ${s.office.code.toLowerCase()}`}
+                      style={officeBadgeStyle(s.office, { fontSize: 13, padding: "3px 10px" })}
+                    >
                       {s.office.code}
                     </span>
                     <span style={{ fontSize: 13, color: "var(--gray-600)" }}>{s.office.name}</span>

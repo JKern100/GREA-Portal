@@ -27,6 +27,7 @@ export interface Office {
   code: string;
   name: string;
   last_updated: string | null;
+  color: string | null;
 }
 
 export interface Profile {

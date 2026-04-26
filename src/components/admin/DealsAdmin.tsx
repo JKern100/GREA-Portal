@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { revalidateVisibilityCaches } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
+import { officeBadgeStyle } from "@/lib/officeColor";
 import type { DealRecord, DealStage, Office } from "@/lib/types";
 import { DEAL_STAGES } from "@/lib/types";
 
@@ -126,7 +127,7 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                       <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase" }}>B:</span> {d.buyer_name || "—"}
                     </div>
                   </td>
-                  <td>{office && <span className={`office-badge ${office.code.toLowerCase()}`}>{office.code}</span>}</td>
+                  <td>{office && <span className={`office-badge ${office.code.toLowerCase()}`} style={officeBadgeStyle(office)}>{office.code}</span>}</td>
                   <td>
                     <select
                       className="form-input"

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { DealRecord, DealStage, Office, Profile, SpecialtyTeam } from "@/lib/types";
 import { DEAL_STAGES } from "@/lib/types";
+import { officeBadgeStyle } from "@/lib/officeColor";
 import DealDetailModal from "./DealDetailModal";
 
 interface Props {
@@ -196,7 +197,7 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
                       </div>
                     </td>
                     <td>
-                      {office ? <span className={`office-badge ${office.code.toLowerCase()}`}>{office.code}</span> : "—"}
+                      {office ? <span className={`office-badge ${office.code.toLowerCase()}`} style={officeBadgeStyle(office)}>{office.code}</span> : "—"}
                     </td>
                     <td>
                       <span className={`stage-badge ${stageClass}`}>{d.stage}</span>{" "}

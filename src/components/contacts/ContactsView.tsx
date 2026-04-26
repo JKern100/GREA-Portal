@@ -2,6 +2,7 @@
 
 import Fuse from "fuse.js";
 import { useMemo, useState } from "react";
+import { officeBadgeStyle } from "@/lib/officeColor";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
 
 interface Props {
@@ -347,7 +348,11 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                     </div>
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                       {g.offices.map((o) => (
-                        <span key={o.officeId} className={`office-badge ${o.office.toLowerCase()}`}>
+                        <span
+                          key={o.officeId}
+                          className={`office-badge ${o.office.toLowerCase()}`}
+                          style={officeBadgeStyle(officeById[o.officeId])}
+                        >
                           {o.office}
                         </span>
                       ))}

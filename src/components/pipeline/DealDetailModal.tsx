@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { officeBadgeStyle } from "@/lib/officeColor";
 import type { DealRecord, DealStageHistory, Office, SpecialtyTeam } from "@/lib/types";
 
 interface Props {
@@ -63,7 +64,7 @@ export default function DealDetailModal({ dealId, offices, teams, onClose }: Pro
               <div>
                 <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Broker</span>
                 <div><strong>{deal.assigned_broker_name || "—"}</strong></div>
-                {office && <span className={`office-badge ${office.code.toLowerCase()}`}>{office.code}</span>}
+                {office && <span className={`office-badge ${office.code.toLowerCase()}`} style={officeBadgeStyle(office)}>{office.code}</span>}
               </div>
               <div>
                 <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Stage</span>

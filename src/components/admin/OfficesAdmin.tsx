@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { legibleTextOn } from "@/lib/officeColor";
 import type { Office } from "@/lib/types";
 
 interface Props {
@@ -93,48 +94,97 @@ export default function OfficesAdmin({ offices: initial }: Props) {
             <tr>
               <th>Code</th>
               <th>Name</th>
+              <th>Color</th>
               <th>Last Updated</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {offices.map((o) => (
-              <tr key={o.id}>
-                <td>
-                  <input
-                    className="form-input"
-                    style={{ padding: "4px 8px", fontSize: 13, width: 90 }}
-                    defaultValue={o.code}
-                    onBlur={(e) => e.target.value !== o.code && updateOffice(o.id, { code: e.target.value.toUpperCase() })}
-                  />
-                </td>
-                <td>
-                  <input
-                    className="form-input"
-                    style={{ padding: "4px 8px", fontSize: 13 }}
-                    defaultValue={o.name}
-                    onBlur={(e) => e.target.value !== o.name && updateOffice(o.id, { name: e.target.value })}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="date"
-                    className="form-input"
-                    style={{ padding: "4px 8px", fontSize: 13, width: 150 }}
-                    value={o.last_updated ?? ""}
-                    onChange={(e) => updateOffice(o.id, { last_updated: e.target.value || null })}
-                  />
-                </td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => bumpFreshness(o.id)}>
-                    Mark Refreshed
-                  </button>{" "}
-                  <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => deleteOffice(o.id)}>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {offices.map((o) => {
+              const previewBg = o.color || "#f1f3f5";
+              const previewFg = o.color ? legibleTextOn(o.color) : "var(--gray-600)";
+              return (
+                <tr key={o.id}>
+                  <td>
+                    <input
+                      className="form-input"
+                      style={{ padding: "4px 8px", fontSize: 13, width: 90 }}
+                      defaultValue={o.code}
+                      onBlur={(e) => e.target.value !== o.code && updateOffice(o.id, { code: e.target.value.toUpperCase() })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="form-input"
+                      style={{ padding: "4px 8px", fontSize: 13 }}
+                      defaultValue={o.name}
+                      onBlur={(e) => e.target.value !== o.name && updateOffice(o.id, { name: e.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <input
+                        type="color"
+                        value={o.color ?? "#e3f2fd"}
+                        onChange={(e) => updateOffice(o.id, { color: e.target.value })}
+                        title="Pick badge colour"
+                        style={{
+                          width: 32,
+                          height: 28,
+                          padding: 0,
+                          border: "1px solid var(--gray-300)",
+                          borderRadius: 4,
+                          cursor: "pointer",
+                          background: "transparent"
+                        }}
+                      />
+                      <span
+                        style={{
+                          padding: "3px 10px",
+                          borderRadius: 4,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: 0.5,
+                          textTransform: "uppercase",
+                          background: previewBg,
+                          color: previewFg,
+                          border: o.color ? "none" : "1px dashed var(--gray-300)"
+                        }}
+                      >
+                        {o.code || "—"}
+                      </span>
+                      {o.color && (
+                        <button
+                          className="btn-outline"
+                          style={{ padding: "2px 8px", fontSize: 10 }}
+                          onClick={() => updateOffice(o.id, { color: null })}
+                          title="Clear custom colour and use the default styling"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <input
+                      type="date"
+                      className="form-input"
+                      style={{ padding: "4px 8px", fontSize: 13, width: 150 }}
+                      value={o.last_updated ?? ""}
+                      onChange={(e) => updateOffice(o.id, { last_updated: e.target.value || null })}
+                    />
+                  </td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => bumpFreshness(o.id)}>
+                      Mark Refreshed
+                    </button>{" "}
+                    <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => deleteOffice(o.id)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
