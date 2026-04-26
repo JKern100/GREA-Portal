@@ -6,6 +6,7 @@ const adminTabs = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/offices", label: "Offices" },
+  { href: "/admin/settings", label: "Settings" },
   { href: "/feedback", label: "Feedback" }
 ];
 

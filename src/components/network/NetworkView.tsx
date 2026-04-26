@@ -2,6 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { officeBadgeStyle } from "@/lib/officeColor";
+import {
+  DEFAULT_NETWORK_FRESHNESS,
+  type FreshnessThresholds,
+  type NetworkFreshnessSettings
+} from "@/lib/settings";
 import type { ContactRecord, DealRecord, DealStage, Office, Profile } from "@/lib/types";
 
 interface Props {
@@ -9,6 +14,7 @@ interface Props {
   offices: Office[];
   contacts: ContactRecord[];
   deals: DealRecord[];
+  freshness?: NetworkFreshnessSettings;
 }
 
 type NetworkView = "contacts" | "pipeline";
@@ -40,10 +46,13 @@ interface OfficeStats {
 
 type FreshnessTone = "current" | "due" | "stale" | "unknown";
 
-function freshnessFor(days: number | null): { tone: FreshnessTone; color: string; label: string } {
+function freshnessFor(
+  days: number | null,
+  thresholds: FreshnessThresholds
+): { tone: FreshnessTone; color: string; label: string } {
   if (days == null) return { tone: "unknown", color: "var(--gray-400)", label: "No data" };
-  if (days <= 30) return { tone: "current", color: "#16a34a", label: "Current" };
-  if (days <= 60) return { tone: "due", color: "#ea580c", label: "Due for update" };
+  if (days <= thresholds.current) return { tone: "current", color: "#16a34a", label: "Current" };
+  if (days <= thresholds.due) return { tone: "due", color: "#ea580c", label: "Due for update" };
   return { tone: "stale", color: "#dc2626", label: "Stale" };
 }
 
@@ -163,13 +172,21 @@ function PipelineIcon() {
   );
 }
 
-function FreshnessRing({ days }: { days: number | null }) {
+function FreshnessRing({
+  days,
+  thresholds
+}: {
+  days: number | null;
+  thresholds: FreshnessThresholds;
+}) {
   // Negative-day inputs (future-dated rows) are coerced to fresh.
   const safeDays = days == null ? null : Math.max(0, days);
-  // Map 0..90 days onto 0..360°. Empty ring at 0d (current), fills as it ages.
-  const cap = 90;
+  // The arc fills as days approach a "fully stale" cap that scales with
+  // the configured Due threshold — so the ring stays meaningful whether
+  // the admin sets 3/10 or 60/120.
+  const cap = Math.max(7, thresholds.due * 1.5);
   const pct = safeDays == null ? 1 : Math.min(1, safeDays / cap);
-  const { color, label } = freshnessFor(safeDays);
+  const { color, label } = freshnessFor(safeDays, thresholds);
   const size = 52;
   const stroke = 6;
   const r = (size - stroke) / 2;
@@ -217,7 +234,10 @@ function FreshnessRing({ days }: { days: number | null }) {
   );
 }
 
-export default function NetworkView({ offices, contacts, deals }: Props) {
+export default function NetworkView({ offices, contacts, deals, freshness }: Props) {
+  // Fall back to baked-in defaults if the caller didn't pass settings —
+  // shouldn't happen via the page but keeps the component robust.
+  const thresholdsByView = freshness ?? DEFAULT_NETWORK_FRESHNESS;
   const [hoveredOfficeId, setHoveredOfficeId] = useState<string | null>(null);
   const [view, setView] = useState<NetworkView>("contacts");
 
@@ -449,8 +469,11 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
               : "of largest office's contact base";
           // Freshness reflects the active view's data: days since the newest
           // contact in Contacts mode, days since the newest deal in Pipeline.
+          // Each view has its own configurable thresholds (set in
+          // /admin/settings).
           const days = view === "pipeline" ? s.daysSinceNewestDeal : s.daysSinceNewestContact;
-          const fresh = freshnessFor(days);
+          const thresholds = thresholdsByView[view];
+          const fresh = freshnessFor(days, thresholds);
           return (
             <div
               key={s.office.id}
@@ -479,7 +502,7 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
                     <span style={{ fontSize: 13, color: "var(--gray-600)" }}>{s.office.name}</span>
                   </div>
                 </div>
-                <FreshnessRing days={days} />
+                <FreshnessRing days={days} thresholds={thresholds} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 14 }}>
