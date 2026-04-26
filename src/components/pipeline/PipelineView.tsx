@@ -37,9 +37,12 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
     return m;
   }, [offices]);
 
-  const filtered = useMemo(() => {
-    let list = [...deals];
-    if (stageFilter) list = list.filter((d) => d.stage === stageFilter);
+  // Pipeline scope = everything matching office + search filters, regardless
+  // of the active stage tab. The per-stage pills and the header total both
+  // read from this so they update with office/search but stay useful as a
+  // stage switcher (otherwise selecting "Lead" would zero out the other pills).
+  const scoped = useMemo(() => {
+    let list = deals;
     if (officeFilter) list = list.filter((d) => d.office_id === officeFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -53,7 +56,13 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
           (d.assigned_broker_name || "").toLowerCase().includes(q)
       );
     }
+    return list;
+  }, [deals, officeFilter, search]);
+
+  const filtered = useMemo(() => {
+    let list = stageFilter ? scoped.filter((d) => d.stage === stageFilter) : [...scoped];
     const order: Record<DealStage, number> = { Lead: 0, Listing: 1, Contract: 2, Closed: 3 };
+    list = [...list];
     list.sort((a, b) => {
       let va: number | string, vb: number | string;
       if (sortField === "stage") {
@@ -74,7 +83,7 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
       return 0;
     });
     return list;
-  }, [deals, stageFilter, officeFilter, search, sortField, sortAsc, officeById]);
+  }, [scoped, stageFilter, sortField, sortAsc, officeById]);
 
   const stageCounts = useMemo(() => {
     const counts: Record<DealStage, { count: number; value: number }> = {
@@ -83,12 +92,12 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
       Contract: { count: 0, value: 0 },
       Closed: { count: 0, value: 0 }
     };
-    deals.forEach((d) => {
+    scoped.forEach((d) => {
       counts[d.stage].count++;
       counts[d.stage].value += d.deal_value || 0;
     });
     return counts;
-  }, [deals]);
+  }, [scoped]);
 
   function setSort(f: SortField) {
     if (f === sortField) setSortAsc(!sortAsc);
@@ -102,7 +111,8 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
     return f === sortField ? (sortAsc ? " ▲" : " ▼") : "";
   }
 
-  const totalPipelineValue = deals.reduce((s, d) => s + (d.deal_value || 0), 0);
+  const scopedTotal = scoped.reduce((s, d) => s + (d.deal_value || 0), 0);
+  const isScoped = !!officeFilter || !!search.trim();
 
   return (
     <>
@@ -110,7 +120,7 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
         <div>
           <h2 style={{ fontSize: 20, color: "var(--navy)" }}>Deal Pipeline</h2>
           <p style={{ fontSize: 13, color: "var(--gray-500)" }}>
-            {deals.length} deals · {formatValue(totalPipelineValue)} total pipeline
+            {scoped.length} deals · {formatValue(scopedTotal)} {isScoped ? "matching pipeline" : "total pipeline"}
           </p>
         </div>
       </div>
@@ -131,7 +141,9 @@ export default function PipelineView({ profile, offices, initialDeals, teams }: 
         {DEAL_STAGES.map((s) => (
           <div key={s} className="pill-badge">
             {s} <span className="count">{stageCounts[s].count}</span>
-            <span style={{ fontSize: 11, color: "var(--gray-400)" }}>{formatValue(stageCounts[s].value)}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--gray-700)" }}>
+              {formatValue(stageCounts[s].value)}
+            </span>
           </div>
         ))}
       </div>
