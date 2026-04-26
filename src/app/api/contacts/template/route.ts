@@ -8,6 +8,7 @@ import {
 } from "@/lib/contacts/import-schema";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 function csvCell(v: string): string {
   return `"${v.replace(/"/g, '""')}"`;
@@ -34,7 +35,14 @@ function buildXlsx(): Uint8Array {
   XLSX.utils.book_append_sheet(wb, sheet, "Contacts");
   XLSX.utils.book_append_sheet(wb, instructions, "Instructions");
 
-  return XLSX.write(wb, { type: "array", bookType: "xlsx" }) as Uint8Array;
+  // Use type:"buffer" so SheetJS takes the Node-aware code path. With
+  // type:"array" the bundled build can return a plain Array (not a
+  // Uint8Array), which then has no `.buffer` to slice into an ArrayBuffer.
+  const out = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as
+    | Buffer
+    | Uint8Array
+    | number[];
+  return out instanceof Uint8Array ? out : Uint8Array.from(out as number[]);
 }
 
 export async function GET(request: Request) {
@@ -47,9 +55,8 @@ export async function GET(request: Request) {
   const format = new URL(request.url).searchParams.get("format") === "xlsx" ? "xlsx" : "csv";
 
   if (format === "xlsx") {
-    const buf = buildXlsx();
-    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
-    return new NextResponse(ab, {
+    const body = buildXlsx();
+    return new NextResponse(body as unknown as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

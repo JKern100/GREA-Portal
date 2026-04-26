@@ -97,9 +97,16 @@ export async function GET(request: Request) {
       const sheet = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...rows]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, sheet, "Contacts");
-      const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as Uint8Array;
-      const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
-      return new NextResponse(ab, {
+      // Use type:"buffer" so SheetJS takes the Node-aware code path. With
+      // type:"array" the bundled build can return a plain Array (not a
+      // Uint8Array), which then has no `.buffer` to slice into an ArrayBuffer.
+      const out = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as
+        | Buffer
+        | Uint8Array
+        | number[];
+      const body =
+        out instanceof Uint8Array ? out : Uint8Array.from(out as number[]);
+      return new NextResponse(body as unknown as BodyInit, {
         status: 200,
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
