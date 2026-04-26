@@ -19,6 +19,7 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
   const [profiles, setProfiles] = useState(initial);
   const [saving, setSaving] = useState<string | null>(null);
   const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
@@ -87,6 +88,30 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
     if (data) {
       setProfiles((prev) => prev.map((p) => (p.id === id ? (data as Profile) : p)));
     }
+  }
+
+  async function deleteUser(p: Profile) {
+    const label = p.name || p.email;
+    if (
+      !confirm(
+        `Delete ${label}? They'll be removed from auth and the user table. Their contacts and deals stay but become unassigned. This can't be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeleting(p.id);
+    const res = await fetch("/api/delete-user", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: p.id })
+    });
+    setDeleting(null);
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: "Failed" }));
+      alert(error || "Failed to delete user");
+      return;
+    }
+    setProfiles((prev) => prev.filter((x) => x.id !== p.id));
   }
 
   async function impersonate(id: string) {
@@ -280,44 +305,42 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
                       onBlur={(e) => e.target.value !== (p.title ?? "") && updateProfile(p.id, { title: e.target.value })}
                     />
                   </td>
-                  <td>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, maxWidth: 220 }}>
+                  <td style={{ minWidth: 280 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                       {SECTOR_OPTIONS.map((s) => {
                         const checked = (p.specialties ?? []).includes(s);
                         return (
-                          <label
+                          <button
                             key={s}
+                            type="button"
+                            onClick={() => {
+                              const next = checked
+                                ? (p.specialties ?? []).filter((x) => x !== s)
+                                : Array.from(new Set([...(p.specialties ?? []), s]));
+                              updateProfile(p.id, { specialties: next });
+                            }}
                             style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              padding: "2px 7px",
-                              borderRadius: 12,
+                              padding: "3px 9px",
+                              borderRadius: 14,
                               border: "1px solid " + (checked ? "var(--navy)" : "var(--gray-300)"),
                               background: checked ? "var(--navy)" : "white",
-                              color: checked ? "white" : "var(--gray-700)",
+                              color: checked ? "white" : "var(--gray-600)",
                               fontSize: 11,
-                              cursor: "pointer"
+                              fontWeight: checked ? 600 : 400,
+                              cursor: "pointer",
+                              whiteSpace: "nowrap",
+                              transition: "background 0.12s, color 0.12s, border-color 0.12s"
                             }}
+                            aria-pressed={checked}
+                            title={checked ? `Remove ${s}` : `Add ${s}`}
                           >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={(e) => {
-                                const next = e.target.checked
-                                  ? Array.from(new Set([...(p.specialties ?? []), s]))
-                                  : (p.specialties ?? []).filter((x) => x !== s);
-                                updateProfile(p.id, { specialties: next });
-                              }}
-                              style={{ display: "none" }}
-                            />
-                            {s}
-                          </label>
+                            {checked ? "✓ " : ""}{s}
+                          </button>
                         );
                       })}
                     </div>
                   </td>
-                  <td>
+                  <td style={{ textAlign: "center" }}>
                     <input
                       type="checkbox"
                       checked={p.is_active}
@@ -325,16 +348,27 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId }
                     />
                     {saving === p.id && <span style={{ marginLeft: 6, color: "var(--gray-400)", fontSize: 11 }}>saving…</span>}
                   </td>
-                  <td>
+                  <td style={{ whiteSpace: "nowrap" }}>
                     {!isSelf && (
-                      <button
-                        className="btn-outline"
-                        style={{ padding: "3px 10px", fontSize: 11 }}
-                        disabled={impersonating === p.id}
-                        onClick={() => impersonate(p.id)}
-                      >
-                        {impersonating === p.id ? "…" : "Impersonate"}
-                      </button>
+                      <>
+                        <button
+                          className="btn-outline"
+                          style={{ padding: "3px 10px", fontSize: 11 }}
+                          disabled={impersonating === p.id || deleting === p.id}
+                          onClick={() => impersonate(p.id)}
+                        >
+                          {impersonating === p.id ? "…" : "Impersonate"}
+                        </button>{" "}
+                        <button
+                          className="btn-danger"
+                          style={{ padding: "3px 10px", fontSize: 11 }}
+                          disabled={deleting === p.id || impersonating === p.id}
+                          onClick={() => deleteUser(p)}
+                          title="Permanently delete this user"
+                        >
+                          {deleting === p.id ? "…" : "Delete"}
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
