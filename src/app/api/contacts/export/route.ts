@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getCurrentProfile } from "@/lib/data";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { TEMPLATE_COLUMNS, TEMPLATE_HEADERS } from "@/lib/contacts/import-schema";
 import type { ContactRecord } from "@/lib/types";
 
@@ -60,9 +60,12 @@ export async function GET(request: Request) {
 
   const format = new URL(request.url).searchParams.get("format") === "xlsx" ? "xlsx" : "csv";
 
-  const admin = createAdminClient();
+  // Use the user's session-bound client. Reads of the admin's own office
+  // contacts and members are already permitted by RLS, so we don't need (and
+  // shouldn't depend on) the service-role key for a read-only operation.
+  const supabase = createClient();
 
-  const { data: contacts, error } = await admin
+  const { data: contacts, error } = await supabase
     .from("contacts")
     .select("*")
     .eq("office_id", profile.office_id)
@@ -73,13 +76,14 @@ export async function GET(request: Request) {
   }
 
   // Resolve broker_id → email so the exported broker_email column round-trips
-  // through the importer.
+  // through the importer. If RLS prevents the lookup we just leave the column
+  // blank rather than failing the export.
   const brokerIds = Array.from(
     new Set(((contacts ?? []) as ContactRecord[]).map((c) => c.broker_id).filter((x): x is string => !!x))
   );
   const brokerEmailById = new Map<string, string>();
   if (brokerIds.length > 0) {
-    const { data: brokers } = await admin.from("profiles").select("id, email").in("id", brokerIds);
+    const { data: brokers } = await supabase.from("profiles").select("id, email").in("id", brokerIds);
     for (const b of brokers ?? []) {
       if (b.email) brokerEmailById.set(String(b.id), String(b.email));
     }
