@@ -231,6 +231,7 @@ export default function PipelineView({ profile, offices, initialDeals, profiles 
           dealId={detailId}
           offices={offices}
           profiles={profiles}
+          profile={profile}
           onClose={() => setDetailId(null)}
         />
       )}

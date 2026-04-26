@@ -9,13 +9,60 @@ interface Props {
   dealId: string;
   offices: Office[];
   profiles: Profile[];
+  profile: Profile;
   onClose: () => void;
 }
 
-export default function DealDetailModal({ dealId, offices, profiles, onClose }: Props) {
+export default function DealDetailModal({ dealId, offices, profiles, profile, onClose }: Props) {
   const [deal, setDeal] = useState<DealRecord | null>(null);
   const [history, setHistory] = useState<DealStageHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [omEditing, setOmEditing] = useState(false);
+  const [omDraft, setOmDraft] = useState("");
+  const [omSaving, setOmSaving] = useState(false);
+  const [omError, setOmError] = useState<string | null>(null);
+
+  const canEditOm = profile.role === "office_admin" || profile.role === "superadmin";
+
+  async function saveOm(next: string | null) {
+    if (!deal) return;
+    setOmSaving(true);
+    setOmError(null);
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("deals")
+      .update({ om_link: next })
+      .eq("id", deal.id)
+      .select()
+      .single();
+    setOmSaving(false);
+    if (error) {
+      setOmError(error.message);
+      return;
+    }
+    if (data) setDeal(data as DealRecord);
+    setOmEditing(false);
+    setOmDraft("");
+  }
+
+  function startEditOm() {
+    setOmDraft(deal?.om_link ?? "");
+    setOmEditing(true);
+    setOmError(null);
+  }
+
+  function submitOm() {
+    const v = omDraft.trim();
+    if (!v) {
+      setOmError("URL is required. To remove, use the Remove button instead.");
+      return;
+    }
+    if (!/^https?:\/\//i.test(v)) {
+      setOmError("URL must start with http:// or https://");
+      return;
+    }
+    saveOm(v);
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -103,13 +150,93 @@ export default function DealDetailModal({ dealId, offices, profiles, onClose }: 
               </div>
             </div>
 
-            {deal.om_link && (
-              <div style={{ marginBottom: 14 }}>
-                <a href={deal.om_link} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: "inline-flex", padding: "8px 14px", fontSize: 13 }}>
-                  View Offering Memorandum
-                </a>
-              </div>
-            )}
+            <div style={{ marginBottom: 14 }}>
+              {omEditing ? (
+                <div
+                  style={{
+                    padding: 10,
+                    border: "1px solid var(--gray-300)",
+                    borderRadius: 6,
+                    background: "var(--gray-50)"
+                  }}
+                >
+                  <label className="form-label">Offering Memorandum URL</label>
+                  <input
+                    className="form-input"
+                    type="url"
+                    placeholder="https://drive.google.com/…"
+                    value={omDraft}
+                    onChange={(e) => setOmDraft(e.target.value)}
+                    disabled={omSaving}
+                    style={{ marginBottom: 8 }}
+                  />
+                  {omError && (
+                    <div style={{ fontSize: 12, color: "#991b1b", marginBottom: 8 }}>
+                      {omError}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn-primary" onClick={submitOm} disabled={omSaving} style={{ padding: "6px 12px", fontSize: 12 }}>
+                      {omSaving ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      className="btn-outline"
+                      onClick={() => {
+                        setOmEditing(false);
+                        setOmError(null);
+                      }}
+                      disabled={omSaving}
+                      style={{ padding: "6px 12px", fontSize: 12 }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : deal.om_link ? (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <a
+                    href={deal.om_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary"
+                    style={{ display: "inline-flex", padding: "8px 14px", fontSize: 13 }}
+                  >
+                    View Offering Memorandum
+                  </a>
+                  {canEditOm && (
+                    <>
+                      <button
+                        className="btn-outline"
+                        onClick={startEditOm}
+                        style={{ padding: "4px 10px", fontSize: 11 }}
+                      >
+                        Edit link
+                      </button>
+                      <button
+                        className="btn-outline"
+                        onClick={() => {
+                          if (confirm("Remove the OM link from this deal?")) saveOm(null);
+                        }}
+                        disabled={omSaving}
+                        style={{ padding: "4px 10px", fontSize: 11 }}
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                canEditOm && (
+                  <button
+                    className="btn-outline"
+                    onClick={startEditOm}
+                    style={{ padding: "6px 12px", fontSize: 12 }}
+                  >
+                    + Add Offering Memorandum link
+                  </button>
+                )
+              )}
+            </div>
 
             {deal.notes && (
               <div style={{ padding: 10, background: "#fdf8ec", borderRadius: 6, fontSize: 13, marginBottom: 14 }}>
