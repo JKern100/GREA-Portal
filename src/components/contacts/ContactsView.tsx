@@ -252,17 +252,7 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         </div>
       </section>
 
-      {groups === null ? (
-        <div className="card" style={{ textAlign: "center", padding: "50px 20px" }}>
-          <div style={{ fontSize: 40, marginBottom: 10 }}>🔎</div>
-          <h2 style={{ fontSize: 20, color: "var(--navy)", marginBottom: 6 }}>
-            Search for contacts across GREA offices
-          </h2>
-          <p style={{ fontSize: 14, color: "var(--gray-500)", maxWidth: 460, margin: "0 auto" }}>
-            Type a contact name or account name above to see which offices manage the relationship and who the responsible broker is.
-          </p>
-        </div>
-      ) : (filteredGroups?.length ?? 0) === 0 ? (
+      {groups === null ? null : (filteredGroups?.length ?? 0) === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "50px 20px" }}>
           <div style={{ fontSize: 40, marginBottom: 10 }}>😐</div>
           <h3 style={{ fontSize: 16 }}>No matches for &quot;{lastQuery}&quot;</h3>
