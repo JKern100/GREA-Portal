@@ -59,15 +59,11 @@ export default function OfficesAdmin({ offices: initial }: Props) {
     setOffices((prev) => prev.filter((o) => o.id !== id));
   }
 
-  async function bumpFreshness(id: string) {
-    await updateOffice(id, { last_updated: new Date().toISOString().split("T")[0] });
-  }
-
   return (
     <div>
       <h2 style={{ fontSize: 22, color: "var(--navy)" }}>Offices</h2>
       <p style={{ fontSize: 13, color: "var(--gray-500)", marginBottom: 18 }}>
-        Manage the list of GREA offices and data-freshness timestamps.
+        Manage the list of GREA offices.
       </p>
 
       <div className="card" style={{ marginBottom: 18 }}>
@@ -95,7 +91,6 @@ export default function OfficesAdmin({ offices: initial }: Props) {
               <th>Code</th>
               <th>Name</th>
               <th>Color</th>
-              <th>Last Updated</th>
               <th></th>
             </tr>
           </thead>
@@ -165,19 +160,7 @@ export default function OfficesAdmin({ offices: initial }: Props) {
                       )}
                     </div>
                   </td>
-                  <td>
-                    <input
-                      type="date"
-                      className="form-input"
-                      style={{ padding: "4px 8px", fontSize: 13, width: 150 }}
-                      value={o.last_updated ?? ""}
-                      onChange={(e) => updateOffice(o.id, { last_updated: e.target.value || null })}
-                    />
-                  </td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => bumpFreshness(o.id)}>
-                      Mark Refreshed
-                    </button>{" "}
                     <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => deleteOffice(o.id)}>
                       Delete
                     </button>
