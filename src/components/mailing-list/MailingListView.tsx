@@ -9,9 +9,16 @@ interface Props {
   profile: Profile;
   offices: Office[];
   initialEntries: MailingListEntry[];
+  /**
+   * When true, expose Upload / Export / per-row Delete affordances. The
+   * public /mailing-list page passes false (read-only); the Super Admin
+   * /admin/mailing-list page passes true. Either way the API still does
+   * its own role check.
+   */
+  manage?: boolean;
 }
 
-export default function MailingListView({ profile, offices, initialEntries }: Props) {
+export default function MailingListView({ profile, offices, initialEntries, manage = false }: Props) {
   const [entries, setEntries] = useState(initialEntries);
   const [query, setQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState<string>("");
@@ -27,8 +34,7 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
     setEntries(initialEntries);
   }, [initialEntries]);
 
-  const canImport = profile.role === "office_admin" || profile.role === "superadmin";
-  const canDelete = canImport;
+  const canManage = manage && profile.role === "superadmin";
 
   async function deleteEntry(id: string, name: string) {
     if (!confirm(`Delete "${name}" from the mailing list?`)) return;
@@ -199,13 +205,15 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
               ))}
             </select>
           </div>
-          <button className="btn-outline" onClick={exportCsv}>
-            Export CSV
-          </button>
-          {canImport && (
-            <button className="btn-primary" onClick={() => setShowImport(true)}>
-              Upload list
-            </button>
+          {canManage && (
+            <>
+              <button className="btn-outline" onClick={exportCsv}>
+                Export CSV
+              </button>
+              <button className="btn-primary" onClick={() => setShowImport(true)}>
+                Upload list
+              </button>
+            </>
           )}
         </div>
         <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 10, display: "flex", gap: 14, alignItems: "center" }}>
@@ -237,7 +245,7 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
               <th>Tags</th>
               <th>Last Reg.</th>
               <th>Source</th>
-              {canDelete && <th></th>}
+              {canManage && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -278,7 +286,7 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
                 <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
                   {(e.source_office_id && officeById[e.source_office_id]?.code) || "—"}
                 </td>
-                {canDelete && (
+                {canManage && (
                   <td style={{ whiteSpace: "nowrap" }}>
                     <button
                       className="btn-outline"
@@ -293,7 +301,7 @@ export default function MailingListView({ profile, offices, initialEntries }: Pr
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={canDelete ? 11 : 10} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
+                <td colSpan={canManage ? 11 : 10} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
                   No entries match your filters.
                 </td>
               </tr>

@@ -76,10 +76,10 @@ function err(
  *   - file:  CSV or XLSX file matching the template.
  *   - mode:  "replace" | "add_on".
  *
- * Replace mode for an office admin deletes every entry whose `source_office_id`
- * matches their office (their slice of the shared list) before inserting.
+ * Superadmin only. Office admins are not permitted to upload — mailing
+ * list management lives entirely under the Super Admin section.
  *
- * Superadmins can additionally:
+ * The superadmin can:
  *   - Target a specific office (target_office_id=<uuid>) or "global"
  *     (target_office_id=global → source_office_id stamped null on inserts).
  *   - Use the nuclear `replace_all` flag to wipe EVERY entry across all
@@ -93,12 +93,10 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     const profile = await getCurrentProfile();
     if (!profile) return err(401, { mode: "add_on", error: "Unauthorized" });
 
-    const isSuperadmin = profile.role === "superadmin";
-    const isOfficeAdmin = profile.role === "office_admin";
-    if (!isSuperadmin && !isOfficeAdmin) {
+    if (profile.role !== "superadmin") {
       return err(403, {
         mode: "add_on",
-        error: "Only office admins or superadmins can import the mailing list."
+        error: "Only superadmins can import the mailing list."
       });
     }
 
@@ -112,26 +110,14 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     if (file.size > MAX_BYTES) return err(400, { mode: "add_on", error: "File exceeds 5 MB limit." });
     const mode: ImportMode = modeRaw === "replace" ? "replace" : "add_on";
 
-    // Resolve where new rows get tagged and what the "replace" scope means
-    // for this importer's role.
+    // Resolve where new rows get tagged and what the "replace" scope means.
     let targetOfficeId: string | null;
-    let replaceAll = false;
-
-    if (isSuperadmin) {
-      if (typeof targetRaw === "string" && targetRaw.length > 0 && targetRaw !== "global") {
-        targetOfficeId = targetRaw;
-      } else {
-        targetOfficeId = null; // "global" or omitted
-      }
-      replaceAll = replaceAllRaw === "true" && mode === "replace";
+    if (typeof targetRaw === "string" && targetRaw.length > 0 && targetRaw !== "global") {
+      targetOfficeId = targetRaw;
     } else {
-      if (!profile.office_id) {
-        return err(400, { mode, error: "You are not assigned to an office." });
-      }
-      // Office admin: forced to own office; replace_all and target_office_id
-      // are ignored (security: an office admin must never wipe other offices).
-      targetOfficeId = profile.office_id;
+      targetOfficeId = null; // "global" or omitted
     }
+    const replaceAll = replaceAllRaw === "true" && mode === "replace";
 
     let rows: string[][];
     try {

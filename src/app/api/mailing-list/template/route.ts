@@ -41,7 +41,7 @@ function buildXlsx(): Uint8Array {
 export async function GET(request: Request) {
   const profile = await getCurrentProfile();
   if (!profile) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (profile.role !== "office_admin" && profile.role !== "superadmin") {
+  if (profile.role !== "superadmin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -26,7 +26,7 @@ export default async function AdminHome() {
   ];
   return (
     <div>
-      <h2 style={{ fontSize: 22, color: "var(--navy)" }}>Superadmin</h2>
+      <h2 style={{ fontSize: 22, color: "var(--navy)" }}>Super Admin</h2>
       <p style={{ fontSize: 13, color: "var(--gray-500)", marginBottom: 22 }}>
         Manage offices, users, contacts, and deals across the portal.
       </p>

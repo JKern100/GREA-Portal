@@ -7,6 +7,7 @@ const tabs = [
   { href: "/admin/offices", label: "Offices" },
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/deals", label: "Deals" },
+  { href: "/admin/mailing-list", label: "Mailing List" },
   { href: "/feedback", label: "Feedback" }
 ];
 
@@ -25,7 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         }}
       >
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>
-          Superadmin
+          Super Admin
         </div>
         <nav style={{ display: "grid", gap: 2 }}>
           {tabs.map((t) => (

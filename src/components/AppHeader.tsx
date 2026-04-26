@@ -21,7 +21,7 @@ export default function AppHeader({ profile, officeCode }: Props) {
     tabs.push({ href: "/my-office", label: "My Office" });
   }
   if (profile.role === "superadmin") {
-    tabs.push({ href: "/admin", label: "Admin" });
+    tabs.push({ href: "/admin", label: "Super Admin" });
   }
 
   return (
