@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ContactRecord, DealRecord, Office, Profile } from "@/lib/types";
+import type { ContactRecord, DealRecord, DealStage, Office, Profile } from "@/lib/types";
 
 interface Props {
   profile: Profile;
@@ -10,20 +10,33 @@ interface Props {
   deals: DealRecord[];
 }
 
+type NetworkView = "contacts" | "pipeline";
+
+const ACTIVE_STAGES: DealStage[] = ["Lead", "Listing", "Contract"];
+
 interface OfficeStats {
   office: Office;
+  // contacts side
   contactCount: number;
   listingCount: number;
+  newestContact: string | null;
+  oldestContact: string | null;
+  avgContactCadenceDays: number | null;
+  // deals side
   dealCount: number;
-  pipelineValue: number;
+  activeDealCount: number;
+  closedDealCount: number;
+  pipelineValue: number; // total of all deal values (active + closed)
+  activeValue: number;
+  closedValue: number;
+  newestDeal: string | null;
+  avgDealValue: number | null;
+  // shared
   daysSinceUpdate: number | null;
   freshness: "current" | "due" | "stale" | "unknown";
   freshnessColor: string;
   freshnessLabel: string;
   sectors: string[];
-  newestContact: string | null;
-  oldestContact: string | null;
-  avgContactCadenceDays: number | null;
 }
 
 function freshnessFor(days: number | null): { tone: OfficeStats["freshness"]; color: string; label: string } {
@@ -191,65 +204,115 @@ function FreshnessRing({ days }: { days: number | null }) {
 
 export default function NetworkView({ offices, contacts, deals }: Props) {
   const [hoveredOfficeId, setHoveredOfficeId] = useState<string | null>(null);
+  const [view, setView] = useState<NetworkView>("contacts");
 
   const stats = useMemo<OfficeStats[]>(() => {
-    return offices
-      .map((o) => {
-        const officeContacts = contacts.filter((c) => c.office_id === o.id);
-        const officeDeals = deals.filter((d) => d.office_id === o.id);
+    return offices.map((o) => {
+      const officeContacts = contacts.filter((c) => c.office_id === o.id);
+      const officeDeals = deals.filter((d) => d.office_id === o.id);
 
-        const sectorSet = new Set<string>();
-        officeContacts.forEach((c) => c.sectors?.forEach((s) => sectorSet.add(s)));
-        officeDeals.forEach((d) => d.sectors?.forEach((s) => sectorSet.add(s)));
+      const sectorSet = new Set<string>();
+      officeContacts.forEach((c) => c.sectors?.forEach((s) => sectorSet.add(s)));
+      officeDeals.forEach((d) => d.sectors?.forEach((s) => sectorSet.add(s)));
 
-        const dates = officeContacts
-          .map((c) => c.date_added)
-          .filter(Boolean)
-          .sort();
-        const newest = dates[dates.length - 1] ?? null;
-        const oldest = dates[0] ?? null;
+      const contactDates = officeContacts
+        .map((c) => c.date_added)
+        .filter(Boolean)
+        .sort();
+      const newestContact = contactDates[contactDates.length - 1] ?? null;
+      const oldestContact = contactDates[0] ?? null;
 
-        let avgCadence: number | null = null;
-        if (dates.length >= 2) {
-          const first = new Date(dates[0]).getTime();
-          const last = new Date(dates[dates.length - 1]).getTime();
-          const span = (last - first) / 86400000;
-          avgCadence = Math.round(span / Math.max(1, dates.length - 1));
-        }
+      let avgCadence: number | null = null;
+      if (contactDates.length >= 2) {
+        const first = new Date(contactDates[0]).getTime();
+        const last = new Date(contactDates[contactDates.length - 1]).getTime();
+        const span = (last - first) / 86400000;
+        avgCadence = Math.round(span / Math.max(1, contactDates.length - 1));
+      }
 
-        const daysSinceUpdate = o.last_updated
-          ? Math.floor((Date.now() - new Date(o.last_updated).getTime()) / 86400000)
+      // Use date_added when present, fall back to created_at — date_added can
+      // be null on legacy/imported deals.
+      const dealDates = officeDeals
+        .map((d) => d.date_added || d.created_at)
+        .filter(Boolean)
+        .sort();
+      const newestDeal = dealDates[dealDates.length - 1] ?? null;
+
+      const activeDeals = officeDeals.filter((d) => ACTIVE_STAGES.includes(d.stage));
+      const closedDeals = officeDeals.filter((d) => d.stage === "Closed");
+      const activeValue = activeDeals.reduce((s, d) => s + (d.deal_value ?? 0), 0);
+      const closedValue = closedDeals.reduce((s, d) => s + (d.deal_value ?? 0), 0);
+      const pipelineValue = officeDeals.reduce((s, d) => s + (d.deal_value ?? 0), 0);
+      const dealsWithValue = officeDeals.filter((d) => (d.deal_value ?? 0) > 0);
+      const avgDealValue =
+        dealsWithValue.length > 0
+          ? Math.round(dealsWithValue.reduce((s, d) => s + (d.deal_value ?? 0), 0) / dealsWithValue.length)
           : null;
-        const f = freshnessFor(daysSinceUpdate);
 
-        return {
-          office: o,
-          contactCount: officeContacts.length,
-          listingCount: officeContacts.filter((c) => !!c.listing).length,
-          dealCount: officeDeals.length,
-          pipelineValue: officeDeals.reduce((s, d) => s + (d.deal_value ?? 0), 0),
-          daysSinceUpdate,
-          freshness: f.tone,
-          freshnessColor: f.color,
-          freshnessLabel: f.label,
-          sectors: Array.from(sectorSet).sort(),
-          newestContact: newest,
-          oldestContact: oldest,
-          avgContactCadenceDays: avgCadence
-        } as OfficeStats;
-      })
-      .sort((a, b) => b.contactCount - a.contactCount);
+      const daysSinceUpdate = o.last_updated
+        ? Math.floor((Date.now() - new Date(o.last_updated).getTime()) / 86400000)
+        : null;
+      const f = freshnessFor(daysSinceUpdate);
+
+      return {
+        office: o,
+        contactCount: officeContacts.length,
+        listingCount: officeContacts.filter((c) => !!c.listing).length,
+        newestContact,
+        oldestContact,
+        avgContactCadenceDays: avgCadence,
+        dealCount: officeDeals.length,
+        activeDealCount: activeDeals.length,
+        closedDealCount: closedDeals.length,
+        pipelineValue,
+        activeValue,
+        closedValue,
+        newestDeal,
+        avgDealValue,
+        daysSinceUpdate,
+        freshness: f.tone,
+        freshnessColor: f.color,
+        freshnessLabel: f.label,
+        sectors: Array.from(sectorSet).sort()
+      } as OfficeStats;
+    });
   }, [offices, contacts, deals]);
+
+  // Sort by whichever metric the active view emphasises so the most relevant
+  // offices land at the top.
+  const sortedStats = useMemo(() => {
+    const arr = [...stats];
+    if (view === "pipeline") {
+      arr.sort((a, b) => b.pipelineValue - a.pipelineValue);
+    } else {
+      arr.sort((a, b) => b.contactCount - a.contactCount);
+    }
+    return arr;
+  }, [stats, view]);
 
   const totals = useMemo(() => {
     const totalContacts = stats.reduce((s, x) => s + x.contactCount, 0);
     const totalListings = stats.reduce((s, x) => s + x.listingCount, 0);
     const totalDeals = stats.reduce((s, x) => s + x.dealCount, 0);
+    const totalActive = stats.reduce((s, x) => s + x.activeDealCount, 0);
+    const totalClosed = stats.reduce((s, x) => s + x.closedDealCount, 0);
     const totalValue = stats.reduce((s, x) => s + x.pipelineValue, 0);
-    return { totalContacts, totalListings, totalDeals, totalValue };
+    const totalActiveValue = stats.reduce((s, x) => s + x.activeValue, 0);
+    const totalClosedValue = stats.reduce((s, x) => s + x.closedValue, 0);
+    return {
+      totalContacts,
+      totalListings,
+      totalDeals,
+      totalActive,
+      totalClosed,
+      totalValue,
+      totalActiveValue,
+      totalClosedValue
+    };
   }, [stats]);
 
   const maxContact = Math.max(1, ...stats.map((s) => s.contactCount));
+  const maxPipeline = Math.max(1, ...stats.map((s) => s.pipelineValue));
 
   function fmtMoney(v: number) {
     if (v >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(1)}B`;
@@ -258,13 +321,50 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
     return `$${v.toLocaleString()}`;
   }
 
+  const toggleBtn = (key: NetworkView, label: string) => {
+    const active = view === key;
+    return (
+      <button
+        key={key}
+        onClick={() => setView(key)}
+        style={{
+          padding: "6px 14px",
+          fontSize: 13,
+          fontWeight: 600,
+          background: active ? "var(--navy)" : "white",
+          color: active ? "white" : "var(--gray-700)",
+          border: "1px solid var(--gray-300)",
+          borderRadius: 6,
+          cursor: "pointer"
+        }}
+      >
+        {label}
+      </button>
+    );
+  };
+
   return (
     <div>
-      <div style={{ marginBottom: 22 }}>
-        <h2 style={{ fontSize: 22, color: "var(--navy)" }}>GREA Network</h2>
-        <p style={{ fontSize: 13, color: "var(--gray-500)", marginTop: 4 }}>
-          Cross-office activity at a glance — contacts, deals, and how fresh each office&apos;s data is.
-        </p>
+      <div
+        style={{
+          marginBottom: 22,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          flexWrap: "wrap"
+        }}
+      >
+        <div>
+          <h2 style={{ fontSize: 22, color: "var(--navy)" }}>GREA Network</h2>
+          <p style={{ fontSize: 13, color: "var(--gray-500)", marginTop: 4 }}>
+            Cross-office activity at a glance — {view === "pipeline" ? "deals" : "contacts"}, sectors, and how fresh each office&apos;s data is.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {toggleBtn("contacts", "Contacts")}
+          {toggleBtn("pipeline", "Pipeline")}
+        </div>
       </div>
 
       <div
@@ -276,9 +376,39 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
         }}
       >
         <StatTile label="Offices" value={stats.length} icon={<OfficeIcon />} />
-        <StatTile label="Total Contacts" value={totals.totalContacts.toLocaleString()} icon={<ContactsIcon />} />
-        <StatTile label="Active Listings" value={totals.totalListings.toLocaleString()} sub="contacts with a listing" icon={<ListingIcon />} />
-        <StatTile label="Pipeline" value={totals.totalDeals.toLocaleString()} sub={fmtMoney(totals.totalValue) + " total value"} icon={<PipelineIcon />} />
+        {view === "contacts" ? (
+          <>
+            <StatTile label="Total Contacts" value={totals.totalContacts.toLocaleString()} icon={<ContactsIcon />} />
+            <StatTile
+              label="Active Listings"
+              value={totals.totalListings.toLocaleString()}
+              sub="contacts with a listing"
+              icon={<ListingIcon />}
+            />
+            <StatTile
+              label="Pipeline"
+              value={totals.totalDeals.toLocaleString()}
+              sub={fmtMoney(totals.totalValue) + " total value"}
+              icon={<PipelineIcon />}
+            />
+          </>
+        ) : (
+          <>
+            <StatTile label="Total Deals" value={totals.totalDeals.toLocaleString()} icon={<PipelineIcon />} />
+            <StatTile
+              label="Active Pipeline"
+              value={totals.totalActive.toLocaleString()}
+              sub={fmtMoney(totals.totalActiveValue) + " open"}
+              icon={<ListingIcon />}
+            />
+            <StatTile
+              label="Closed"
+              value={totals.totalClosed.toLocaleString()}
+              sub={fmtMoney(totals.totalClosedValue) + " closed value"}
+              icon={<ContactsIcon />}
+            />
+          </>
+        )}
       </div>
 
       <div
@@ -288,9 +418,16 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
           gap: 14
         }}
       >
-        {stats.map((s) => {
+        {sortedStats.map((s) => {
           const isHover = hoveredOfficeId === s.office.id;
-          const sharePct = (s.contactCount / maxContact) * 100;
+          const sharePct =
+            view === "pipeline"
+              ? (s.pipelineValue / maxPipeline) * 100
+              : (s.contactCount / maxContact) * 100;
+          const shareLabel =
+            view === "pipeline"
+              ? "of largest office's pipeline value"
+              : "of largest office's contact base";
           return (
             <div
               key={s.office.id}
@@ -320,24 +457,49 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 14 }}>
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.contactCount}</div>
-                  <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
-                    Contacts
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.listingCount}</div>
-                  <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
-                    Listings
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.dealCount}</div>
-                  <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
-                    Deals · {fmtMoney(s.pipelineValue)}
-                  </div>
-                </div>
+                {view === "contacts" ? (
+                  <>
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.contactCount}</div>
+                      <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
+                        Contacts
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.listingCount}</div>
+                      <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
+                        Listings
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.dealCount}</div>
+                      <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
+                        Deals · {fmtMoney(s.pipelineValue)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.dealCount}</div>
+                      <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
+                        Deals
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.activeDealCount}</div>
+                      <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
+                        Active · {fmtMoney(s.activeValue)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)", lineHeight: 1.1 }}>{s.closedDealCount}</div>
+                      <div style={{ fontSize: 10, color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600 }}>
+                        Closed · {fmtMoney(s.closedValue)}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div
@@ -360,7 +522,7 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
                 />
               </div>
               <div style={{ fontSize: 10, color: "var(--gray-500)", marginTop: 4 }}>
-                {sharePct.toFixed(0)}% of largest office&apos;s contact base
+                {sharePct.toFixed(0)}% {shareLabel}
               </div>
 
               <div
@@ -375,22 +537,41 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
                   color: "var(--gray-600)"
                 }}
               >
-                <div>
-                  <div style={{ color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
-                    Newest contact
-                  </div>
-                  <div>{s.newestContact ?? "—"}</div>
-                </div>
-                <div>
-                  <div style={{ color: "var(--gray-400)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
-                    Avg cadence
-                  </div>
-                  <div>
-                    {s.avgContactCadenceDays != null
-                      ? `${s.avgContactCadenceDays}d between contacts`
-                      : "—"}
-                  </div>
-                </div>
+                {view === "contacts" ? (
+                  <>
+                    <div>
+                      <div style={{ color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
+                        Newest contact
+                      </div>
+                      <div>{s.newestContact ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
+                        Avg cadence
+                      </div>
+                      <div>
+                        {s.avgContactCadenceDays != null
+                          ? `${s.avgContactCadenceDays}d between contacts`
+                          : "—"}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div style={{ color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
+                        Newest deal
+                      </div>
+                      <div>{s.newestDeal ? s.newestDeal.slice(0, 10) : "—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: "var(--gray-500)", textTransform: "uppercase", letterSpacing: 0.3, fontWeight: 600, marginBottom: 2 }}>
+                        Avg deal size
+                      </div>
+                      <div>{s.avgDealValue != null ? fmtMoney(s.avgDealValue) : "—"}</div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {s.sectors.length > 0 && (
