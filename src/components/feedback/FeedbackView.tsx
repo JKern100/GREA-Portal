@@ -68,6 +68,7 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
   const [showSubmit, setShowSubmit] = useState(false);
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | "all">("open");
   const [categoryFilter, setCategoryFilter] = useState<FeedbackCategory | "all">("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<"all" | "superadmin" | "other">("all");
 
   const profileById = useMemo(() => {
     const m: Record<string, Profile> = {};
@@ -75,7 +76,19 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
     return m;
   }, [profiles]);
 
+  // For the superadmin-only assignee filter: who counts as "super admin"?
+  // Anyone whose profile.role === "superadmin". We resolve item.assigned_to
+  // through this set to bucket items into "super admin" vs "other".
+  const superadminIds = useMemo(() => {
+    const s = new Set<string>();
+    profiles.forEach((p) => {
+      if (p.role === "superadmin") s.add(p.id);
+    });
+    return s;
+  }, [profiles]);
+
   const isAdmin = profile.role === "office_admin" || profile.role === "superadmin";
+  const isSuperadmin = profile.role === "superadmin";
 
   // Auto-open submit when navigated from "Report issue" with ?submit=1
   useEffect(() => {
@@ -88,9 +101,16 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
     return items.filter((i) => {
       if (statusFilter !== "all" && i.status !== statusFilter) return false;
       if (categoryFilter !== "all" && i.category !== categoryFilter) return false;
+      if (assigneeFilter !== "all") {
+        // "superadmin" → assignee's profile is role=superadmin
+        // "other"      → unassigned, or assigned to a non-superadmin
+        const assignedToSuper = !!i.assigned_to && superadminIds.has(i.assigned_to);
+        if (assigneeFilter === "superadmin" && !assignedToSuper) return false;
+        if (assigneeFilter === "other" && assignedToSuper) return false;
+      }
       return true;
     });
-  }, [items, statusFilter, categoryFilter]);
+  }, [items, statusFilter, categoryFilter, assigneeFilter, superadminIds]);
 
   const selected = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
 
@@ -152,6 +172,21 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
               ))}
             </select>
           </div>
+          {isSuperadmin && (
+            <div>
+              <label className="form-label">Assigned to</label>
+              <select
+                className="form-input"
+                style={{ width: 160 }}
+                value={assigneeFilter}
+                onChange={(e) => setAssigneeFilter(e.target.value as "all" | "superadmin" | "other")}
+              >
+                <option value="all">All</option>
+                <option value="superadmin">Super Admin</option>
+                <option value="other">Other (incl. unassigned)</option>
+              </select>
+            </div>
+          )}
           <div style={{ marginLeft: "auto", fontSize: 12, color: "var(--gray-500)" }}>
             Showing {filtered.length} of {items.length}
           </div>
