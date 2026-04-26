@@ -7,9 +7,11 @@ import type { Office } from "@/lib/types";
 
 interface Props {
   offices: Office[];
+  contactCount: Record<string, number>;
+  dealCount: Record<string, number>;
 }
 
-export default function OfficesAdmin({ offices: initial }: Props) {
+export default function OfficesAdmin({ offices: initial, contactCount, dealCount }: Props) {
   const [offices, setOffices] = useState(initial);
   const [newCode, setNewCode] = useState("");
   const [newName, setNewName] = useState("");
@@ -49,7 +51,18 @@ export default function OfficesAdmin({ offices: initial }: Props) {
   }
 
   async function deleteOffice(id: string) {
-    if (!confirm("Delete this office? Contacts & deals in this office will also be deleted.")) return;
+    // Belt-and-braces: even though the button is disabled when there are
+    // dependencies, refuse here too in case state drifts. The DB cascades
+    // deletes for contacts and deals, so once this passes there's no undo.
+    const cCount = contactCount[id] ?? 0;
+    const dCount = dealCount[id] ?? 0;
+    if (cCount > 0 || dCount > 0) {
+      alert(
+        `Cannot delete: this office still has ${cCount} contact${cCount === 1 ? "" : "s"} and ${dCount} deal${dCount === 1 ? "" : "s"}. Reassign or remove them first.`
+      );
+      return;
+    }
+    if (!confirm("Delete this office?")) return;
     const supabase = createClient();
     const { error } = await supabase.from("offices").delete().eq("id", id);
     if (error) {
@@ -88,16 +101,20 @@ export default function OfficesAdmin({ offices: initial }: Props) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Code</th>
+              <th style={{ width: 110 }}>Code</th>
               <th>Name</th>
               <th>Color</th>
-              <th></th>
+              <th>Contents</th>
+              <th style={{ width: 90 }}></th>
             </tr>
           </thead>
           <tbody>
             {offices.map((o) => {
               const previewBg = o.color || "#f1f3f5";
               const previewFg = o.color ? legibleTextOn(o.color) : "var(--gray-600)";
+              const cCount = contactCount[o.id] ?? 0;
+              const dCount = dealCount[o.id] ?? 0;
+              const hasDependencies = cCount > 0 || dCount > 0;
               return (
                 <tr key={o.id}>
                   <td>
@@ -160,8 +177,28 @@ export default function OfficesAdmin({ offices: initial }: Props) {
                       )}
                     </div>
                   </td>
+                  <td style={{ fontSize: 12, whiteSpace: "nowrap", color: hasDependencies ? "var(--gray-700)" : "var(--gray-400)" }}>
+                    <span style={{ fontWeight: cCount ? 600 : 400 }}>{cCount}</span> contact{cCount === 1 ? "" : "s"}
+                    {" · "}
+                    <span style={{ fontWeight: dCount ? 600 : 400 }}>{dCount}</span> deal{dCount === 1 ? "" : "s"}
+                  </td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => deleteOffice(o.id)}>
+                    <button
+                      className="btn-danger"
+                      style={{
+                        padding: "3px 10px",
+                        fontSize: 11,
+                        opacity: hasDependencies ? 0.45 : 1,
+                        cursor: hasDependencies ? "not-allowed" : "pointer"
+                      }}
+                      disabled={hasDependencies}
+                      onClick={() => deleteOffice(o.id)}
+                      title={
+                        hasDependencies
+                          ? `Reassign or remove the ${cCount} contact${cCount === 1 ? "" : "s"} and ${dCount} deal${dCount === 1 ? "" : "s"} in this office before deleting.`
+                          : "Delete this office"
+                      }
+                    >
                       Delete
                     </button>
                   </td>
