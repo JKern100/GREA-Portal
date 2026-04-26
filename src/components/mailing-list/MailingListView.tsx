@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MailingListEntry, Office, Profile } from "@/lib/types";
 import MailingListImportModal from "./MailingListImportModal";
@@ -26,6 +26,8 @@ export default function MailingListView({ profile, offices, initialEntries, mana
   const [officeFilter, setOfficeFilter] = useState<string>("");
   const [showOptedOut, setShowOptedOut] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
 
   // After a bulk import the modal calls router.refresh(), which produces a
   // fresh `initialEntries` prop. Sync it down so the table updates without a
@@ -45,6 +47,22 @@ export default function MailingListView({ profile, offices, initialEntries, mana
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  async function bulkDelete() {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} entr${ids.length === 1 ? "y" : "ies"}?`)) return;
+    setBusy(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("mailing_list_entries").delete().in("id", ids);
+    setBusy(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setEntries((prev) => prev.filter((e) => !selected.has(e.id)));
+    setSelected(new Set());
   }
 
   const officeById = useMemo(() => {
@@ -101,6 +119,43 @@ export default function MailingListView({ profile, offices, initialEntries, mana
       return hay.includes(q);
     });
   }, [entries, query, sectorFilter, tagFilter, officeFilter, showOptedOut]);
+
+  const visibleIds = useMemo(() => filtered.map((e) => e.id), [filtered]);
+  const visibleSelectedCount = useMemo(
+    () => visibleIds.reduce((n, id) => n + (selected.has(id) ? 1 : 0), 0),
+    [visibleIds, selected]
+  );
+  const allVisibleSelected = visibleIds.length > 0 && visibleSelectedCount === visibleIds.length;
+  const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected;
+
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (headerCheckboxRef.current) headerCheckboxRef.current.indeterminate = someVisibleSelected;
+  }, [someVisibleSelected]);
+
+  function toggleRow(id: string, checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleAllVisible(checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      visibleIds.forEach((id) => {
+        if (checked) next.add(id);
+        else next.delete(id);
+      });
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
 
   function exportCsv() {
     const headers = [
@@ -249,10 +304,49 @@ export default function MailingListView({ profile, offices, initialEntries, mana
         </div>
       </div>
 
+      {canManage && selected.size > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            padding: "8px 12px",
+            marginBottom: 10,
+            background: "var(--gray-100)",
+            borderRadius: 6,
+            fontSize: 13
+          }}
+        >
+          <span style={{ fontWeight: 600 }}>{selected.size} selected</span>
+          <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 12 }} onClick={bulkDelete} disabled={busy}>
+            Delete
+          </button>
+          <button
+            className="btn-outline"
+            style={{ padding: "3px 10px", fontSize: 12, marginLeft: "auto" }}
+            onClick={clearSelection}
+            disabled={busy}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="card" style={{ padding: 0, overflow: "auto" }}>
         <table className="data-table">
           <thead>
             <tr>
+              {canManage && (
+                <th style={{ width: 32, textAlign: "center" }}>
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={(e) => toggleAllVisible(e.target.checked)}
+                    aria-label="Select all visible"
+                  />
+                </th>
+              )}
               <th>Name</th>
               <th>Email</th>
               <th>Organization</th>
@@ -271,6 +365,16 @@ export default function MailingListView({ profile, offices, initialEntries, mana
               const isDuplicate = !!e.email && (emailCounts.get(e.email.toLowerCase()) ?? 0) > 1;
               return (
                 <tr key={e.id} style={e.opted_out ? { background: "#fafafa", opacity: 0.7 } : undefined}>
+                  {canManage && (
+                    <td style={{ textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(e.id)}
+                        onChange={(ev) => toggleRow(e.id, ev.target.checked)}
+                        aria-label={`Select ${e.name || e.email || "entry"}`}
+                      />
+                    </td>
+                  )}
                   <td style={{ fontWeight: 600, color: "var(--navy)" }}>
                     {e.name || "—"}
                     {e.opted_out && (
@@ -331,7 +435,7 @@ export default function MailingListView({ profile, offices, initialEntries, mana
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={canManage ? 7 : 6} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
+                <td colSpan={canManage ? 8 : 6} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
                   No entries match your filters.
                 </td>
               </tr>

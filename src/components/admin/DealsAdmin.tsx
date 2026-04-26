@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { revalidateVisibilityCaches } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 import { officeBadgeStyle } from "@/lib/officeColor";
@@ -21,6 +21,8 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
   const [deals, setDeals] = useState(initial);
   const [search, setSearch] = useState("");
   const [officeFilter, setOfficeFilter] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
 
   const officeById = useMemo(() => {
     const m: Record<string, Office> = {};
@@ -43,6 +45,84 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
       );
     });
   }, [deals, search, officeFilter]);
+
+  const visibleIds = useMemo(() => filtered.map((d) => d.id), [filtered]);
+  const visibleSelectedCount = useMemo(
+    () => visibleIds.reduce((n, id) => n + (selected.has(id) ? 1 : 0), 0),
+    [visibleIds, selected]
+  );
+  const allVisibleSelected = visibleIds.length > 0 && visibleSelectedCount === visibleIds.length;
+  const someVisibleSelected = visibleSelectedCount > 0 && !allVisibleSelected;
+
+  // Header checkbox needs `indeterminate` set imperatively — React doesn't
+  // expose it as a controlled prop.
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (headerCheckboxRef.current) headerCheckboxRef.current.indeterminate = someVisibleSelected;
+  }, [someVisibleSelected]);
+
+  function toggleRow(id: string, checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleAllVisible(checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      visibleIds.forEach((id) => {
+        if (checked) next.add(id);
+        else next.delete(id);
+      });
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
+
+  async function bulkDelete() {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} deal${ids.length === 1 ? "" : "s"}?`)) return;
+    setBusy(true);
+    const supabase = createClient();
+    const { error } = await supabase.from("deals").delete().in("id", ids);
+    setBusy(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setDeals((prev) => prev.filter((d) => !selected.has(d.id)));
+    clearSelection();
+  }
+
+  async function bulkSetHidden(value: boolean) {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setBusy(true);
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("deals")
+      .update({ is_confidential: value })
+      .in("id", ids)
+      .select();
+    setBusy(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    if (data) {
+      const map = new Map((data as DealRecord[]).map((d) => [d.id, d]));
+      setDeals((prev) => prev.map((d) => map.get(d.id) ?? d));
+    }
+    clearSelection();
+    await revalidateVisibilityCaches();
+  }
 
   async function updateStage(id: string, stage: DealStage) {
     const supabase = createClient();
@@ -96,10 +176,48 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
         </select>
       </div>
 
+      {selected.size > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            padding: "8px 12px",
+            marginBottom: 10,
+            background: "var(--gray-100)",
+            borderRadius: 6,
+            fontSize: 13
+          }}
+        >
+          <span style={{ fontWeight: 600 }}>{selected.size} selected</span>
+          <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 12 }} onClick={() => bulkSetHidden(true)} disabled={busy}>
+            Hide
+          </button>
+          <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 12 }} onClick={() => bulkSetHidden(false)} disabled={busy}>
+            Unhide
+          </button>
+          <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 12 }} onClick={bulkDelete} disabled={busy}>
+            Delete
+          </button>
+          <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 12, marginLeft: "auto" }} onClick={clearSelection} disabled={busy}>
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="card" style={{ padding: 0, overflow: "auto" }}>
         <table className="data-table">
           <thead>
             <tr>
+              <th style={{ width: 32, textAlign: "center" }}>
+                <input
+                  ref={headerCheckboxRef}
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={(e) => toggleAllVisible(e.target.checked)}
+                  aria-label="Select all visible"
+                />
+              </th>
               <th>Deal</th>
               <th>Type</th>
               <th>Seller / Buyer</th>
@@ -116,6 +234,14 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
               const office = officeById[d.office_id];
               return (
                 <tr key={d.id}>
+                  <td style={{ textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(d.id)}
+                      onChange={(e) => toggleRow(d.id, e.target.checked)}
+                      aria-label={`Select ${d.deal_name}`}
+                    />
+                  </td>
                   <td>
                     <strong>{d.deal_name}</strong>
                     {d.property_address && <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.property_address}</div>}
