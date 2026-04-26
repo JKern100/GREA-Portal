@@ -74,31 +74,51 @@ export async function POST(request: Request) {
   // a password, and routes them into the app. /login is a sign-in form
   // expecting a password the new user doesn't have yet.
   const redirectTo = new URL("/welcome", request.url).toString();
+
+  // Detect existing users so we can regenerate a link instead of trying
+  // to invite them again. generateLink({type:'invite'}) on an already-
+  // existing email returns "user already registered". The "Copy invite
+  // link" affordance on the Users admin row hits this same endpoint —
+  // for unregistered users we want a fresh link, not a hard error.
+  const { data: existingProfile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  const isResend = !!existingProfile;
+
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-    type: "invite",
+    type: isResend ? "magiclink" : "invite",
     email,
     options: {
       redirectTo,
-      data: body.name ? { name: body.name } : undefined
+      // Only stamp the auth metadata on first invite — for a resend the
+      // profile already has whatever name was passed initially.
+      data: !isResend && body.name ? { name: body.name } : undefined
     }
   });
 
   if (linkErr || !linkData?.user) {
     return NextResponse.json(
-      { error: linkErr?.message ?? "Failed to create invite." },
+      { error: linkErr?.message ?? "Failed to create invite link." },
       { status: 400 }
     );
   }
 
-  // The handle_new_user trigger created a profile row with default role=broker.
-  // Apply the chosen role + office.
-  const { error: updateErr } = await admin
-    .from("profiles")
-    .update({ role, office_id: officeId, name: body.name?.trim() || undefined })
-    .eq("id", linkData.user.id);
+  // For brand-new invites, the handle_new_user trigger created a profile
+  // row with default role=broker — apply the chosen role + office now. On
+  // a resend the profile already has the right shape, so skip the update
+  // and don't risk overwriting concurrent changes.
+  if (!isResend) {
+    const { error: updateErr } = await admin
+      .from("profiles")
+      .update({ role, office_id: officeId, name: body.name?.trim() || undefined })
+      .eq("id", linkData.user.id);
 
-  if (updateErr) {
-    return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    if (updateErr) {
+      return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({
