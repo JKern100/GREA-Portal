@@ -140,9 +140,13 @@ export default function MailingListView({ profile, offices, initialEntries, mana
   return (
     <div>
       <div style={{ marginBottom: 18 }}>
-        <h2 style={{ fontSize: 20, color: "var(--navy)" }}>Community Mailing List</h2>
+        <h2 style={{ fontSize: 20, color: "var(--navy)" }}>
+          {canManage ? "Mailing List" : "Community Mailing List"}
+        </h2>
         <p style={{ fontSize: 13, color: "var(--gray-500)", marginTop: 4 }}>
-          A shared, national list of community contacts. Filter by sector, tag, or office. Maintained by office admins via uploads.
+          {canManage
+            ? "Manage the shared national list — upload new entries, export, or remove individual rows. Filter by sector, tag, or office."
+            : "A shared, national list of community contacts. Filter by sector, tag, or office."}
         </p>
       </div>
 
@@ -239,69 +243,65 @@ export default function MailingListView({ profile, offices, initialEntries, mana
               <th>Email</th>
               <th>Organization</th>
               <th>Title</th>
-              <th>City</th>
-              <th>State</th>
-              <th>Sectors</th>
-              <th>Tags</th>
-              <th>Last Reg.</th>
+              <th>Location</th>
               <th>Source</th>
               {canManage && <th></th>}
             </tr>
           </thead>
           <tbody>
-            {filtered.map((e) => (
-              <tr key={e.id} style={e.opted_out ? { background: "#fafafa", opacity: 0.7 } : undefined}>
-                <td style={{ fontWeight: 600, color: "var(--navy)" }}>
-                  {e.name || "—"}
-                  {e.opted_out && (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        fontSize: 10,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: 0.4,
-                        padding: "1px 7px",
-                        borderRadius: 10,
-                        background: "#fee2e2",
-                        color: "#991b1b"
-                      }}
-                    >
-                      Opted out
-                    </span>
-                  )}
-                </td>
-                <td style={{ fontSize: 12 }}>
-                  {e.email ? <a href={`mailto:${e.email}`}>{e.email}</a> : "—"}
-                </td>
-                <td>{e.organization || "—"}</td>
-                <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{e.title || "—"}</td>
-                <td style={{ fontSize: 12 }}>{e.city || "—"}</td>
-                <td style={{ fontSize: 12 }}>{e.state || "—"}</td>
-                <td style={{ fontSize: 12 }}>{e.sectors.join(", ") || "—"}</td>
-                <td style={{ fontSize: 12 }}>{e.tags.join(", ") || "—"}</td>
-                <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
-                  {e.last_registration_date ? e.last_registration_date.slice(0, 10) : "—"}
-                </td>
-                <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
-                  {(e.source_office_id && officeById[e.source_office_id]?.code) || "—"}
-                </td>
-                {canManage && (
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    <button
-                      className="btn-outline"
-                      style={{ padding: "2px 8px", fontSize: 11 }}
-                      onClick={() => deleteEntry(e.id, e.name || e.email || "this entry")}
-                    >
-                      Delete
-                    </button>
+            {filtered.map((e) => {
+              // Combine city + state into one cell. Fall back gracefully if
+              // either is missing — we don't want to render lone commas.
+              const locParts = [e.city, e.state].filter(Boolean) as string[];
+              const location = locParts.length ? locParts.join(", ") : "—";
+              return (
+                <tr key={e.id} style={e.opted_out ? { background: "#fafafa", opacity: 0.7 } : undefined}>
+                  <td style={{ fontWeight: 600, color: "var(--navy)" }}>
+                    {e.name || "—"}
+                    {e.opted_out && (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: 0.4,
+                          padding: "1px 7px",
+                          borderRadius: 10,
+                          background: "#fee2e2",
+                          color: "#991b1b"
+                        }}
+                      >
+                        Opted out
+                      </span>
+                    )}
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td style={{ fontSize: 12 }}>
+                    {e.email ? <a href={`mailto:${e.email}`}>{e.email}</a> : "—"}
+                  </td>
+                  <td>{e.organization || "—"}</td>
+                  <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{e.title || "—"}</td>
+                  <td style={{ fontSize: 12 }}>{location}</td>
+                  <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
+                    {(e.source_office_id && officeById[e.source_office_id]?.code) || "—"}
+                  </td>
+                  {canManage && (
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <button
+                        className="btn-outline"
+                        style={{ padding: "2px 8px", fontSize: 11 }}
+                        onClick={() => deleteEntry(e.id, e.name || e.email || "this entry")}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={canManage ? 11 : 10} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
+                <td colSpan={canManage ? 7 : 6} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
                   No entries match your filters.
                 </td>
               </tr>
