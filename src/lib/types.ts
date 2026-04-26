@@ -26,7 +26,6 @@ export interface Office {
   id: string;
   code: string;
   name: string;
-  last_updated: string | null;
   color: string | null;
 }
 

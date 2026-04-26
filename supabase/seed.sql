@@ -4,11 +4,11 @@
 -- ============================================================
 
 -- Offices
-insert into public.offices (code, name, last_updated) values
-  ('NYC', 'New York City', current_date - 30),
-  ('NJ',  'New Jersey',    current_date - 40),
-  ('DC',  'Washington DC', current_date - 55),
-  ('ATL', 'Atlanta',       current_date - 90)
+insert into public.offices (code, name) values
+  ('NYC', 'New York City'),
+  ('NJ',  'New Jersey'),
+  ('DC',  'Washington DC'),
+  ('ATL', 'Atlanta')
 on conflict (code) do nothing;
 
 -- Specialties are now a `text[]` column on profiles (migration 0012),

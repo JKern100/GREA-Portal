@@ -23,6 +23,7 @@ interface OfficeStats {
   newestContact: string | null;
   oldestContact: string | null;
   avgContactCadenceDays: number | null;
+  daysSinceNewestContact: number | null;
   // deals side
   dealCount: number;
   activeDealCount: number;
@@ -32,19 +33,32 @@ interface OfficeStats {
   closedValue: number;
   newestDeal: string | null;
   avgDealValue: number | null;
+  daysSinceNewestDeal: number | null;
   // shared
-  daysSinceUpdate: number | null;
-  freshness: "current" | "due" | "stale" | "unknown";
-  freshnessColor: string;
-  freshnessLabel: string;
   sectors: string[];
 }
 
-function freshnessFor(days: number | null): { tone: OfficeStats["freshness"]; color: string; label: string } {
+type FreshnessTone = "current" | "due" | "stale" | "unknown";
+
+function freshnessFor(days: number | null): { tone: FreshnessTone; color: string; label: string } {
   if (days == null) return { tone: "unknown", color: "var(--gray-400)", label: "No data" };
   if (days <= 30) return { tone: "current", color: "#16a34a", label: "Current" };
   if (days <= 60) return { tone: "due", color: "#ea580c", label: "Due for update" };
   return { tone: "stale", color: "#dc2626", label: "Stale" };
+}
+
+// Days since the most recent date in `dates` (max), as of now. Negative
+// values (future-dated rows) are treated as 0 so the ring shows fresh.
+function daysSinceMostRecent(dates: (string | null | undefined)[]): number | null {
+  let maxMs: number | null = null;
+  for (const d of dates) {
+    if (!d) continue;
+    const t = new Date(d).getTime();
+    if (Number.isNaN(t)) continue;
+    if (maxMs === null || t > maxMs) maxMs = t;
+  }
+  if (maxMs === null) return null;
+  return Math.max(0, Math.floor((Date.now() - maxMs) / 86400000));
 }
 
 function StatTile({
@@ -150,7 +164,7 @@ function PipelineIcon() {
 }
 
 function FreshnessRing({ days }: { days: number | null }) {
-  // Treat future-dated last_updated (negative days) as fresh.
+  // Negative-day inputs (future-dated rows) are coerced to fresh.
   const safeDays = days == null ? null : Math.max(0, days);
   // Map 0..90 days onto 0..360°. Empty ring at 0d (current), fills as it ages.
   const cap = 90;
@@ -250,10 +264,16 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
           ? Math.round(dealsWithValue.reduce((s, d) => s + (d.deal_value ?? 0), 0) / dealsWithValue.length)
           : null;
 
-      const daysSinceUpdate = o.last_updated
-        ? Math.floor((Date.now() - new Date(o.last_updated).getTime()) / 86400000)
-        : null;
-      const f = freshnessFor(daysSinceUpdate);
+      // Freshness is derived from real activity, not a manual timestamp.
+      // Compute days since the most recent contact AND the most recent
+      // deal here; the active view (Contacts / Pipeline) picks which one
+      // drives the ring at render time.
+      const daysSinceNewestContact = daysSinceMostRecent(
+        officeContacts.map((c) => c.date_added)
+      );
+      const daysSinceNewestDeal = daysSinceMostRecent(
+        officeDeals.map((d) => d.date_added || d.created_at)
+      );
 
       return {
         office: o,
@@ -262,6 +282,7 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
         newestContact,
         oldestContact,
         avgContactCadenceDays: avgCadence,
+        daysSinceNewestContact,
         dealCount: officeDeals.length,
         activeDealCount: activeDeals.length,
         closedDealCount: closedDeals.length,
@@ -270,10 +291,7 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
         closedValue,
         newestDeal,
         avgDealValue,
-        daysSinceUpdate,
-        freshness: f.tone,
-        freshnessColor: f.color,
-        freshnessLabel: f.label,
+        daysSinceNewestDeal,
         sectors: Array.from(sectorSet).sort()
       } as OfficeStats;
     });
@@ -429,6 +447,10 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
             view === "pipeline"
               ? "of largest office's pipeline value"
               : "of largest office's contact base";
+          // Freshness reflects the active view's data: days since the newest
+          // contact in Contacts mode, days since the newest deal in Pipeline.
+          const days = view === "pipeline" ? s.daysSinceNewestDeal : s.daysSinceNewestContact;
+          const fresh = freshnessFor(days);
           return (
             <div
               key={s.office.id}
@@ -440,7 +462,7 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
                 padding: "16px 18px",
                 boxShadow: isHover ? "0 4px 20px rgba(0,0,0,0.10)" : "0 1px 4px rgba(0,0,0,0.06)",
                 border: "1px solid var(--gray-200)",
-                borderTop: `4px solid ${s.freshnessColor}`,
+                borderTop: `4px solid ${fresh.color}`,
                 transition: "box-shadow 0.15s, transform 0.15s",
                 transform: isHover ? "translateY(-2px)" : "none"
               }}
@@ -457,7 +479,7 @@ export default function NetworkView({ offices, contacts, deals }: Props) {
                     <span style={{ fontSize: 13, color: "var(--gray-600)" }}>{s.office.name}</span>
                   </div>
                 </div>
-                <FreshnessRing days={s.daysSinceUpdate} />
+                <FreshnessRing days={days} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 14 }}>

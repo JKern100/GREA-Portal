@@ -579,12 +579,7 @@ where not exists (
   where d.deal_name = v.deal_name
 );
 
--- 5. Bump offices.last_updated to the most recent contact for each office
-update public.offices o
-set last_updated = sub.last
-from (
-  select office_id, max(date_added) as last
-  from public.contacts
-  group by office_id
-) sub
-where sub.office_id = o.id;
+-- (Office freshness was previously bumped here from the most recent
+-- contact. After migration 0014 dropped offices.last_updated, the
+-- Network page derives that signal at render time from the actual
+-- contacts and deals — no seed step needed.)
