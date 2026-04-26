@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getCurrentProfile } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
-import { TEMPLATE_COLUMNS, TEMPLATE_HEADERS } from "@/lib/contacts/import-schema";
+import { TEMPLATE_COLUMNS } from "@/lib/contacts/import-schema";
 import type { ContactRecord } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +19,21 @@ function fmt(v: unknown): string {
   return String(v);
 }
 
-/**
- * Build a row of strings in the same order as TEMPLATE_HEADERS, so an exported
- * file can be re-uploaded via the import flow without column re-mapping.
- */
+// The export is a SUPERSET of the import template: we add the broker name
+// and phone (sourced from the snapshot fields on the contact row, no profile
+// lookup needed) so an admin reviewing an export sees who owns each contact.
+// Re-importing the file is still fine — the importer ignores unknown columns
+// with a warning, and the broker assignment is rebuilt from broker_email.
+const EXTRA_HEADERS = ["Broker Name", "Broker Phone"];
+const EXPORT_HEADERS = (() => {
+  const out: string[] = [];
+  for (const col of TEMPLATE_COLUMNS) {
+    out.push(col.header);
+    if (col.key === "broker_email") out.push(...EXTRA_HEADERS);
+  }
+  return out;
+})();
+
 function rowFor(c: ContactRecord, brokerEmailById: Map<string, string>): string[] {
   const broker_email = c.broker_id ? brokerEmailById.get(c.broker_id) ?? "" : "";
   const bag: Record<string, unknown> = {
@@ -39,7 +50,15 @@ function rowFor(c: ContactRecord, brokerEmailById: Map<string, string>): string[
     last_contact_date: c.last_contact_date,
     is_confidential: c.is_confidential
   };
-  return TEMPLATE_COLUMNS.map((col) => fmt(bag[col.key]));
+  const out: string[] = [];
+  for (const col of TEMPLATE_COLUMNS) {
+    out.push(fmt(bag[col.key]));
+    if (col.key === "broker_email") {
+      out.push(fmt(c.broker_name_snapshot));
+      out.push(fmt(c.broker_phone_snapshot));
+    }
+  }
+  return out;
 }
 
 export async function GET(request: Request) {
@@ -94,7 +113,7 @@ export async function GET(request: Request) {
     const stamp = new Date().toISOString().slice(0, 10);
 
     if (format === "xlsx") {
-      const sheet = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...rows]);
+      const sheet = XLSX.utils.aoa_to_sheet([EXPORT_HEADERS, ...rows]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, sheet, "Contacts");
       // Use type:"buffer" so SheetJS takes the Node-aware code path. With
@@ -116,7 +135,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const csv = [TEMPLATE_HEADERS, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
+    const csv = [EXPORT_HEADERS, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
     return new NextResponse(csv, {
       status: 200,
       headers: {
