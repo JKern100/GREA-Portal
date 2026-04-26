@@ -22,6 +22,10 @@
 }
 
 html, body { height: 100%; }
+/* Reserve scrollbar space so pages without overflow (Contacts, Admin,
+   Mailing List) don't shift the header sideways when navigating to a
+   page that does scroll (Pipeline, Network). */
+html { scrollbar-gutter: stable; }
 body {
   background: var(--gray-50);
   color: var(--gray-900);
