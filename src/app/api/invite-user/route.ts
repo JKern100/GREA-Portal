@@ -4,12 +4,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { UserRole } from "@/lib/types";
 
 /**
- * Invite a user by email.
+ * Create an invitation for a user by email and return a shareable invite
+ * link. We deliberately use admin.generateLink({ type: 'invite' }) instead
+ * of inviteUserByEmail() so the critical path doesn't depend on whatever
+ * SMTP state Supabase is in — the inviting admin gets the URL back and
+ * shares it through whatever channel they actually use (Slack, email, etc.).
  *
- * - Superadmin: may invite any role to any office.
- * - Office admin: may invite brokers only, and only to their own office.
+ * Authorisation:
+ *   - Superadmin: may invite any role to any office.
+ *   - Office admin: may invite brokers only, locked to their own office.
  *
  * Body: { email: string; name?: string; role?: UserRole; officeId?: string | null }
+ * Returns: { ok, user, inviteUrl }
  */
 export async function POST(request: Request) {
   const real = await getRealProfile();
@@ -54,14 +60,18 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
 
   const redirectTo = new URL("/login", request.url).toString();
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: body.name ? { name: body.name } : undefined,
-    redirectTo
+  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: {
+      redirectTo,
+      data: body.name ? { name: body.name } : undefined
+    }
   });
 
-  if (inviteErr || !invited?.user) {
+  if (linkErr || !linkData?.user) {
     return NextResponse.json(
-      { error: inviteErr?.message ?? "Failed to send invite." },
+      { error: linkErr?.message ?? "Failed to create invite." },
       { status: 400 }
     );
   }
@@ -71,7 +81,7 @@ export async function POST(request: Request) {
   const { error: updateErr } = await admin
     .from("profiles")
     .update({ role, office_id: officeId, name: body.name?.trim() || undefined })
-    .eq("id", invited.user.id);
+    .eq("id", linkData.user.id);
 
   if (updateErr) {
     return NextResponse.json({ error: updateErr.message }, { status: 500 });
@@ -79,6 +89,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    user: { id: invited.user.id, email: invited.user.email, role, office_id: officeId }
+    user: { id: linkData.user.id, email, role, office_id: officeId },
+    inviteUrl: linkData.properties?.action_link ?? null
   });
 }
