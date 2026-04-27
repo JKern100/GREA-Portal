@@ -29,14 +29,15 @@ const SECTOR_CLASS: Record<string, string> = {
   General: "sector-general"
 };
 
-function initialsFor(name: string | null | undefined, email: string): string {
+function initialsFor(name: string | null | undefined, email: string | null | undefined): string {
   const source = (name ?? "").trim();
   if (source) {
     const parts = source.split(/\s+/).filter(Boolean);
     if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
     return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
   }
-  return email.slice(0, 2).toUpperCase();
+  const e = (email ?? "").trim();
+  return e ? e.slice(0, 2).toUpperCase() : "?";
 }
 
 interface ResendResult {
