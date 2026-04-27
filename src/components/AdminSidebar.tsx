@@ -93,7 +93,7 @@ export default function AdminSidebar({ mode }: Props) {
         <nav style={{ display: "grid", gap: 2 }}>{adminTabs.map(renderLink)}</nav>
       </div>
       <div style={cardStyle}>
-        <div style={headerStyle}>Across the Portal</div>
+        <div style={headerStyle}>Data</div>
         <nav style={{ display: "grid", gap: 2 }}>{sharedTabs.map(renderLink)}</nav>
       </div>
     </aside>
