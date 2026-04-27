@@ -2,6 +2,7 @@
 
 import Fuse from "fuse.js";
 import { useMemo, useState } from "react";
+import SubmitFeedbackModal from "@/components/feedback/SubmitFeedbackModal";
 import { officeBadgeStyle } from "@/lib/officeColor";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
 
@@ -56,6 +57,9 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
   const [tagFilters, setTagFilters] = useState<string[]>([]);
   const [sectorFilters, setSectorFilters] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  // Report modal — opened in-place over the Contacts page so the user
+  // doesn't lose their search/scroll position.
+  const [reportFor, setReportFor] = useState<{ contactId: string; title: string } | null>(null);
 
 
   const officeById = useMemo(() => {
@@ -463,14 +467,20 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                               Request Intro
                             </a>
                           )}
-                          <a
+                          <button
+                            type="button"
                             className="btn-outline"
                             style={{ padding: "4px 10px", fontSize: 11 }}
-                            href={`/feedback?submit=1&contact=${o.contactId}&context_url=/contacts&title=${encodeURIComponent("Issue with contact: " + g.contactName + " (" + o.office + ")")}`}
+                            onClick={() =>
+                              setReportFor({
+                                contactId: o.contactId,
+                                title: `Issue with contact: ${g.contactName} (${o.office})`
+                              })
+                            }
                             title="Report an issue with this contact"
                           >
                             Report
-                          </a>
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -482,6 +492,15 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         </>
       )}
 
+      {reportFor && (
+        <SubmitFeedbackModal
+          profile={profile}
+          onClose={() => setReportFor(null)}
+          initialTitle={reportFor.title}
+          contextUrl="/contacts"
+          relatedContactId={reportFor.contactId}
+        />
+      )}
     </>
   );
 }

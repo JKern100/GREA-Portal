@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import SubmitFeedbackModal from "@/components/feedback/SubmitFeedbackModal";
 import type {
   FeedbackCategory,
   FeedbackComment,
@@ -73,6 +74,13 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
   // can send them back on close/submit. Null means they opened the modal
   // manually from the Feedback page itself — stay put on close.
   const [returnUrl, setReturnUrl] = useState<string | null>(null);
+  // URL-driven prefill captured once on mount, when arriving via ?submit=1.
+  const [prefill, setPrefill] = useState<{
+    title?: string;
+    contextUrl: string | null;
+    contactId: string | null;
+    dealId: string | null;
+  } | null>(null);
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | "all">("open");
   const [categoryFilter, setCategoryFilter] = useState<FeedbackCategory | "all">("all");
   const [assigneeFilter, setAssigneeFilter] = useState<"all" | "superadmin" | "other">("all");
@@ -97,11 +105,19 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
   const isAdmin = profile.role === "office_admin" || profile.role === "superadmin";
   const isSuperadmin = profile.role === "superadmin";
 
-  // Auto-open submit when navigated from "Report issue" with ?submit=1
+  // Auto-open submit when navigated from "Report issue" with ?submit=1.
+  // (Report buttons on contact/deal rows now open the modal in-place;
+  // this path is kept for any older bookmarks or external links.)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("submit") === "1") {
+      setPrefill({
+        title: params.get("title") ?? undefined,
+        contextUrl: params.get("context_url"),
+        contactId: params.get("contact"),
+        dealId: params.get("deal")
+      });
       setShowSubmit(true);
       setReturnUrl(params.get("context_url"));
     }
@@ -280,20 +296,19 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
       </div>
 
       {showSubmit && (
-        <SubmitModal
+        <SubmitFeedbackModal
           profile={profile}
           onClose={closeSubmitModal}
+          initialTitle={prefill?.title}
+          contextUrl={prefill?.contextUrl ?? null}
+          relatedContactId={prefill?.contactId ?? null}
+          relatedDealId={prefill?.dealId ?? null}
           onCreated={(item) => {
             setItems((prev) => [item, ...prev]);
-            if (returnUrl) {
-              const target = returnUrl;
-              setReturnUrl(null);
-              setShowSubmit(false);
-              router.push(target);
-            } else {
-              setSelectedId(item.id);
-              setShowSubmit(false);
-            }
+            // If they came from Report, closeSubmitModal handles redirect.
+            // If they opened it manually, keep them on /feedback and
+            // surface the new item in the side panel.
+            if (!returnUrl) setSelectedId(item.id);
           }}
         />
       )}
@@ -525,127 +540,3 @@ function FeedbackDetail({
   );
 }
 
-function SubmitModal({
-  profile,
-  onClose,
-  onCreated
-}: {
-  profile: Profile;
-  onClose: () => void;
-  onCreated: (item: FeedbackItem) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [category, setCategory] = useState<FeedbackCategory>("bug");
-  const [err, setErr] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const [contextUrl, setContextUrl] = useState<string | null>(null);
-  const [relatedContactId, setRelatedContactId] = useState<string | null>(null);
-  const [relatedDealId, setRelatedDealId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const t = params.get("title");
-    if (t) setTitle(t);
-    setContextUrl(params.get("context_url"));
-    setRelatedContactId(params.get("contact"));
-    setRelatedDealId(params.get("deal"));
-  }, []);
-
-  async function submit() {
-    setErr(null);
-    if (!title.trim()) {
-      setErr("Title is required.");
-      return;
-    }
-    setSaving(true);
-    const supabase = createClient();
-    // RLS check on feedback_items_insert is `submitted_by = auth.uid()`,
-    // which is the REAL signed-in user — not the impersonated profile. Use
-    // the real id when impersonating so the policy allows the insert and
-    // the audit trail correctly attributes the submission to the actual
-    // person clicking Submit.
-    const submittedBy = profile._impersonatedBy?.id ?? profile.id;
-    const { data, error } = await supabase
-      .from("feedback_items")
-      .insert({
-        title: title.trim(),
-        body: body.trim(),
-        category,
-        submitted_by: submittedBy,
-        context_url: contextUrl,
-        related_contact_id: relatedContactId,
-        related_deal_id: relatedDealId
-      })
-      .select()
-      .single();
-    setSaving(false);
-    if (error) {
-      setErr(error.message);
-      return;
-    }
-    if (data) onCreated(data as FeedbackItem);
-  }
-
-  return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal-panel" style={{ maxWidth: 560 }}>
-        <button className="modal-close" onClick={onClose}>
-          ×
-        </button>
-        <h2 style={{ fontSize: 18, color: "var(--navy)" }}>Submit Feedback</h2>
-        <p style={{ fontSize: 13, color: "var(--gray-500)", marginBottom: 14 }}>
-          Describe the bug, question, or suggestion. Your office admin (and Ariel) will see it.
-        </p>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          <div>
-            <label className="form-label">Category</label>
-            <select
-              className="form-input"
-              value={category}
-              onChange={(e) => setCategory(e.target.value as FeedbackCategory)}
-            >
-              {FEEDBACK_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label">Title *</label>
-            <input
-              className="form-input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Short summary"
-            />
-          </div>
-          <div>
-            <label className="form-label">Details</label>
-            <textarea
-              className="form-input"
-              rows={5}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Steps to reproduce, what you expected vs. what happened, any context…"
-              style={{ resize: "vertical" }}
-            />
-          </div>
-          {contextUrl && (
-            <div style={{ fontSize: 11, color: "var(--gray-500)" }}>
-              Attached context: <code>{contextUrl}</code>
-            </div>
-          )}
-          {err && <div style={{ color: "#dc2626", fontSize: 12 }}>{err}</div>}
-          <button className="btn-primary" onClick={submit} disabled={saving} style={{ justifyContent: "center" }}>
-            {saving ? "Submitting…" : "Submit"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

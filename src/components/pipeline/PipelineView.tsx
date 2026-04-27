@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import SubmitFeedbackModal from "@/components/feedback/SubmitFeedbackModal";
 import type { DealRecord, DealStage, Office, Profile } from "@/lib/types";
 import { DEAL_STAGES } from "@/lib/types";
 import { officeBadgeStyle } from "@/lib/officeColor";
@@ -31,6 +31,7 @@ export default function PipelineView({ profile, offices, initialDeals, profiles 
   const [sortField, setSortField] = useState<SortField>("stage");
   const [sortAsc, setSortAsc] = useState(true);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [reportFor, setReportFor] = useState<{ dealId: string; title: string } | null>(null);
 
   const officeById = useMemo(() => {
     const m: Record<string, Office> = {};
@@ -209,14 +210,17 @@ export default function PipelineView({ profile, offices, initialDeals, profiles 
                       <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => setDetailId(d.id)}>
                         View
                       </button>{" "}
-                      <Link
-                        href={`/feedback?submit=1&deal=${d.id}&context_url=/pipeline&title=${encodeURIComponent("Issue with deal: " + d.deal_name)}`}
+                      <button
+                        type="button"
                         className="btn-outline"
-                        style={{ padding: "3px 10px", fontSize: 11, textDecoration: "none" }}
+                        style={{ padding: "3px 10px", fontSize: 11 }}
+                        onClick={() =>
+                          setReportFor({ dealId: d.id, title: `Issue with deal: ${d.deal_name}` })
+                        }
                         title="Report an issue with this deal"
                       >
                         Report
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -233,6 +237,16 @@ export default function PipelineView({ profile, offices, initialDeals, profiles 
           profiles={profiles}
           profile={profile}
           onClose={() => setDetailId(null)}
+        />
+      )}
+
+      {reportFor && (
+        <SubmitFeedbackModal
+          profile={profile}
+          onClose={() => setReportFor(null)}
+          initialTitle={reportFor.title}
+          contextUrl="/pipeline"
+          relatedDealId={reportFor.dealId}
         />
       )}
     </>
