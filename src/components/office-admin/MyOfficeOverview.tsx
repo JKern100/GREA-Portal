@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import UsersTable, { UsersTableAuthMeta } from "@/components/admin/UsersTable";
 import type { Office, Profile } from "@/lib/types";
 
 interface Props {
   office: Office;
   members: Profile[];
   currentUserId: string;
+  authMeta: Record<string, UsersTableAuthMeta>;
 }
 
-export default function MyOfficeOverview({ office, members, currentUserId }: Props) {
+export default function MyOfficeOverview({ office, members, currentUserId, authMeta }: Props) {
   const router = useRouter();
 
   const [inviteEmail, setInviteEmail] = useState("");
@@ -80,41 +82,18 @@ export default function MyOfficeOverview({ office, members, currentUserId }: Pro
         </p>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: "auto" }}>
-        <div style={{ padding: "12px 14px", fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>
-          Office Members ({members.length})
-        </div>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Active</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((m) => (
-              <tr key={m.id}>
-                <td>{m.name || "—"}</td>
-                <td style={{ color: "var(--gray-500)", fontSize: 12 }}>
-                  {m.email}
-                  {m.id === currentUserId && <span style={{ marginLeft: 6, color: "var(--gold)", fontWeight: 600 }}>(you)</span>}
-                </td>
-                <td style={{ textTransform: "capitalize" }}>{m.role.replace("_", " ")}</td>
-                <td>{m.is_active ? "Yes" : "No"}</td>
-              </tr>
-            ))}
-            {members.length === 0 && (
-              <tr>
-                <td colSpan={4} style={{ textAlign: "center", color: "var(--gray-500)", fontSize: 13, padding: 14 }}>
-                  No members yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <UsersTable
+        profiles={members}
+        offices={[office]}
+        authMeta={authMeta}
+        currentUserId={currentUserId}
+        permissions={{
+          canEditOffice: false,
+          canEditRole: false,
+          canImpersonate: true,
+          canDelete: false
+        }}
+      />
     </div>
   );
 }
