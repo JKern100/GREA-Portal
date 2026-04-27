@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useOnlineIds } from "@/lib/presence";
 import { SECTOR_OPTIONS } from "@/lib/types";
 import type { Office, Profile, UserRole } from "@/lib/types";
 
@@ -74,37 +75,10 @@ export default function UsersTable({
   const [resendResult, setResendResult] = useState<ResendResult | null>(null);
   const [resendCopied, setResendCopied] = useState(false);
 
-  // Realtime presence: subscribe to "users:online" and track the viewer
-  // here too — listener-only channels on a different client can miss the
-  // broadcaster's state, and the viewer is provably online.
-  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    if (!currentUserId) return;
-    const supabase = createClient();
-    const channel = supabase.channel("users:online", {
-      config: { presence: { key: currentUserId } }
-    });
-    channel
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState();
-        const ids = new Set<string>();
-        Object.values(state).forEach((arr) => {
-          (arr as { user_id?: string }[]).forEach((p) => {
-            if (p.user_id) ids.add(p.user_id);
-          });
-        });
-        setOnlineIds(ids);
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ user_id: currentUserId, online_at: new Date().toISOString() });
-        }
-      });
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentUserId]);
-
+  // Read live presence from the shared store updated by PresenceBeacon.
+  // We can't open our own channel here — Supabase returns the same
+  // channel by name and would reject a second .on("presence") call.
+  const onlineIds = useOnlineIds();
   const effectiveOnlineIds = new Set(onlineIds);
   if (currentUserId) effectiveOnlineIds.add(currentUserId);
   const onlineCount = profiles.reduce(
