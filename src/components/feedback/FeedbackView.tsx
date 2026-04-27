@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type {
   FeedbackCategory,
@@ -63,9 +64,15 @@ function Badge({ children, color }: { children: React.ReactNode; color: { bg: st
 }
 
 export default function FeedbackView({ profile, initialItems, profiles }: Props) {
+  const router = useRouter();
   const [items, setItems] = useState<FeedbackItem[]>(initialItems);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showSubmit, setShowSubmit] = useState(false);
+  // When the user arrived via "Report" on a contact/deal row, the submit
+  // modal opens automatically and we remember where they came from so we
+  // can send them back on close/submit. Null means they opened the modal
+  // manually from the Feedback page itself — stay put on close.
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | "all">("open");
   const [categoryFilter, setCategoryFilter] = useState<FeedbackCategory | "all">("all");
   const [assigneeFilter, setAssigneeFilter] = useState<"all" | "superadmin" | "other">("all");
@@ -94,8 +101,20 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("submit") === "1") setShowSubmit(true);
+    if (params.get("submit") === "1") {
+      setShowSubmit(true);
+      setReturnUrl(params.get("context_url"));
+    }
   }, []);
+
+  function closeSubmitModal() {
+    setShowSubmit(false);
+    if (returnUrl) {
+      const target = returnUrl;
+      setReturnUrl(null);
+      router.push(target);
+    }
+  }
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
@@ -263,11 +282,18 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
       {showSubmit && (
         <SubmitModal
           profile={profile}
-          onClose={() => setShowSubmit(false)}
+          onClose={closeSubmitModal}
           onCreated={(item) => {
             setItems((prev) => [item, ...prev]);
-            setSelectedId(item.id);
-            setShowSubmit(false);
+            if (returnUrl) {
+              const target = returnUrl;
+              setReturnUrl(null);
+              setShowSubmit(false);
+              router.push(target);
+            } else {
+              setSelectedId(item.id);
+              setShowSubmit(false);
+            }
           }}
         />
       )}
