@@ -47,7 +47,7 @@ const linkStyle: React.CSSProperties = {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireSuperadmin();
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 28, alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "200px minmax(0, 1fr)", gap: 28, alignItems: "start" }}>
       <aside style={{ position: "sticky", top: 140, display: "grid", gap: 14 }}>
         <div style={cardStyle}>
           <div style={headerStyle}>Super Admin</div>
