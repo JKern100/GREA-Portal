@@ -65,7 +65,8 @@ export default function AdminSidebar({ mode }: Props) {
   const sectionLabel = isSuper ? "Super Admin" : "Office Admin";
 
   const renderLink = (t: Tab) => {
-    const active = pathname === t.href || pathname.startsWith(t.href + "/");
+    const active =
+      pathname != null && (pathname === t.href || pathname.startsWith(t.href + "/"));
     return (
       <Link
         key={t.href}
