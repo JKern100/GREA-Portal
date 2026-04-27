@@ -8,6 +8,7 @@ function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
   const next = search.get("next") || "/contacts";
+  const wasDeactivated = search.get("inactive") === "1";
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -76,6 +77,23 @@ function LoginForm() {
       <p style={{ color: "var(--gray-500)", fontSize: 13, marginTop: 2, marginBottom: 20 }}>
         {mode === "signin" ? "Sign in to your account" : "Create a new account"}
       </p>
+
+      {wasDeactivated && (
+        <div
+          style={{
+            background: "#fef3c7",
+            color: "#92400e",
+            border: "1px solid #fde68a",
+            padding: 10,
+            borderRadius: 6,
+            fontSize: 13,
+            marginBottom: 14
+          }}
+        >
+          This account has been deactivated. Contact your office admin or a superadmin to
+          regain access.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
         {mode === "signup" && (

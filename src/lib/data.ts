@@ -23,6 +23,12 @@ export async function getSessionUser() {
 
 /**
  * Returns the real signed-in user's profile, ignoring any impersonation cookie.
+ *
+ * Returns null for deactivated accounts (is_active = false). Middleware
+ * already bounces inactive users to /login on every request, but treating
+ * an inactive profile as "no profile" here is the safety net for any code
+ * path the middleware doesn't cover (e.g. server-side data fetches that
+ * race against the middleware).
  */
 export async function getRealProfile(): Promise<Profile | null> {
   const supabase = createClient();
@@ -31,7 +37,10 @@ export async function getRealProfile(): Promise<Profile | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
   const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-  return data ? (data as unknown as Profile) : null;
+  if (!data) return null;
+  const profile = data as unknown as Profile;
+  if (profile.is_active === false) return null;
+  return profile;
 }
 
 /**
