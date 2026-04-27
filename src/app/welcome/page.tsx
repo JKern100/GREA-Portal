@@ -34,48 +34,57 @@ function WelcomeContent() {
     }
 
     const supabase = createClient();
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
 
-    // supabase-js auto-processes #access_token / #refresh_token from the
-    // invite redirect into a session. Listen for it and also check the
-    // current state in case the session was already set before this
-    // effect ran.
-    let resolved = false;
-    const finishWith = (loggedIn: boolean) => {
-      if (resolved) return;
-      resolved = true;
-      if (loggedIn) {
-        setPhase("set-password");
-      } else {
-        setErrorMsg(
-          "This invite link is invalid or has already been used. Ask the person who invited you for a fresh one."
-        );
-        setPhase("error");
+    // Supabase's /auth/v1/verify endpoint redirects here with
+    // #access_token=...&refresh_token=... (implicit flow). The browser
+    // client created by @supabase/ssr defaults to PKCE, whose URL
+    // detection looks for ?code=...&state=... and ignores the hash —
+    // so we extract the tokens ourselves and seed the session
+    // explicitly. This decouples /welcome from the client's flowType.
+    if (hash.includes("access_token")) {
+      const params = new URLSearchParams(hash.slice(1));
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (access_token && refresh_token) {
+        supabase.auth
+          .setSession({ access_token, refresh_token })
+          .then(({ data, error }) => {
+            if (error || !data.session?.user) {
+              setErrorMsg(
+                error?.message ??
+                  "This invite link is invalid or has already been used. Ask the person who invited you for a fresh one."
+              );
+              setPhase("error");
+              return;
+            }
+            // Strip the hash so a refresh doesn't try to re-consume the
+            // (now-used) tokens.
+            window.history.replaceState(null, "", window.location.pathname);
+            setEmail(data.session.user.email ?? null);
+            setPhase("set-password");
+          })
+          .catch((err: unknown) => {
+            setErrorMsg(err instanceof Error ? err.message : "Couldn't verify your invite link.");
+            setPhase("error");
+          });
+        return;
       }
-    };
+    }
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setEmail(session.user.email ?? null);
-        finishWith(true);
-      }
-    });
-
+    // No tokens in the hash — maybe the user is already signed in and
+    // navigated back to /welcome. Honor that; otherwise show the error.
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setEmail(data.user.email ?? null);
-        finishWith(true);
+        setPhase("set-password");
         return;
       }
-      // Give the auth listener a beat to pick up hash tokens before
-      // declaring failure — supabase-js needs a tick after page load.
-      setTimeout(() => {
-        if (!resolved) finishWith(false);
-      }, 1500);
+      setErrorMsg(
+        "This invite link is invalid or has already been used. Ask the person who invited you for a fresh one."
+      );
+      setPhase("error");
     });
-
-    return () => {
-      sub.subscription.unsubscribe();
-    };
   }, []);
 
   async function submit(e: React.FormEvent) {
