@@ -83,6 +83,14 @@ export default function MailingListView({ profile, offices, initialEntries, mana
     return Array.from(s).sort();
   }, [entries]);
 
+  // Whether any entry actually carries a source office. If nothing does,
+  // the dropdown can never narrow the list, so we hide it to reduce noise.
+  // Same idea applies to Sector and Tag — driven by their option lists.
+  const hasSourceOfficeData = useMemo(
+    () => entries.some((e) => !!e.source_office_id),
+    [entries]
+  );
+
   // Email → number of entries sharing that email. Anything > 1 is a
   // duplicate and gets visually flagged in the email cell. Comparison is
   // case-insensitive (cleanEmail already lowercases on import; we lower
@@ -230,54 +238,60 @@ export default function MailingListView({ profile, offices, initialEntries, mana
               placeholder="Name, email, organization, notes…"
             />
           </div>
-          <div>
-            <label className="form-label">Sector</label>
-            <select
-              className="form-input"
-              style={{ width: 180 }}
-              value={sectorFilter}
-              onChange={(e) => setSectorFilter(e.target.value)}
-            >
-              <option value="">All sectors</option>
-              {sectorOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label">Tag</label>
-            <select
-              className="form-input"
-              style={{ width: 160 }}
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
-            >
-              <option value="">All tags</option>
-              {tagOptions.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label">Source office</label>
-            <select
-              className="form-input"
-              style={{ width: 140 }}
-              value={officeFilter}
-              onChange={(e) => setOfficeFilter(e.target.value)}
-            >
-              <option value="">All offices</option>
-              {offices.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.code}
-                </option>
-              ))}
-            </select>
-          </div>
+          {sectorOptions.length > 0 && (
+            <div>
+              <label className="form-label">Sector</label>
+              <select
+                className="form-input"
+                style={{ width: 180 }}
+                value={sectorFilter}
+                onChange={(e) => setSectorFilter(e.target.value)}
+              >
+                <option value="">All sectors</option>
+                {sectorOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {tagOptions.length > 0 && (
+            <div>
+              <label className="form-label">Tag</label>
+              <select
+                className="form-input"
+                style={{ width: 160 }}
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+              >
+                <option value="">All tags</option>
+                {tagOptions.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {hasSourceOfficeData && (
+            <div>
+              <label className="form-label">Source office</label>
+              <select
+                className="form-input"
+                style={{ width: 140 }}
+                value={officeFilter}
+                onChange={(e) => setOfficeFilter(e.target.value)}
+              >
+                <option value="">All offices</option>
+                {offices.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {canManage && (
             <>
               <button className="btn-outline" onClick={exportCsv}>
