@@ -504,10 +504,21 @@ export default function UsersTable({
                     </div>
                   </td>
                   <td style={{ textAlign: "center" }}>
-                    <label className="toggle-switch" title={p.is_active ? "Active" : "Inactive"}>
+                    <label
+                      className="toggle-switch"
+                      title={
+                        isSelf
+                          ? "You can't deactivate your own account."
+                          : p.is_active
+                            ? "Active"
+                            : "Inactive"
+                      }
+                      style={isSelf ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+                    >
                       <input
                         type="checkbox"
                         checked={!!p.is_active}
+                        disabled={isSelf}
                         onChange={(e) => updateProfile(p.id, { is_active: e.target.checked })}
                       />
                       <span className="toggle-slider" />
