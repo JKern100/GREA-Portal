@@ -56,11 +56,16 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId, 
 
   // Realtime presence: subscribe to the same "users:online" channel the
   // PresenceBeacon broadcasts on, and keep a local Set of currently-tracked
-  // user ids. Unsubscribe on unmount.
+  // user ids. We also track the viewer here — listener-only channel
+  // instances on a different client can miss broadcaster state, and the
+  // viewer is provably online (they're rendering this component).
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   useEffect(() => {
+    if (!realProfileId) return;
     const supabase = createClient();
-    const channel = supabase.channel("users:online");
+    const channel = supabase.channel("users:online", {
+      config: { presence: { key: realProfileId } }
+    });
     channel
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
@@ -72,11 +77,22 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId, 
         });
         setOnlineIds(ids);
       })
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ user_id: realProfileId, online_at: new Date().toISOString() });
+        }
+      });
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [realProfileId]);
+
+  // Defensive fallback: the viewer is online even if the realtime sync
+  // hasn't landed yet. Without this, the page shows "you" as offline on
+  // initial load until the first presence sync event fires.
+  const effectiveOnlineIds = new Set(onlineIds);
+  if (realProfileId) effectiveOnlineIds.add(realProfileId);
+  const onlineCount = effectiveOnlineIds.size;
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
@@ -245,8 +261,33 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId, 
 
   return (
     <div>
-      <h2 style={{ fontSize: 22, color: "var(--navy)" }}>Users</h2>
-      <p style={{ fontSize: 13, color: "var(--gray-500)", marginBottom: 18 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+        <h2 style={{ fontSize: 22, color: "var(--navy)" }}>Users</h2>
+        <span
+          style={{
+            fontSize: 12,
+            color: "var(--gray-600)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6
+          }}
+          title={`${onlineCount} of ${profiles.length} users online right now`}
+        >
+          <span
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#16a34a",
+              boxShadow: "0 0 0 3px rgba(22,163,74,0.15)"
+            }}
+          />
+          {onlineCount} online
+          <span style={{ color: "var(--gray-400)" }}>· {profiles.length} total</span>
+        </span>
+      </div>
+      <p style={{ fontSize: 13, color: "var(--gray-500)", marginTop: 6, marginBottom: 18 }}>
         Assign offices and roles, or invite users directly below. Click <strong>Impersonate</strong> to see the app as that
         user; a banner will appear at the top of every page and a Stop button returns you to your own view.
       </p>
@@ -425,7 +466,7 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId, 
               const isSelf = p.id === realProfileId;
               const meta = authMeta[p.id];
               const hasSignedIn = !!meta?.last_sign_in_at;
-              const isOnline = onlineIds.has(p.id);
+              const isOnline = effectiveOnlineIds.has(p.id);
               const specialties = p.specialties ?? [];
               return (
                 <tr key={p.id}>
