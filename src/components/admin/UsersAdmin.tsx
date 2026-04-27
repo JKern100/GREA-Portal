@@ -21,6 +21,24 @@ interface Props {
 
 const ROLES: UserRole[] = ["broker", "office_admin", "superadmin"];
 
+const SECTOR_CLASS: Record<string, string> = {
+  Multifamily: "sector-multifamily",
+  "Affordable Housing": "sector-affordable-housing",
+  "Student Housing": "sector-student-housing",
+  "Capital Services": "sector-capital-services",
+  General: "sector-general"
+};
+
+function initialsFor(name: string | null | undefined, email: string): string {
+  const source = (name ?? "").trim();
+  if (source) {
+    const parts = source.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+    return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+  }
+  return email.slice(0, 2).toUpperCase();
+}
+
 interface ResendResult {
   email: string;
   url: string | null;
@@ -389,18 +407,16 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId, 
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflow: "auto" }}>
-        <table className="data-table">
+      <div className="card users-admin-card" style={{ padding: 0, overflow: "auto" }}>
+        <table className="data-table users-admin-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
+              <th style={{ minWidth: 260 }}>User</th>
               <th>Office</th>
               <th>Role</th>
               <th>Title</th>
               <th>Specialties</th>
-              <th>Status</th>
-              <th>Active</th>
+              <th style={{ textAlign: "center" }}>Active</th>
               <th></th>
             </tr>
           </thead>
@@ -410,39 +426,117 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId, 
               const meta = authMeta[p.id];
               const hasSignedIn = !!meta?.last_sign_in_at;
               const isOnline = onlineIds.has(p.id);
+              const specialties = p.specialties ?? [];
               return (
                 <tr key={p.id}>
                   <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span
-                        title={isOnline ? "Online now" : "Offline"}
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: isOnline ? "#16a34a" : "var(--gray-300)",
-                          flexShrink: 0,
-                          boxShadow: isOnline ? "0 0 0 3px rgba(22,163,74,0.15)" : undefined
-                        }}
-                        aria-label={isOnline ? "Online now" : "Offline"}
-                      />
-                      <input
-                        className="form-input"
-                        style={{ padding: "4px 8px", fontSize: 13, flex: 1 }}
-                        defaultValue={p.name}
-                        onBlur={(e) => e.target.value !== p.name && updateProfile(p.id, { name: e.target.value })}
-                      />
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <div style={{ position: "relative", flexShrink: 0 }}>
+                        <div
+                          aria-hidden
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "var(--navy)",
+                            color: "white",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            letterSpacing: 0.3
+                          }}
+                        >
+                          {initialsFor(p.name, p.email)}
+                        </div>
+                        <span
+                          title={isOnline ? "Online now" : "Offline"}
+                          aria-label={isOnline ? "Online now" : "Offline"}
+                          style={{
+                            position: "absolute",
+                            bottom: -1,
+                            right: -1,
+                            width: 11,
+                            height: 11,
+                            borderRadius: "50%",
+                            background: isOnline ? "#16a34a" : "var(--gray-400)",
+                            border: "2px solid white"
+                          }}
+                        />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <input
+                          className="form-input user-name-input"
+                          style={{ padding: "4px 8px", fontSize: 13, fontWeight: 600, color: "var(--navy)" }}
+                          defaultValue={p.name ?? ""}
+                          placeholder="Add name"
+                          onBlur={(e) => e.target.value !== (p.name ?? "") && updateProfile(p.id, { name: e.target.value })}
+                        />
+                        <div
+                          style={{
+                            marginTop: 4,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            flexWrap: "wrap",
+                            fontSize: 12,
+                            color: "var(--gray-600)"
+                          }}
+                        >
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {p.email}
+                          </span>
+                          {isSelf && <span style={{ color: "var(--gold)", fontWeight: 600 }}>you</span>}
+                          {hasSignedIn ? (
+                            <span
+                              title={`Last signed in ${new Date(meta!.last_sign_in_at!).toLocaleString()}`}
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: 0.4,
+                                padding: "2px 8px",
+                                borderRadius: 10,
+                                background: "#dcfce7",
+                                color: "#166534"
+                              }}
+                            >
+                              Registered
+                            </span>
+                          ) : (
+                            <span
+                              title={
+                                meta?.invited_at
+                                  ? `Invited ${new Date(meta.invited_at).toLocaleString()} — hasn't signed in yet.`
+                                  : "Hasn't signed in yet."
+                              }
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: 0.4,
+                                padding: "2px 8px",
+                                borderRadius: 10,
+                                background: "#fef3c7",
+                                color: "#92400e"
+                              }}
+                            >
+                              Pending
+                            </span>
+                          )}
+                          {saving === p.id && (
+                            <span style={{ color: "var(--gray-400)", fontSize: 11 }}>saving…</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </td>
-                  <td style={{ color: "var(--gray-500)", fontSize: 12 }}>
-                    {p.email}
-                    {isSelf && <span style={{ marginLeft: 6, color: "var(--gold)", fontWeight: 600 }}>(you)</span>}
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                       <select
                         className="form-input"
-                        style={{ padding: "4px 8px", fontSize: 13, width: 120 }}
+                        style={{ padding: "4px 8px", fontSize: 13, width: 110 }}
                         value={p.office_id ?? ""}
                         onChange={(e) => updateProfile(p.id, { office_id: e.target.value || null })}
                       >
@@ -476,7 +570,7 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId, 
                   <td>
                     <select
                       className="form-input"
-                      style={{ padding: "4px 8px", fontSize: 13, width: 140 }}
+                      style={{ padding: "4px 8px", fontSize: 13, width: 130 }}
                       value={p.role}
                       onChange={(e) => updateProfile(p.id, { role: e.target.value as UserRole })}
                     >
@@ -490,127 +584,84 @@ export default function UsersAdmin({ profiles: initial, offices, realProfileId, 
                   <td>
                     <input
                       className="form-input"
-                      style={{ padding: "4px 8px", fontSize: 13 }}
+                      style={{ padding: "4px 8px", fontSize: 13, minWidth: 120 }}
                       defaultValue={p.title ?? ""}
+                      placeholder="—"
                       onBlur={(e) => e.target.value !== (p.title ?? "") && updateProfile(p.id, { title: e.target.value })}
                     />
                   </td>
-                  <td style={{ minWidth: 280 }}>
+                  <td style={{ minWidth: 240, maxWidth: 320 }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                       {SECTOR_OPTIONS.map((s) => {
-                        const checked = (p.specialties ?? []).includes(s);
+                        const checked = specialties.includes(s);
+                        const sectorClass = SECTOR_CLASS[s] ?? "sector-general";
                         return (
                           <button
                             key={s}
                             type="button"
                             onClick={() => {
                               const next = checked
-                                ? (p.specialties ?? []).filter((x) => x !== s)
-                                : Array.from(new Set([...(p.specialties ?? []), s]));
+                                ? specialties.filter((x) => x !== s)
+                                : Array.from(new Set([...specialties, s]));
                               updateProfile(p.id, { specialties: next });
                             }}
+                            className={checked ? `sector-badge ${sectorClass}` : "sector-badge sector-unselected"}
                             style={{
-                              padding: "3px 9px",
-                              borderRadius: 14,
-                              border: "1px solid " + (checked ? "var(--navy)" : "var(--gray-300)"),
-                              background: checked ? "var(--navy)" : "white",
-                              color: checked ? "white" : "var(--gray-600)",
-                              fontSize: 11,
-                              fontWeight: checked ? 600 : 400,
                               cursor: "pointer",
-                              whiteSpace: "nowrap",
-                              transition: "background 0.12s, color 0.12s, border-color 0.12s"
+                              opacity: checked ? 1 : 0.55,
+                              transition: "opacity 0.12s"
                             }}
                             aria-pressed={checked}
                             title={checked ? `Remove ${s}` : `Add ${s}`}
                           >
-                            {checked ? "✓ " : ""}{s}
+                            {s}
                           </button>
                         );
                       })}
                     </div>
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    {hasSignedIn ? (
-                      <span
-                        title={`Last signed in ${new Date(meta!.last_sign_in_at!).toLocaleString()}`}
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: 0.4,
-                          padding: "2px 8px",
-                          borderRadius: 10,
-                          background: "#dcfce7",
-                          color: "#166534"
-                        }}
-                      >
-                        Registered
-                      </span>
-                    ) : (
-                      <span
-                        title={
-                          meta?.invited_at
-                            ? `Invited ${new Date(meta.invited_at).toLocaleString()} — hasn't signed in yet.`
-                            : "Hasn't signed in yet."
-                        }
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: 0.4,
-                          padding: "2px 8px",
-                          borderRadius: 10,
-                          background: "#fef3c7",
-                          color: "#92400e"
-                        }}
-                      >
-                        Pending
-                      </span>
-                    )}
-                  </td>
                   <td style={{ textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={p.is_active}
-                      onChange={(e) => updateProfile(p.id, { is_active: e.target.checked })}
-                    />
-                    {saving === p.id && <span style={{ marginLeft: 6, color: "var(--gray-400)", fontSize: 11 }}>saving…</span>}
+                    <label className="toggle-switch" title={p.is_active ? "Active" : "Inactive"}>
+                      <input
+                        type="checkbox"
+                        checked={p.is_active}
+                        onChange={(e) => updateProfile(p.id, { is_active: e.target.checked })}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
                     {!isSelf && (
-                      <>
+                      <div style={{ display: "inline-flex", gap: 6 }}>
                         {!hasSignedIn && (
-                          <>
-                            <button
-                              className="btn-outline"
-                              style={{ padding: "3px 10px", fontSize: 11 }}
-                              disabled={resending === p.id}
-                              onClick={() => resendInvite(p)}
-                              title="Generate a fresh invite link for this user"
-                            >
-                              {resending === p.id ? "…" : "Copy invite link"}
-                            </button>{" "}
-                          </>
+                          <button
+                            className="btn-outline"
+                            style={{ padding: "4px 10px", fontSize: 11 }}
+                            disabled={resending === p.id}
+                            onClick={() => resendInvite(p)}
+                            title="Generate a fresh invite link for this user"
+                          >
+                            {resending === p.id ? "…" : "Copy invite link"}
+                          </button>
                         )}
                         <button
                           className="btn-outline"
-                          style={{ padding: "3px 10px", fontSize: 11 }}
+                          style={{ padding: "4px 10px", fontSize: 11 }}
                           disabled={impersonating === p.id || deleting === p.id}
                           onClick={() => impersonate(p.id)}
                         >
                           {impersonating === p.id ? "…" : "Impersonate"}
-                        </button>{" "}
+                        </button>
                         <button
                           className="btn-danger"
-                          style={{ padding: "3px 10px", fontSize: 11 }}
+                          style={{ padding: "4px 10px", fontSize: 11 }}
                           disabled={deleting === p.id || impersonating === p.id}
                           onClick={() => deleteUser(p)}
                           title="Permanently delete this user"
                         >
                           {deleting === p.id ? "…" : "Delete"}
                         </button>
-                      </>
+                      </div>
                     )}
                   </td>
                 </tr>
