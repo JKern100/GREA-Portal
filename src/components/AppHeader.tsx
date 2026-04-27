@@ -17,12 +17,34 @@ export default function AppHeader({ profile, officeCode }: Props) {
     { href: "/pipeline", label: "Pipeline" },
     { href: "/mailing-list", label: "Mailing List" }
   ];
+  const adminTabs: { href: string; label: string }[] = [];
   if (profile.role === "office_admin") {
-    tabs.push({ href: "/my-office", label: "My Office" });
+    adminTabs.push({ href: "/my-office", label: "My Office" });
   }
   if (profile.role === "superadmin") {
-    tabs.push({ href: "/admin", label: "Super Admin" });
+    adminTabs.push({ href: "/admin", label: "Super Admin" });
   }
+
+  const renderTab = (t: { href: string; label: string }) => {
+    const active = pathname === t.href || pathname.startsWith(t.href + "/");
+    return (
+      <Link
+        key={t.href}
+        href={t.href}
+        style={{
+          padding: "14px 22px",
+          fontSize: 14,
+          fontWeight: 600,
+          textDecoration: "none",
+          color: active ? "var(--navy)" : "var(--gray-500)",
+          borderBottom: active ? "3px solid var(--gold)" : "3px solid transparent",
+          marginBottom: -2
+        }}
+      >
+        {t.label}
+      </Link>
+    );
+  };
 
   return (
     <>
@@ -124,26 +146,10 @@ export default function AppHeader({ profile, officeCode }: Props) {
         }}
       >
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex" }}>
-          {tabs.map((t) => {
-            const active = pathname === t.href || pathname.startsWith(t.href + "/");
-            return (
-              <Link
-                key={t.href}
-                href={t.href}
-                style={{
-                  padding: "14px 22px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  textDecoration: "none",
-                  color: active ? "var(--navy)" : "var(--gray-500)",
-                  borderBottom: active ? "3px solid var(--gold)" : "3px solid transparent",
-                  marginBottom: -2
-                }}
-              >
-                {t.label}
-              </Link>
-            );
-          })}
+          <div style={{ display: "flex" }}>{tabs.map(renderTab)}</div>
+          {adminTabs.length > 0 && (
+            <div style={{ display: "flex", marginLeft: "auto" }}>{adminTabs.map(renderTab)}</div>
+          )}
         </div>
       </nav>
     </>
