@@ -118,7 +118,7 @@ function WelcomeContent() {
   return (
     <div className="card" style={{ maxWidth: 460, width: "100%" }}>
       <img src="/grea-logo-navy.svg" alt="GREA" style={{ height: 36, width: "auto", marginBottom: 10 }} />
-      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>Welcome to GREA Portal</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>Welcome to the GREA Portal</div>
 
       {phase === "loading" && (
         <p style={{ color: "var(--gray-500)", fontSize: 13, marginTop: 12 }}>Verifying your invite…</p>
