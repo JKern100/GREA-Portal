@@ -10,13 +10,10 @@ function LoginForm() {
   const next = search.get("next") || "/contacts";
   const wasDeactivated = search.get("inactive") === "1";
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   // Auth providers (Supabase, etc.) put errors in the URL hash on a failed
   // redirect — e.g. an expired invite link. Surface those once on mount so
@@ -40,25 +37,13 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     setLoading(true);
     const supabase = createClient();
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        router.push(next);
-        router.refresh();
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { name } }
-        });
-        if (error) throw error;
-        setInfo("Account created. Check your email if confirmation is required, then sign in.");
-        setMode("signin");
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      router.push(next);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
@@ -75,7 +60,7 @@ function LoginForm() {
       />
       <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>GREA Portal</div>
       <p style={{ color: "var(--gray-500)", fontSize: 13, marginTop: 2, marginBottom: 20 }}>
-        {mode === "signin" ? "Sign in to your account" : "Create a new account"}
+        Sign in to your account
       </p>
 
       {wasDeactivated && (
@@ -96,17 +81,6 @@ function LoginForm() {
       )}
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
-        {mode === "signup" && (
-          <div>
-            <label className="form-label">Name</label>
-            <input
-              className="form-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-        )}
         <div>
           <label className="form-label">Email</label>
           <input
@@ -127,7 +101,7 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            autoComplete="current-password"
           />
         </div>
 
@@ -136,33 +110,26 @@ function LoginForm() {
             {error}
           </div>
         )}
-        {info && (
-          <div style={{ background: "#dcfce7", color: "#166534", padding: 10, borderRadius: 6, fontSize: 13 }}>
-            {info}
-          </div>
-        )}
 
         <button type="submit" className="btn-primary" disabled={loading} style={{ justifyContent: "center", marginTop: 4 }}>
-          {loading ? "…" : mode === "signin" ? "Sign In" : "Create Account"}
+          {loading ? "…" : "Sign In"}
         </button>
       </form>
 
-      <div style={{ marginTop: 14, textAlign: "center", fontSize: 13 }}>
-        {mode === "signin" ? (
-          <span>
-            No account?{" "}
-            <button type="button" onClick={() => setMode("signup")} style={{ color: "var(--navy)", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>
-              Create one
-            </button>
-          </span>
-        ) : (
-          <span>
-            Already have an account?{" "}
-            <button type="button" onClick={() => setMode("signin")} style={{ color: "var(--navy)", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>
-              Sign in
-            </button>
-          </span>
-        )}
+      <div
+        style={{
+          marginTop: 18,
+          padding: 12,
+          background: "var(--gray-50)",
+          border: "1px solid var(--gray-200)",
+          borderRadius: 6,
+          fontSize: 12,
+          color: "var(--gray-600)",
+          lineHeight: 1.5
+        }}
+      >
+        Access to the GREA Portal is by invitation only. If you need an account, ask
+        your office admin or a superadmin to send you an invite link.
       </div>
     </div>
   );
