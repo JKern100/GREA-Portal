@@ -314,15 +314,14 @@ export default function NetworkView({ offices, contacts, deals, freshness }: Pro
 
   // Sort by whichever metric the active view emphasises so the most relevant
   // offices land at the top.
+  // Sort alphabetically by office code so Contacts and Pipeline views show
+  // the same office in the same slot — easier to scan side-by-side than a
+  // size-ranked order that reshuffles when you flip views.
   const sortedStats = useMemo(() => {
     const arr = [...stats];
-    if (view === "pipeline") {
-      arr.sort((a, b) => b.pipelineValue - a.pipelineValue);
-    } else {
-      arr.sort((a, b) => b.contactCount - a.contactCount);
-    }
+    arr.sort((a, b) => a.office.code.localeCompare(b.office.code));
     return arr;
-  }, [stats, view]);
+  }, [stats]);
 
   const totals = useMemo(() => {
     const totalContacts = stats.reduce((s, x) => s + x.contactCount, 0);
