@@ -21,6 +21,7 @@ const SUPERADMIN_TABS: Tab[] = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/offices", label: "Offices" },
+  { href: "/admin/activity", label: "Activity" },
   { href: "/admin/settings", label: "Settings" },
   { href: "/feedback", label: "Feedback" }
 ];

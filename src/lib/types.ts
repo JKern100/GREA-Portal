@@ -156,3 +156,10 @@ export interface FeedbackComment {
   created_at: string;
 }
 
+export interface LoginEvent {
+  id: string;
+  user_id: string;
+  signed_in_at: string;
+  created_at: string;
+}
+
