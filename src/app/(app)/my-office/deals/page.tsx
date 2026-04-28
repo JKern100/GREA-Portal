@@ -14,5 +14,5 @@ export default async function MyOfficeDealsPage() {
     .eq("office_id", profile.office_id)
     .order("deal_name");
 
-  return <MyOfficeDeals deals={(data as DealRecord[]) ?? []} />;
+  return <MyOfficeDeals deals={(data as DealRecord[]) ?? []} officeId={profile.office_id} />;
 }
