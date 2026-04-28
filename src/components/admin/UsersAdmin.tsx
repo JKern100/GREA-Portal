@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import UsersTable, { UsersTableAuthMeta } from "@/components/admin/UsersTable";
+import UsersTable, { PendingResetMeta, UsersTableAuthMeta } from "@/components/admin/UsersTable";
 import type { Office, Profile, UserRole } from "@/lib/types";
 
 interface Props {
@@ -10,11 +10,12 @@ interface Props {
   offices: Office[];
   realProfileId: string;
   authMeta: Record<string, UsersTableAuthMeta>;
+  pendingResets?: Record<string, PendingResetMeta>;
 }
 
 const ROLES: UserRole[] = ["broker", "office_admin", "superadmin"];
 
-export default function UsersAdmin({ profiles, offices, realProfileId, authMeta }: Props) {
+export default function UsersAdmin({ profiles, offices, realProfileId, authMeta, pendingResets }: Props) {
   const router = useRouter();
 
   const [inviteEmail, setInviteEmail] = useState("");
@@ -185,6 +186,7 @@ export default function UsersAdmin({ profiles, offices, realProfileId, authMeta 
         profiles={profiles}
         offices={offices}
         authMeta={authMeta}
+        pendingResets={pendingResets}
         currentUserId={realProfileId}
         permissions={{
           canEditOffice: true,

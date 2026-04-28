@@ -24,10 +24,21 @@ export interface UsersTablePermissions {
   canDelete: boolean;
 }
 
+export interface PendingResetMeta {
+  /** Most recent unresolved request timestamp for this user. */
+  requested_at: string;
+}
+
 interface Props {
   profiles: Profile[];
   offices: Office[];
   authMeta: Record<string, UsersTableAuthMeta>;
+  /**
+   * Map keyed by user id of currently-unresolved password-reset requests
+   * (initiated by the user via /login → "Forgot password?"). Renders a
+   * "Reset requested" badge on the row so the admin knows to act.
+   */
+  pendingResets?: Record<string, PendingResetMeta>;
   /** The real signed-in user's id — used for "you" tag and self-guards. */
   currentUserId: string;
   permissions: UsersTablePermissions;
@@ -64,6 +75,7 @@ export default function UsersTable({
   profiles: initial,
   offices,
   authMeta,
+  pendingResets,
   currentUserId,
   permissions
 }: Props) {
@@ -154,6 +166,9 @@ export default function UsersTable({
       return;
     }
     setLinkResult({ email: p.email, url: body.resetUrl ?? null, mode: "reset" });
+    // The endpoint clears any open password_reset_requests for this user;
+    // refresh so the "Reset requested" badge disappears from the row.
+    router.refresh();
   }
 
   async function copyLink() {
@@ -422,6 +437,25 @@ export default function UsersTable({
                               }}
                             >
                               Pending
+                            </span>
+                          )}
+                          {pendingResets?.[p.id] && (
+                            <span
+                              title={`Asked for a password reset on ${new Date(
+                                pendingResets[p.id]!.requested_at
+                              ).toLocaleString()}. Click 'Reset password' to issue a one-time link.`}
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: 0.4,
+                                padding: "2px 8px",
+                                borderRadius: 10,
+                                background: "#ffe4e6",
+                                color: "#9f1239"
+                              }}
+                            >
+                              Reset requested
                             </span>
                           )}
                           {saving === p.id && (

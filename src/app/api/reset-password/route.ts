@@ -87,6 +87,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // If the user (or someone on their behalf) had asked for a reset via the
+  // public /forgot-password flow, mark every open request resolved so the
+  // pending badge clears across all admin surfaces.
+  await admin
+    .from("password_reset_requests")
+    .update({ resolved_at: new Date().toISOString(), resolved_by: real.id })
+    .eq("user_id", target.id)
+    .is("resolved_at", null);
+
   return NextResponse.json({
     ok: true,
     email: target.email,

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import UsersTable, { UsersTableAuthMeta } from "@/components/admin/UsersTable";
+import UsersTable, { PendingResetMeta, UsersTableAuthMeta } from "@/components/admin/UsersTable";
 import type { Office, Profile } from "@/lib/types";
 
 interface Props {
@@ -10,9 +10,10 @@ interface Props {
   members: Profile[];
   currentUserId: string;
   authMeta: Record<string, UsersTableAuthMeta>;
+  pendingResets?: Record<string, PendingResetMeta>;
 }
 
-export default function MyOfficeOverview({ office, members, currentUserId, authMeta }: Props) {
+export default function MyOfficeOverview({ office, members, currentUserId, authMeta, pendingResets }: Props) {
   const router = useRouter();
 
   const [inviteEmail, setInviteEmail] = useState("");
@@ -86,6 +87,7 @@ export default function MyOfficeOverview({ office, members, currentUserId, authM
         profiles={members}
         offices={[office]}
         authMeta={authMeta}
+        pendingResets={pendingResets}
         currentUserId={currentUserId}
         permissions={{
           canEditOffice: false,

@@ -1,4 +1,5 @@
 import MyOfficeOverview from "@/components/office-admin/MyOfficeOverview";
+import type { PendingResetMeta } from "@/components/admin/UsersTable";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { listOffices, requireOfficeAdminOrSuperadmin } from "@/lib/data";
@@ -45,12 +46,28 @@ export default async function MyOfficePage() {
     // Service role unavailable — table renders without status pills.
   }
 
+  // Pending password-reset requests for members of this office. RLS
+  // (prr_read_office_admin in 0019) scopes the read to user_ids that
+  // belong to the caller's office, so a vanilla select is sufficient.
+  const { data: prr } = await supabase
+    .from("password_reset_requests")
+    .select("user_id, requested_at")
+    .is("resolved_at", null)
+    .order("requested_at", { ascending: false });
+
+  const pendingResets: Record<string, PendingResetMeta> = {};
+  for (const r of (prr as Array<{ user_id: string | null; requested_at: string }> | null) ?? []) {
+    if (!r.user_id) continue;
+    if (!pendingResets[r.user_id]) pendingResets[r.user_id] = { requested_at: r.requested_at };
+  }
+
   return (
     <MyOfficeOverview
       office={office}
       members={(members as Profile[]) ?? []}
       currentUserId={profile.id}
       authMeta={authMeta}
+      pendingResets={pendingResets}
     />
   );
 }
