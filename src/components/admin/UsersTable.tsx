@@ -54,9 +54,10 @@ function initialsFor(name: string | null | undefined, email: string | null | und
   return e ? e.slice(0, 2).toUpperCase() : "?";
 }
 
-interface ResendResult {
+interface LinkResult {
   email: string;
   url: string | null;
+  mode: "invite" | "reset";
 }
 
 export default function UsersTable({
@@ -72,8 +73,9 @@ export default function UsersTable({
   const [impersonating, setImpersonating] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resending, setResending] = useState<string | null>(null);
-  const [resendResult, setResendResult] = useState<ResendResult | null>(null);
-  const [resendCopied, setResendCopied] = useState(false);
+  const [resetting, setResetting] = useState<string | null>(null);
+  const [linkResult, setLinkResult] = useState<LinkResult | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Read live presence from the shared store updated by PresenceBeacon.
   // We can't open our own channel here — Supabase returns the same
@@ -114,8 +116,8 @@ export default function UsersTable({
   }
 
   async function resendInvite(p: Profile) {
-    setResendResult(null);
-    setResendCopied(false);
+    setLinkResult(null);
+    setLinkCopied(false);
     setResending(p.id);
     const res = await fetch("/api/invite-user", {
       method: "POST",
@@ -133,17 +135,35 @@ export default function UsersTable({
       alert(body.error ?? "Failed to create a fresh invite link.");
       return;
     }
-    setResendResult({ email: p.email, url: body.inviteUrl ?? null });
+    setLinkResult({ email: p.email, url: body.inviteUrl ?? null, mode: "invite" });
   }
 
-  async function copyResendLink() {
-    if (!resendResult?.url) return;
+  async function sendResetLink(p: Profile) {
+    setLinkResult(null);
+    setLinkCopied(false);
+    setResetting(p.id);
+    const res = await fetch("/api/reset-password", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: p.id })
+    });
+    setResetting(null);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(body.error ?? "Failed to create a reset link.");
+      return;
+    }
+    setLinkResult({ email: p.email, url: body.resetUrl ?? null, mode: "reset" });
+  }
+
+  async function copyLink() {
+    if (!linkResult?.url) return;
     try {
-      await navigator.clipboard.writeText(resendResult.url);
-      setResendCopied(true);
-      setTimeout(() => setResendCopied(false), 2000);
+      await navigator.clipboard.writeText(linkResult.url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      const el = document.getElementById("resend-link-input") as HTMLInputElement | null;
+      const el = document.getElementById("link-result-input") as HTMLInputElement | null;
       el?.select();
     }
   }
@@ -191,7 +211,7 @@ export default function UsersTable({
 
   return (
     <>
-      {resendResult && (
+      {linkResult && (
         <div
           className="card"
           style={{
@@ -203,11 +223,13 @@ export default function UsersTable({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <div style={{ color: "#065f46", fontWeight: 600, fontSize: 13 }}>
-              Fresh invite link for {resendResult.email}
+              {linkResult.mode === "reset"
+                ? `Password reset link for ${linkResult.email}`
+                : `Fresh invite link for ${linkResult.email}`}
             </div>
             <button
               type="button"
-              onClick={() => setResendResult(null)}
+              onClick={() => setLinkResult(null)}
               style={{
                 marginLeft: "auto",
                 background: "none",
@@ -222,24 +244,31 @@ export default function UsersTable({
               ×
             </button>
           </div>
-          {resendResult.url ? (
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                id="resend-link-input"
-                readOnly
-                value={resendResult.url}
-                onFocus={(e) => e.currentTarget.select()}
-                className="form-input"
-                style={{ flex: 1, fontSize: 12, fontFamily: "monospace" }}
-              />
-              <button
-                className="btn-outline"
-                style={{ padding: "6px 12px", fontSize: 12, whiteSpace: "nowrap" }}
-                onClick={copyResendLink}
-              >
-                {resendCopied ? "Copied!" : "Copy link"}
-              </button>
-            </div>
+          {linkResult.url ? (
+            <>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  id="link-result-input"
+                  readOnly
+                  value={linkResult.url}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="form-input"
+                  style={{ flex: 1, fontSize: 12, fontFamily: "monospace" }}
+                />
+                <button
+                  className="btn-outline"
+                  style={{ padding: "6px 12px", fontSize: 12, whiteSpace: "nowrap" }}
+                  onClick={copyLink}
+                >
+                  {linkCopied ? "Copied!" : "Copy link"}
+                </button>
+              </div>
+              {linkResult.mode === "reset" && (
+                <div style={{ marginTop: 8, fontSize: 11, color: "#065f46" }}>
+                  Share this link with the user. It expires after about an hour and can only be used once.
+                </div>
+              )}
+            </>
           ) : (
             <div style={{ fontSize: 12, color: "var(--gray-600)" }}>
               No URL came back from Supabase. Check the project&apos;s Auth settings.
@@ -527,7 +556,7 @@ export default function UsersTable({
                   <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
                     {!isSelf && (
                       <div style={{ display: "inline-flex", gap: 6 }}>
-                        {!hasSignedIn && (
+                        {!hasSignedIn ? (
                           <button
                             className="btn-outline"
                             style={{ padding: "4px 10px", fontSize: 11 }}
@@ -536,6 +565,20 @@ export default function UsersTable({
                             title="Generate a fresh invite link for this user"
                           >
                             {resending === p.id ? "…" : "Copy invite link"}
+                          </button>
+                        ) : (
+                          <button
+                            className="btn-outline"
+                            style={{ padding: "4px 10px", fontSize: 11 }}
+                            disabled={resetting === p.id || !p.is_active}
+                            onClick={() => sendResetLink(p)}
+                            title={
+                              !p.is_active
+                                ? "Reactivate this user before issuing a password reset."
+                                : "Generate a one-time password-reset link for this user"
+                            }
+                          >
+                            {resetting === p.id ? "…" : "Reset password"}
                           </button>
                         )}
                         {permissions.canImpersonate && (
