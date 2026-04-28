@@ -40,8 +40,6 @@ interface OfficeStats {
   newestDeal: string | null;
   avgDealValue: number | null;
   daysSinceNewestDeal: number | null;
-  // shared
-  sectors: string[];
 }
 
 type FreshnessTone = "current" | "due" | "stale" | "unknown";
@@ -246,10 +244,6 @@ export default function NetworkView({ offices, contacts, deals, freshness }: Pro
       const officeContacts = contacts.filter((c) => c.office_id === o.id);
       const officeDeals = deals.filter((d) => d.office_id === o.id);
 
-      const sectorSet = new Set<string>();
-      officeContacts.forEach((c) => c.sectors?.forEach((s) => sectorSet.add(s)));
-      officeDeals.forEach((d) => d.sectors?.forEach((s) => sectorSet.add(s)));
-
       const contactDates = officeContacts
         .map((c) => c.date_added)
         .filter(Boolean)
@@ -313,8 +307,7 @@ export default function NetworkView({ offices, contacts, deals, freshness }: Pro
         closedValue,
         newestDeal,
         avgDealValue,
-        daysSinceNewestDeal,
-        sectors: Array.from(sectorSet).sort()
+        daysSinceNewestDeal
       } as OfficeStats;
     });
   }, [offices, contacts, deals]);
@@ -399,7 +392,7 @@ export default function NetworkView({ offices, contacts, deals, freshness }: Pro
         <div>
           <h2 style={{ fontSize: 22, color: "var(--navy)" }}>GREA Network</h2>
           <p style={{ fontSize: 13, color: "var(--gray-500)", marginTop: 4 }}>
-            Cross-office activity at a glance — {view === "pipeline" ? "deals" : "contacts"}, sectors, and how fresh each office&apos;s data is.
+            Cross-office activity at a glance — {view === "pipeline" ? "deals" : "contacts"} and how fresh each office&apos;s data is.
           </p>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
@@ -624,34 +617,6 @@ export default function NetworkView({ offices, contacts, deals, freshness }: Pro
                   </>
                 )}
               </div>
-
-              {s.sectors.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    display: "flex",
-                    flexWrap: "nowrap",
-                    gap: 4,
-                    overflow: "hidden"
-                  }}
-                  title={s.sectors.join(", ")}
-                >
-                  {s.sectors.slice(0, 3).map((sec) => (
-                    <span
-                      key={sec}
-                      className={`sector-badge sector-${sec.toLowerCase().replace(/\s+/g, "-")}`}
-                      style={{ fontSize: 10, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}
-                    >
-                      {sec}
-                    </span>
-                  ))}
-                  {s.sectors.length > 3 && (
-                    <span style={{ fontSize: 10, color: "var(--gray-500)", alignSelf: "center", whiteSpace: "nowrap" }}>
-                      +{s.sectors.length - 3} more
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           );
         })}
