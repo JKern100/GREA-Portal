@@ -24,15 +24,18 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { email?: string };
   const email = body.email?.trim().toLowerCase() ?? "";
 
+  // TEMP debug logging — remove once we've isolated why the form submission
+  // wasn't producing rows in production.
+  console.log("[forgot-pw] received", { email, hasAt: email.includes("@") });
+
   if (!email || !email.includes("@")) {
-    // Even for malformed input we return success — same reason as the
-    // success-on-unknown-email rule. The form already validates client-side.
+    console.log("[forgot-pw] rejected: empty or malformed email");
     return NextResponse.json({ ok: true });
   }
 
   const admin = createAdminClient();
 
-  const { data: profile } = await admin
+  const { data: profile, error: profileErr } = await admin
     .from("profiles")
     .select("id, is_active")
     // ilike with no wildcards is case-insensitive equality. Supabase Auth
@@ -41,6 +44,12 @@ export async function POST(request: Request) {
     // so a forgot-password request doesn't silently miss.
     .ilike("email", email)
     .maybeSingle();
+
+  console.log("[forgot-pw] profile lookup", {
+    matched: !!profile,
+    is_active: profile?.is_active ?? null,
+    error: profileErr?.message ?? null
+  });
 
   // Don't accept requests for unknown or deactivated accounts. Both fail
   // silently to avoid leaking which emails exist or which are disabled.
@@ -52,7 +61,7 @@ export async function POST(request: Request) {
   // in the last hour, skip the insert. Multiple clicks from the same
   // forgetful user shouldn't litter the admin's view.
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { data: existing } = await admin
+  const { data: existing, error: existingErr } = await admin
     .from("password_reset_requests")
     .select("id")
     .eq("user_id", profile.id)
@@ -61,13 +70,22 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
 
+  console.log("[forgot-pw] dedupe check", {
+    existing: !!existing,
+    error: existingErr?.message ?? null
+  });
+
   if (existing) {
     return NextResponse.json({ ok: true });
   }
 
-  await admin.from("password_reset_requests").insert({
-    user_id: profile.id,
-    email
+  const { error: insertErr } = await admin
+    .from("password_reset_requests")
+    .insert({ user_id: profile.id, email });
+
+  console.log("[forgot-pw] insert result", {
+    ok: !insertErr,
+    error: insertErr?.message ?? null
   });
 
   return NextResponse.json({ ok: true });
