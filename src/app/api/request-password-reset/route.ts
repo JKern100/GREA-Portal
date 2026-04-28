@@ -35,7 +35,11 @@ export async function POST(request: Request) {
   const { data: profile } = await admin
     .from("profiles")
     .select("id, is_active")
-    .eq("email", email)
+    // ilike with no wildcards is case-insensitive equality. Supabase Auth
+    // lowercases emails on insert, but profiles seeded outside the auth
+    // flow (manual SQL, dashboard) might be mixed case — match defensively
+    // so a forgot-password request doesn't silently miss.
+    .ilike("email", email)
     .maybeSingle();
 
   // Don't accept requests for unknown or deactivated accounts. Both fail
