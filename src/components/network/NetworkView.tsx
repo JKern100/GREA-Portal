@@ -284,15 +284,17 @@ export default function NetworkView({ offices, contacts, deals, freshness }: Pro
           ? Math.round(dealsWithValue.reduce((s, d) => s + (d.deal_value ?? 0), 0) / dealsWithValue.length)
           : null;
 
-      // Freshness is derived from real activity, not a manual timestamp.
-      // Compute days since the most recent contact AND the most recent
-      // deal here; the active view (Contacts / Pipeline) picks which one
-      // drives the ring at render time.
+      // Freshness is derived from when records were uploaded to the portal
+      // (`created_at`), not the user-entered `date_added`. The latter is a
+      // free-text field on the import template and may be back- or
+      // forward-dated relative to today; the ring is meant to answer "how
+      // recently did this office push data into the portal?", which only
+      // `created_at` answers reliably.
       const daysSinceNewestContact = daysSinceMostRecent(
-        officeContacts.map((c) => c.date_added)
+        officeContacts.map((c) => c.created_at)
       );
       const daysSinceNewestDeal = daysSinceMostRecent(
-        officeDeals.map((d) => d.date_added || d.created_at)
+        officeDeals.map((d) => d.created_at)
       );
 
       return {
