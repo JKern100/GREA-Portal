@@ -30,21 +30,16 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           heading: "Find contacts",
           bullets: [
             "Type any part of a name, account, or note in the search bar — fuzzy match runs across every office.",
-            "Use the search-type pills (All / Contact / Account) to scope the search.",
+            "Use the search-type pills (All Fields / Contact Name / Account Name) to scope the search.",
             "Layer the tag and sector chips on top to narrow the list. Click a chip again to clear it."
           ]
         },
         {
           heading: "Request an intro",
           bullets: [
-            "Click 'Request Intro' on a row to draft an email to the owning broker, prefilled with the contact's name and account.",
-            "If a contact is marked confidential by the owning office, you'll see a placeholder instead of the details — you can still request an intro."
-          ]
-        },
-        {
-          heading: "Add a contact",
-          bullets: [
-            "Use 'Add Contact' to create a single contact owned by your office. For bulk uploads, use My Office → Contacts."
+            "When the same contact is owned across multiple offices, each office row shows a 'Request Intro' button that drafts an email to that office's broker, prefilled with the contact's name and account.",
+            "Single-office contacts don't show 'Request Intro' — use the 'Report' button to flag a data issue back to the owning office.",
+            "If a contact is marked confidential by the owning office, you'll see a placeholder instead of the details."
           ]
         }
       ],
@@ -61,16 +56,16 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
         {
           heading: "Browse and filter",
           bullets: [
-            "Click a stage pill (Lead / Listing / Contract / Closed) to filter; the totals above update with your filters.",
-            "Filter by office or search by deal name, party, broker, or address.",
-            "Click any column header to sort; click again to reverse."
+            "Use the Stage and Office dropdowns at the top to filter; totals above update with your selection.",
+            "Search by deal name, seller / buyer, broker, property type, or address.",
+            "Click a column header to sort; click again to reverse."
           ]
         },
         {
           heading: "Deal detail",
           bullets: [
-            "Click a row to open the deal modal: full party info, sector tags, OM link, and a stage-history timeline.",
-            "Use 'Report' on a deal to file feedback tied to that deal — useful for flagging stale data."
+            "Click 'View' on a row to open the deal modal: full party info, sector tags, OM link, and a stage-history timeline.",
+            "Use 'Report' on a row to file feedback tied to that deal — useful for flagging stale data."
           ]
         }
       ],
@@ -89,7 +84,7 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           bullets: [
             "The colored badge is the office code; cards are sorted alphabetically and the order matches across the Contacts and Pipeline views.",
             "The ring reports days since the office last uploaded data to the portal — green is current, orange is due, red is stale.",
-            "The bar shows the office's contact base as a share of the largest office's roster."
+            "The bar shows the office's share of the largest office in the firm — by contact count in Contacts view, by total pipeline value in Pipeline view."
           ]
         },
         {
@@ -113,14 +108,14 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
         {
           heading: "Filter and search",
           bullets: [
-            "Search by name, organization, or email; layer tag and sector filters on top.",
-            "The opted-out toggle hides recipients who have unsubscribed."
+            "Search by name, organization, email, title, city, state, or note; layer tag and sector filters on top.",
+            "Opted-out recipients are hidden by default — tick 'Show opted-out' to include them in the list."
           ]
         },
         {
           heading: "Add or import",
           bullets: [
-            "Single entries can be added inline. For bulk uploads, superadmins can use Super Admin → Mailing List."
+            "There is no inline add — entries can only be created via bulk import in Super Admin → Mailing List."
           ]
         }
       ]
@@ -131,20 +126,20 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
     entry: {
       title: "Feedback",
       intro:
-        "The shared inbox for product feedback, bug reports, questions, and data-quality issues. Anyone can submit; superadmins triage.",
+        "The shared inbox for product feedback, bug reports, questions, and data-quality issues. Anyone can submit; office admins and superadmins triage.",
       sections: [
         {
           heading: "Submit",
           bullets: [
-            "Click '+ Feedback' (bottom right of any page) to open the submit form. The current page URL is captured automatically so the triage team has context.",
-            "Pick a category (Bug / Suggestion / Question / Other) and optionally link the item to a contact or deal."
+            "Click '+ Submit Feedback' at the top of this page (or the floating '+ Feedback' button on any other page) — the originating page URL is attached automatically.",
+            "Pick a category (Bug / Suggestion / Question / Other), give it a title, and add details. Links to a specific contact or deal are filled in automatically when you arrived via a 'Report' button."
           ]
         },
         {
           heading: "Browse",
           bullets: [
             "Filter by status (Open / In Progress / Resolved / Closed) or category.",
-            "Click an item to expand the thread, post a comment, or — if you're a superadmin — change status or assignment."
+            "Click an item to expand the thread and post a comment; office admins and superadmins also see status, category, and assignee dropdowns in the side panel."
           ]
         }
       ]
@@ -155,23 +150,24 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
     entry: {
       title: "My Office — Members",
       intro:
-        "Your office's profile and roster. Office admins see and manage the people in their own office here.",
+        "Your office's roster, plus a one-click invite form for new brokers.",
       sections: [
         {
           heading: "Roster",
           bullets: [
-            "Each row is one member of your office. Click a row to update their name, title, phone, or specialties.",
+            "Each row is one member. Edit the name and title fields inline, or click a sector chip to toggle a specialty on or off.",
             "Use the 'Active' toggle to deactivate someone who has left — they lose access on next request."
           ]
         },
         {
-          heading: "Office settings",
+          heading: "Invite a broker",
           bullets: [
-            "Set the office color used as the badge across the portal."
+            "Fill in the email and (optionally) name at the top of the page. Submitting creates an invite link in-page — copy it and share via Slack, email, or however you reach them.",
+            "Invitees join as brokers in your office. Only superadmins can create new office_admin or superadmin accounts."
           ]
         }
       ],
-      tip: "To add a brand-new user to your office, ask a superadmin — invitations come from Super Admin → Users."
+      tip: "If a member forgot their password, the 'Reset password' button on their row generates a one-time recovery link to share."
     }
   },
   {
@@ -185,7 +181,7 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           heading: "Bulk import / export",
           bullets: [
             "Export CSV / Export Excel — download every contact in your office, including a Broker Name column for reference.",
-            "Download template — the CSV/XLSX format the importer expects, with an Instructions sheet describing each column.",
+            "Download template — a CSV with an Instructions sheet describing each column the importer expects.",
             "Upload contacts — Add-on appends new rows; Replace deletes every existing contact (including hidden ones) before importing."
           ]
         },
@@ -217,7 +213,7 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           heading: "Bulk import / export",
           bullets: [
             "Export CSV / Export Excel — download every deal in your office.",
-            "Download template — the format the importer expects (Deal Name, Stage, Date Added, etc.) with an Instructions sheet.",
+            "Download template — a CSV (Deal Name, Stage, Date Added, etc.) with an Instructions sheet.",
             "Upload pipeline — Add-on appends new deals; Replace clears your office's pipeline first."
           ]
         },
@@ -263,20 +259,21 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           heading: "Invite",
           bullets: [
             "Fill in the invite form. Brokers and office admins must be assigned to an office; superadmins are office-less.",
-            "After sending, the page shows the invite URL. Copy and forward it if email delivery is delayed."
+            "Submitting creates an invite link in-page — copy it and share via Slack, email, or however you reach the user. Nothing is emailed automatically."
           ]
         },
         {
           heading: "Edit a user",
           bullets: [
-            "Click a row to change name, title, phone, role, or office.",
+            "Edit name, title, role, office, and specialty chips inline on each row — there's no expand step.",
             "The 'Active' toggle disables the account at the application layer — they're bounced to /login on next request. Your own row's toggle is locked so you can't deactivate yourself."
           ]
         },
         {
-          heading: "Sign-in status",
+          heading: "Sign-in status & resets",
           bullets: [
-            "The status pill on each row tells you whether the account has ever signed in (versus sitting on an unused invite)."
+            "The status pill on each row tells you whether the account has ever signed in (versus sitting on an unused invite).",
+            "Use 'Reset password' on any registered user to mint a one-time recovery link — handy when a user uses Forgot password? on /login."
           ]
         }
       ]
@@ -296,7 +293,7 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           ]
         }
       ],
-      tip: "Deleting an office cascades to its contacts, deals, and member office_id (members are unassigned, not deleted)."
+      tip: "An office can only be deleted once it has zero contacts and zero deals — the button stays disabled until you reassign or remove them. Members of a deleted office are unassigned, not deleted."
     }
   },
   {
@@ -329,20 +326,20 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
     entry: {
       title: "Super Admin — Contacts",
       intro:
-        "Firm-wide contacts table with no office scope. Bulk select, reassign, and delete across offices.",
+        "Firm-wide contacts table with no office scope. Bulk hide, unhide, or delete across offices.",
       sections: [
         {
           heading: "Filter and search",
           bullets: [
-            "Filter by office, broker, tag, or sector. Search runs across name, account, and note.",
-            "Use the column headers to sort; the multi-select checkbox enables bulk actions."
+            "Filter by office and search by contact name, account, or broker — there are no tag or sector filters here.",
+            "The header checkbox selects every visible row and unlocks the bulk action bar; columns are not click-to-sort."
           ]
         },
         {
           heading: "Bulk actions",
           bullets: [
-            "Reassign selected contacts to a different broker or office.",
-            "Delete with confirmation — there is no undo."
+            "Bulk-hide, unhide, or delete the selected rows; office reassignment is per-row via the inline office dropdown.",
+            "Delete is confirmed before running — there is no undo."
           ]
         }
       ]
@@ -353,19 +350,19 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
     entry: {
       title: "Super Admin — Pipeline",
       intro:
-        "Firm-wide deals table. Move deals between stages, reassign brokers, and delete in bulk.",
+        "Firm-wide deals table. Stage moves and bulk hide / unhide / delete across offices.",
       sections: [
         {
           heading: "Filter and edit",
           bullets: [
-            "Filter by office or search by name / party / address.",
-            "Click any cell to inline-edit; stage changes are recorded in deal_stage_history."
+            "Filter by office or search by name / party / address / broker / property type.",
+            "Stage is editable inline via the row's stage dropdown (changes are recorded in deal_stage_history); other fields are read-only here — edit them in My Office → Pipeline."
           ]
         },
         {
           heading: "Bulk actions",
           bullets: [
-            "Multi-select then reassign or delete."
+            "Multi-select then bulk-hide, unhide, or delete — there is no bulk reassign."
           ]
         }
       ]
@@ -376,20 +373,20 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
     entry: {
       title: "Super Admin — Mailing List",
       intro:
-        "Firm-wide mailing list management: bulk import, dedupe by email, mark opt-outs, and tag/sector edits.",
+        "Firm-wide mailing list management: bulk import, dedupe by email, mark opt-outs, and tag/sector filtering.",
       sections: [
         {
           heading: "Import",
           bullets: [
-            "Use the upload modal to bring in a CSV / XLSX. Replace mode wipes the entire list before importing — handle with care.",
+            "Use the upload modal to import a CSV / XLSX. Replace mode by default only wipes the targeted office's entries; tick 'Replace ALL' to nuke every office's rows before importing.",
             "Skipped rows are reported with the reason (missing required fields, invalid date, etc.)."
           ]
         },
         {
           heading: "Cleanup",
           bullets: [
-            "Filter by source office or opt-out status, then bulk-edit tags or delete.",
-            "Address fields and country are optional but used by downstream geo-targeted exports."
+            "Filter by source office, sector, tag, or opt-out status, then bulk-delete the selected rows; per-row edits aren't available in this view.",
+            "Address, city, state, ZIP, and country are optional — they're carried through to the CSV export but aren't used by any other feature today."
           ]
         }
       ]
