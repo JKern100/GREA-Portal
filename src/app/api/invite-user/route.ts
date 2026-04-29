@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
   const isResend = !!existingProfile;
 
-  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+  let { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
     type: isResend ? "magiclink" : "invite",
     email,
     options: {
@@ -99,6 +99,26 @@ export async function POST(request: Request) {
     }
   });
 
+  // Orphaned auth user: auth.users has this email but our profile lookup
+  // missed it, usually because handle_new_user (post-0018) skipped the
+  // insert when invited_at was NULL. Supabase rejects the fresh `invite`
+  // with "already registered". Retry as a magic link so the admin still
+  // gets a working sign-in URL; the profile backfill below creates the
+  // missing row.
+  if (
+    linkErr &&
+    !isResend &&
+    /already\s+(been\s+)?registered/i.test(linkErr.message)
+  ) {
+    const retry = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: { redirectTo }
+    });
+    linkData = retry.data;
+    linkErr = retry.error;
+  }
+
   if (linkErr || !linkData?.user) {
     return NextResponse.json(
       { error: linkErr?.message ?? "Failed to create invite link." },
@@ -106,18 +126,39 @@ export async function POST(request: Request) {
     );
   }
 
-  // For brand-new invites, the handle_new_user trigger created a profile
-  // row with default role=broker — apply the chosen role + office now. On
-  // a resend the profile already has the right shape, so skip the update
-  // and don't risk overwriting concurrent changes.
+  // On a resend the profile already has the right shape — skip the
+  // mutation and don't risk overwriting concurrent changes.
+  // Otherwise we either need to UPDATE the row handle_new_user just
+  // created (normal first-invite path) or INSERT one ourselves (orphan
+  // path — trigger guarded out, no row exists). Re-check post-link to
+  // pick the right branch.
   if (!isResend) {
-    const { error: updateErr } = await admin
+    const userId = linkData.user.id;
+    const { data: postProfile } = await admin
       .from("profiles")
-      .update({ role, office_id: officeId, name: body.name?.trim() || undefined })
-      .eq("id", linkData.user.id);
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
 
-    if (updateErr) {
-      return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    if (postProfile) {
+      const { error: updateErr } = await admin
+        .from("profiles")
+        .update({ role, office_id: officeId, name: body.name?.trim() || undefined })
+        .eq("id", userId);
+      if (updateErr) {
+        return NextResponse.json({ error: updateErr.message }, { status: 500 });
+      }
+    } else {
+      const { error: insertErr } = await admin.from("profiles").insert({
+        id: userId,
+        email,
+        role,
+        office_id: officeId,
+        name: body.name?.trim() || email.split("@")[0]
+      });
+      if (insertErr) {
+        return NextResponse.json({ error: insertErr.message }, { status: 500 });
+      }
     }
   }
 
