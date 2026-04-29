@@ -56,6 +56,7 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [tagFilters, setTagFilters] = useState<string[]>([]);
   const [sectorFilters, setSectorFilters] = useState<string[]>([]);
+  const [sharingFilter, setSharingFilter] = useState<"all" | "shared">("all");
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   // Report modal — opened in-place over the Contacts page so the user
   // doesn't lose their search/scroll position.
@@ -169,8 +170,8 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
 
   const filteredGroups = useMemo(() => {
     if (!groups) return null;
-    if (tagFilters.length === 0 && sectorFilters.length === 0) return groups;
     return groups.filter((g) => {
+      if (sharingFilter === "shared" && g.offices.length < 2) return false;
       if (tagFilters.length > 0) {
         const m = g.offices.some((o) => o.tags.some((t) => tagFilters.includes(t)));
         if (!m) return false;
@@ -181,7 +182,7 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
       }
       return true;
     });
-  }, [groups, tagFilters, sectorFilters]);
+  }, [groups, tagFilters, sectorFilters, sharingFilter]);
 
   const availableTags = useMemo(() => {
     if (!groups) return [] as string[];
@@ -267,6 +268,23 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
           <div style={{ fontSize: 14, color: "var(--gray-600)", marginBottom: 14, padding: "0 4px" }}>
             Found <strong>{filteredGroups?.length}</strong> match{filteredGroups?.length === 1 ? "" : "es"} for{" "}
             <strong>&quot;{lastQuery}&quot;</strong>
+          </div>
+
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "var(--gray-500)", marginRight: 4 }}>Show:</span>
+            <button
+              className={`chip ${sharingFilter === "all" ? "active" : ""}`}
+              onClick={() => setSharingFilter("all")}
+            >
+              All contacts
+            </button>
+            <button
+              className={`chip ${sharingFilter === "shared" ? "active" : ""}`}
+              onClick={() => setSharingFilter("shared")}
+              title="Only contacts owned by more than one office"
+            >
+              Shared only
+            </button>
           </div>
 
           {availableSectors.length > 0 && (
@@ -454,17 +472,39 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                               {o.listing}
                             </span>
                           )}
-                          <a
-                            className="btn-outline"
-                            style={{ padding: "4px 10px", fontSize: 11 }}
-                            href={`mailto:?subject=${encodeURIComponent(
-                              "GREA Contact Inquiry: " + g.contactName + " at " + g.accountName
-                            )}&body=${encodeURIComponent(
-                              "Hi " + o.brokerName + ",\r\n\r\nI see you manage " + g.contactName + " at " + g.accountName + ". I'd like to discuss a potential opportunity — could we connect?\r\n\r\nBest regards"
-                            )}`}
-                          >
-                            Request Intro
-                          </a>
+                          {(() => {
+                            const subject = "GREA Contact Inquiry: " + g.contactName + " at " + g.accountName;
+                            const body =
+                              "Hi " + o.brokerName + ",\r\n\r\nI see you manage " + g.contactName + " at " + g.accountName + ". I'd like to discuss a potential opportunity — could we connect?\r\n\r\nBest regards";
+                            const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                            // Gmail's web compose URL. fs=1 forces full-screen
+                            // compose so the user lands on the message rather
+                            // than the inbox.
+                            const gmail = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                            return (
+                              <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                                <span style={{ fontSize: 11, color: "var(--gray-500)" }}>Intro:</span>
+                                <a
+                                  className="btn-outline"
+                                  style={{ padding: "4px 10px", fontSize: 11 }}
+                                  href={mailto}
+                                  title="Open in your default mail client (e.g. Outlook)"
+                                >
+                                  Outlook
+                                </a>
+                                <a
+                                  className="btn-outline"
+                                  style={{ padding: "4px 10px", fontSize: 11 }}
+                                  href={gmail}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open a Gmail compose window in a new tab"
+                                >
+                                  Gmail
+                                </a>
+                              </div>
+                            );
+                          })()}
                           <button
                             type="button"
                             className="btn-outline"

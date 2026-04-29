@@ -31,13 +31,14 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           bullets: [
             "Type any part of a name, account, or note in the search bar — fuzzy match runs across every office.",
             "Use the search-type pills (All Fields / Contact Name / Account Name) to scope the search.",
+            "Toggle 'All contacts' / 'Shared only' to limit results to relationships owned by more than one office.",
             "Layer the tag and sector chips on top to narrow the list. Click a chip again to clear it."
           ]
         },
         {
           heading: "Request an intro",
           bullets: [
-            "Every office row on a contact shows a 'Request Intro' button that drafts an email to that office's broker, prefilled with the contact's name and account.",
+            "Every office row on a contact has Outlook and Gmail intro buttons — both draft the same prefilled email; pick whichever client you use.",
             "Use 'Report' next to it to flag a data issue back to the owning office.",
             "If a contact is marked confidential by the owning office, you'll see a placeholder instead of the details."
           ]
