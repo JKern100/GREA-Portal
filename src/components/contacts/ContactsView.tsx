@@ -257,17 +257,14 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         </div>
       </section>
 
-      {groups === null ? null : (filteredGroups?.length ?? 0) === 0 ? (
-        <div className="card" style={{ textAlign: "center", padding: "50px 20px" }}>
-          <div style={{ fontSize: 40, marginBottom: 10 }}>😐</div>
-          <h3 style={{ fontSize: 16 }}>No matches for &quot;{lastQuery}&quot;</h3>
-          <p style={{ fontSize: 13, color: "var(--gray-500)" }}>Try a different spelling or search by account.</p>
-        </div>
-      ) : (
+      {groups !== null && (
         <>
           <div style={{ fontSize: 14, color: "var(--gray-600)", marginBottom: 14, padding: "0 4px" }}>
-            Found <strong>{filteredGroups?.length}</strong> match{filteredGroups?.length === 1 ? "" : "es"} for{" "}
-            <strong>&quot;{lastQuery}&quot;</strong>
+            Found <strong>{filteredGroups?.length ?? 0}</strong> match{(filteredGroups?.length ?? 0) === 1 ? "" : "es"}{" "}
+            {(filteredGroups?.length ?? 0) !== groups.length && (
+              <span style={{ color: "var(--gray-400)" }}>(of {groups.length})</span>
+            )}{" "}
+            for <strong>&quot;{lastQuery}&quot;</strong>
           </div>
 
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
@@ -329,8 +326,24 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
             </div>
           )}
 
-          <div>
-            {filteredGroups!.map((g, i) => {
+          {(filteredGroups?.length ?? 0) === 0 ? (
+            groups.length === 0 ? (
+              <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
+                <h3 style={{ fontSize: 15, marginBottom: 6 }}>No matches for &quot;{lastQuery}&quot;</h3>
+                <p style={{ fontSize: 13, color: "var(--gray-500)" }}>Try a different spelling or search by account.</p>
+              </div>
+            ) : (
+              <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
+                <h3 style={{ fontSize: 15, marginBottom: 6 }}>No contacts match the active filters</h3>
+                <p style={{ fontSize: 13, color: "var(--gray-500)" }}>
+                  {groups.length} contact{groups.length === 1 ? "" : "s"} matched &quot;{lastQuery}&quot;, but none survive the
+                  current chips. Switch back to <strong>All contacts</strong> or clear sector/tag filters above.
+                </p>
+              </div>
+            )
+          ) : (
+            <div>
+              {filteredGroups!.map((g, i) => {
               const multi = g.offices.length > 1;
               const allSectors = Array.from(new Set(g.offices.flatMap((o) => o.sectors)));
               return (
@@ -525,8 +538,9 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                   )}
                 </div>
               );
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </>
       )}
 
