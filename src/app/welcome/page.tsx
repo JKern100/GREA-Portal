@@ -142,7 +142,7 @@ function WelcomeContent() {
             {errorMsg}
           </div>
           <p style={{ fontSize: 12, color: "var(--gray-600)", marginBottom: 14 }}>
-            Invite links expire after about an hour and can only be used once. Ask the person who invited you to send a fresh link.
+            Invite links expire after 24 hours and can only be used once. Ask the person who invited you to send a fresh link.
           </p>
           <a
             href="/login"

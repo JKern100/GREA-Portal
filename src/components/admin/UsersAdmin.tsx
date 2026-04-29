@@ -153,7 +153,7 @@ export default function UsersAdmin({ profiles, offices, realProfileId, authMeta,
             {inviteResult.url ? (
               <>
                 <div style={{ fontSize: 12, color: "var(--gray-700)", marginBottom: 8 }}>
-                  Share this link through Slack, email, or however you reach them. It signs them in and lets them set a password. Links expire after about an hour and can only be used once — generate a fresh one if needed.
+                  Share this link through Slack, email, or however you reach them. It signs them in and lets them set a password. Links expire after 24 hours and can only be used once — generate a fresh one if needed.
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <input

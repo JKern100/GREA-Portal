@@ -280,7 +280,7 @@ export default function UsersTable({
               </div>
               {linkResult.mode === "reset" && (
                 <div style={{ marginTop: 8, fontSize: 11, color: "#065f46" }}>
-                  Share this link with the user. It expires after about an hour and can only be used once.
+                  Share this link with the user. It expires after 24 hours and can only be used once.
                 </div>
               )}
             </>
