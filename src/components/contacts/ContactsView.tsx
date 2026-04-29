@@ -454,19 +454,17 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                               {o.listing}
                             </span>
                           )}
-                          {multi && (
-                            <a
-                              className="btn-outline"
-                              style={{ padding: "4px 10px", fontSize: 11 }}
-                              href={`mailto:?subject=${encodeURIComponent(
-                                "GREA Contact Inquiry: " + g.contactName + " at " + g.accountName
-                              )}&body=${encodeURIComponent(
-                                "Hi " + o.brokerName + ",\r\n\r\nI see you manage " + g.contactName + " at " + g.accountName + ". I'd like to discuss a potential opportunity — could we connect?\r\n\r\nBest regards"
-                              )}`}
-                            >
-                              Request Intro
-                            </a>
-                          )}
+                          <a
+                            className="btn-outline"
+                            style={{ padding: "4px 10px", fontSize: 11 }}
+                            href={`mailto:?subject=${encodeURIComponent(
+                              "GREA Contact Inquiry: " + g.contactName + " at " + g.accountName
+                            )}&body=${encodeURIComponent(
+                              "Hi " + o.brokerName + ",\r\n\r\nI see you manage " + g.contactName + " at " + g.accountName + ". I'd like to discuss a potential opportunity — could we connect?\r\n\r\nBest regards"
+                            )}`}
+                          >
+                            Request Intro
+                          </a>
                           <button
                             type="button"
                             className="btn-outline"

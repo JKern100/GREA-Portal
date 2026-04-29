@@ -37,8 +37,8 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
         {
           heading: "Request an intro",
           bullets: [
-            "When the same contact is owned across multiple offices, each office row shows a 'Request Intro' button that drafts an email to that office's broker, prefilled with the contact's name and account.",
-            "Single-office contacts don't show 'Request Intro' — use the 'Report' button to flag a data issue back to the owning office.",
+            "Every office row on a contact shows a 'Request Intro' button that drafts an email to that office's broker, prefilled with the contact's name and account.",
+            "Use 'Report' next to it to flag a data issue back to the owning office.",
             "If a contact is marked confidential by the owning office, you'll see a placeholder instead of the details."
           ]
         }
