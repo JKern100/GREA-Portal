@@ -574,35 +574,51 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                                 title: `Issue with contact: ${g.contactName} (${o.office})`
                               });
                             if (isMobile) {
-                              // Single full-width row of three equal-flex
-                              // buttons — drops the "Intro:" label so the
-                              // buttons can be larger, easier to tap.
+                              // Mobile: full-width row of equal-flex
+                              // buttons. On Android we drop the Gmail
+                              // button entirely — Chrome's intent URL
+                              // machinery can't produce a clean
+                              // mailto:addr?... data URI (the // sneaks
+                              // back in regardless of input form), and
+                              // Gmail's recipient parser silently rejects
+                              // mailto://addr?... so the To: field stays
+                              // empty. Mailto via the Email button opens
+                              // whatever mail app the user has set as
+                              // their Android default (which they can
+                              // change to Gmail in Settings → Apps →
+                              // Default apps if they want).
                               const btnStyle = {
                                 padding: "8px 8px",
                                 fontSize: 12,
                                 flex: 1,
                                 textAlign: "center" as const
                               };
+                              const mailLabel = isAndroid ? "Email" : "Outlook";
+                              const mailTitle = isAndroid
+                                ? "Opens your default mail app (set in Android Settings → Apps → Default apps)"
+                                : "Open in your default mail client";
                               return (
                                 <div style={{ display: "flex", gap: 6, width: "100%", marginTop: 4 }}>
                                   <a
                                     className="btn-outline"
                                     style={btnStyle}
                                     href={mailto}
-                                    title="Open in your default mail client"
+                                    title={mailTitle}
                                   >
-                                    Outlook
+                                    {mailLabel}
                                   </a>
-                                  <a
-                                    className="btn-outline"
-                                    style={btnStyle}
-                                    href={gmail}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="Open a Gmail compose window in a new tab"
-                                  >
-                                    Gmail
-                                  </a>
+                                  {!isAndroid && (
+                                    <a
+                                      className="btn-outline"
+                                      style={btnStyle}
+                                      href={gmail}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Open a Gmail compose window in a new tab"
+                                    >
+                                      Gmail
+                                    </a>
+                                  )}
                                   <button
                                     type="button"
                                     className="btn-outline"
