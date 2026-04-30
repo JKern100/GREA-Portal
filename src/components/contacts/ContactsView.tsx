@@ -11,6 +11,7 @@ interface Props {
   profile: Profile;
   offices: Office[];
   initialContacts: ContactRecord[];
+  profiles: Profile[];
 }
 
 type SearchType = "all" | "contact" | "account";
@@ -21,6 +22,7 @@ interface OfficeGroupEntry {
   contactId: string;
   brokerName: string;
   brokerPhone: string;
+  brokerEmail: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
   relationshipStatus: string | null;
@@ -49,7 +51,7 @@ function cls(s: string) {
   return s.toLowerCase().replace(/\s+/g, "-");
 }
 
-export default function ContactsView({ profile, offices, initialContacts }: Props) {
+export default function ContactsView({ profile, offices, initialContacts, profiles }: Props) {
   const isMobile = useIsMobile();
   const isIOS = useIsIOS();
   const isAndroid = useIsAndroid();
@@ -72,6 +74,19 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
     offices.forEach((o) => (m[o.id] = o));
     return m;
   }, [offices]);
+
+  // Broker email lookup. ContactRecord doesn't snapshot broker email
+  // (only name and phone), so we resolve it at render time from the
+  // profiles list keyed by broker_id. Falls back to null when the
+  // contact has no assigned broker, or when the broker's profile is
+  // gone.
+  const brokerEmailById = useMemo(() => {
+    const m: Record<string, string> = {};
+    profiles.forEach((p) => {
+      if (p.email) m[p.id] = p.email;
+    });
+    return m;
+  }, [profiles]);
 
   const fuseAll = useMemo(
     () =>
@@ -130,6 +145,7 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         contactId: item.id,
         brokerName: item.broker_name_snapshot || "",
         brokerPhone: item.broker_phone_snapshot || "",
+        brokerEmail: (item.broker_id && brokerEmailById[item.broker_id]) || null,
         contactPhone: item.contact_phone,
         contactEmail: item.contact_email,
         relationshipStatus: item.relationship_status,
@@ -498,20 +514,22 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                             const subject = "GREA Contact Inquiry: " + g.contactName + " at " + g.accountName;
                             const body =
                               "Hi " + o.brokerName + ",\r\n\r\nI see you manage " + g.contactName + " at " + g.accountName + ". I'd like to discuss a potential opportunity — could we connect?\r\n\r\nBest regards";
-                            const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                            const to = o.brokerEmail || "";
+                            const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                             // Gmail's web compose URL works on desktop, but
                             // on mobile both iOS and Android deeplink it to
                             // the native Gmail app, which silently drops
                             // the ?su= and ?body= params. The fix is
                             // platform-specific:
-                            //   iOS: googlegmail:///co?subject=&body=
+                            //   iOS: googlegmail:///co?to=&subject=&body=
                             //   Android: Chrome intent:// URL invoking
-                            //     android.intent.action.SEND on the Gmail
-                            //     package with SUBJECT/TEXT string extras.
+                            //     android.intent.action.SENDTO on Gmail's
+                            //     mailto: handler with SUBJECT/TEXT/EMAIL
+                            //     extras.
                             //   Desktop: the regular mail.google.com URL.
                             let gmail: string;
                             if (isIOS) {
-                              gmail = `googlegmail:///co?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                              gmail = `googlegmail:///co?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                             } else if (isAndroid) {
                               // Previous attempt used ACTION_SEND with
                               // type=text/plain — Chrome bounced to the
@@ -520,30 +538,31 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                               // Android requires for web-launched intents).
                               // SENDTO + scheme=mailto targets Gmail's
                               // mailto: handler activity instead, which IS
-                              // browsable. Subject/body ride along as
-                              // Android intent extras and as ?subject=/
-                              // ?body= params on the data URI for belt-
-                              // and-braces. browser_fallback_url is the
-                              // existing mailto: link so a missing handler
-                              // routes through the system mail app instead
-                              // of the Play Store.
+                              // browsable. Subject/body/recipient ride along
+                              // as Android intent extras and as URL params
+                              // for belt-and-braces. browser_fallback_url is
+                              // the existing mailto: link so a missing
+                              // handler routes through the system mail app
+                              // instead of the Play Store.
                               const enc = (s: string) => encodeURIComponent(s);
                               const fallback = mailto;
+                              const toExtra = to ? `;S.android.intent.extra.EMAIL=${enc(to)}` : "";
                               gmail =
-                                `intent://?subject=${enc(subject)}&body=${enc(body)}` +
+                                `intent://${enc(to)}?subject=${enc(subject)}&body=${enc(body)}` +
                                 `#Intent` +
                                 `;action=android.intent.action.SENDTO` +
                                 `;scheme=mailto` +
                                 `;package=com.google.android.gm` +
                                 `;S.android.intent.extra.SUBJECT=${enc(subject)}` +
                                 `;S.android.intent.extra.TEXT=${enc(body)}` +
+                                toExtra +
                                 `;S.browser_fallback_url=${enc(fallback)}` +
                                 `;end`;
                             } else {
                               // fs=1 forces the full-screen compose pane
                               // so the user lands on the message instead of
                               // the inbox.
-                              gmail = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                              gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                             }
                             const reportClick = () =>
                               setReportFor({
