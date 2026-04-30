@@ -31,7 +31,8 @@ export default function ImpersonationBanner({ impersonatingName, realName }: Pro
         alignItems: "center",
         justifyContent: "center",
         gap: 12,
-        fontWeight: 600
+        fontWeight: 600,
+        flexWrap: "wrap"
       }}
     >
       <span>

@@ -266,6 +266,12 @@ body {
 .mobile-hide { }
 .desktop-hide { display: none; }
 
+/* Hide the horizontal scrollbar on the mobile tab strip while keeping
+   touch swipe behavior. Firefox uses scrollbar-width; WebKit/Blink
+   needs the pseudo-element. */
+.scroll-x-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scroll-x-hide::-webkit-scrollbar { display: none; }
+
 /* ============================================================
    Mobile foundation (≤640px). Handles the "first paint" before
    useIsMobile() hydrates, so widths/padding don't overflow even

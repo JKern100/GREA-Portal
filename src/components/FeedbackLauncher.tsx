@@ -16,8 +16,10 @@ export default function FeedbackLauncher() {
       title="Submit Feedback"
       style={{
         position: "fixed",
-        right: 20,
-        bottom: 20,
+        // Respect iOS home-indicator safe area; falls back to 20px on
+        // browsers/OSes without env() support.
+        right: "max(16px, env(safe-area-inset-right))",
+        bottom: "max(20px, env(safe-area-inset-bottom))",
         zIndex: 150,
         background: "var(--navy)",
         color: "white",
