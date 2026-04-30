@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const QUERY = "(max-width: 640px)";
 
@@ -29,4 +29,17 @@ function getServerSnapshot() {
 
 export function useIsMobile(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
+// Detects iOS so callers can switch to iOS-specific app URL schemes
+// (e.g. googlegmail:// instead of https://mail.google.com — the latter
+// deeplinks to the Gmail app on iOS but the app silently drops the
+// ?su=/?body= query params, breaking pre-filled compose).
+export function useIsIOS(): boolean {
+  const [isIOS, setIsIOS] = useState(false);
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent));
+  }, []);
+  return isIOS;
 }

@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import SubmitFeedbackModal from "@/components/feedback/SubmitFeedbackModal";
 import { officeBadgeStyle } from "@/lib/officeColor";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
-import { useIsMobile } from "@/lib/useIsMobile";
+import { useIsIOS, useIsMobile } from "@/lib/useIsMobile";
 
 interface Props {
   profile: Profile;
@@ -51,6 +51,7 @@ function cls(s: string) {
 
 export default function ContactsView({ profile, offices, initialContacts }: Props) {
   const isMobile = useIsMobile();
+  const isIOS = useIsIOS();
   const [contacts] = useState<ContactRecord[]>(initialContacts);
   const [query, setQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("all");
@@ -499,8 +500,14 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                             const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                             // Gmail's web compose URL. fs=1 forces full-screen
                             // compose so the user lands on the message rather
-                            // than the inbox.
-                            const gmail = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                            // than the inbox. On iOS, mobile Safari/Chrome
+                            // deeplink mail.google.com to the Gmail app,
+                            // which silently drops ?su= and ?body=. The
+                            // googlegmail:// app scheme honors them, so use
+                            // it on iOS instead.
+                            const gmail = isIOS
+                              ? `googlegmail:///co?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+                              : `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                             const reportClick = () =>
                               setReportFor({
                                 contactId: o.contactId,
