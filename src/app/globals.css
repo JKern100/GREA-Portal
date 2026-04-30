@@ -19,6 +19,10 @@
   --gray-900: #212529;
   --green: #2b9348;
   --red: #d00000;
+  /* Sticky-nav offset — set to the top header's height so the secondary
+     nav docks immediately below it. Overridden in the mobile media
+     block below when the header reflows to a taller stacked layout. */
+  --app-header-height: 74px;
 }
 
 html, body { height: 100%; }
@@ -257,3 +261,59 @@ body {
   border-radius: 10px;
   font-size: 11px;
 }
+
+/* Visibility helpers used by mobile-aware components. */
+.mobile-hide { }
+.desktop-hide { display: none; }
+
+/* ============================================================
+   Mobile foundation (≤640px). Handles the "first paint" before
+   useIsMobile() hydrates, so widths/padding don't overflow even
+   if a component below renders the desktop layout for one frame.
+   ============================================================ */
+@media (max-width: 640px) {
+  /* The header restacks on mobile and grows taller; let the secondary
+     nav follow it. AppHeader reads this var via inline style. */
+  :root { --app-header-height: 116px; }
+
+  body { overflow-x: hidden; }
+
+  .mobile-hide { display: none !important; }
+  .desktop-hide { display: revert; }
+
+  .card { padding: 14px; border-radius: 10px; }
+
+  /* iOS Safari zooms the page when an input has font-size <16px and
+     it gets focused. Bump the input font size and reduce padding so
+     it still fits. */
+  .form-input { font-size: 16px; padding: 10px 12px; }
+
+  /* Bigger tap targets on the small viewport. 44x44 minimum is the
+     iOS HIG and Material Design recommendation. */
+  .btn-primary { padding: 12px 18px; min-height: 44px; }
+  .btn-outline,
+  .btn-gold,
+  .btn-danger { padding: 10px 14px; min-height: 40px; }
+
+  /* Modals: occupy the visible viewport with a small inset, accounting
+     for the iOS URL bar via dvh. The pixel max-width set by individual
+     modals (560 / 680) gets overridden here. */
+  .modal-overlay { padding-top: 16px; align-items: flex-start; }
+  .modal-panel {
+    width: calc(100vw - 24px);
+    max-width: none;
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    padding: 18px 18px;
+    margin-bottom: 16px;
+    border-radius: 10px;
+  }
+
+  /* Tables that haven't been redesigned yet (admin tables) get a
+     horizontal-scroll container. Wrap the table itself to keep the
+     surrounding layout intact. */
+  .data-table { font-size: 12px; }
+  .data-table th,
+  .data-table td { padding: 8px; }
+}
+

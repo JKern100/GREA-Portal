@@ -143,7 +143,7 @@ export default function AppHeader({ profile, officeCode }: Props) {
           background: "white",
           borderBottom: "2px solid var(--gray-200)",
           position: "sticky",
-          top: 74,
+          top: "var(--app-header-height)",
           zIndex: 99
         }}
       >
