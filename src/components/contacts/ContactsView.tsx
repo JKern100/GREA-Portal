@@ -513,12 +513,31 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                             if (isIOS) {
                               gmail = `googlegmail:///co?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                             } else if (isAndroid) {
+                              // Previous attempt used ACTION_SEND with
+                              // type=text/plain — Chrome bounced to the
+                              // Play Store because Gmail's SEND activity
+                              // isn't BROWSABLE (a security category
+                              // Android requires for web-launched intents).
+                              // SENDTO + scheme=mailto targets Gmail's
+                              // mailto: handler activity instead, which IS
+                              // browsable. Subject/body ride along as
+                              // Android intent extras and as ?subject=/
+                              // ?body= params on the data URI for belt-
+                              // and-braces. browser_fallback_url is the
+                              // existing mailto: link so a missing handler
+                              // routes through the system mail app instead
+                              // of the Play Store.
+                              const enc = (s: string) => encodeURIComponent(s);
+                              const fallback = mailto;
                               gmail =
-                                `intent:#Intent;action=android.intent.action.SEND` +
-                                `;type=text/plain` +
+                                `intent://?subject=${enc(subject)}&body=${enc(body)}` +
+                                `#Intent` +
+                                `;action=android.intent.action.SENDTO` +
+                                `;scheme=mailto` +
                                 `;package=com.google.android.gm` +
-                                `;S.android.intent.extra.SUBJECT=${encodeURIComponent(subject)}` +
-                                `;S.android.intent.extra.TEXT=${encodeURIComponent(body)}` +
+                                `;S.android.intent.extra.SUBJECT=${enc(subject)}` +
+                                `;S.android.intent.extra.TEXT=${enc(body)}` +
+                                `;S.browser_fallback_url=${enc(fallback)}` +
                                 `;end`;
                             } else {
                               // fs=1 forces the full-screen compose pane
