@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { officeBadgeStyle } from "@/lib/officeColor";
 import type { DealRecord, DealStageHistory, Office, Profile } from "@/lib/types";
+import { useIsMobile } from "@/lib/useIsMobile";
 
 interface Props {
   dealId: string;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function DealDetailModal({ dealId, offices, profiles, profile, onClose }: Props) {
+  const isMobile = useIsMobile();
   const [deal, setDeal] = useState<DealRecord | null>(null);
   const [history, setHistory] = useState<DealStageHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +119,7 @@ export default function DealDetailModal({ dealId, offices, profiles, profile, on
             <h2 style={{ fontSize: 18, color: "var(--navy)" }}>{deal.deal_name}</h2>
             <p style={{ fontSize: 13, color: "var(--gray-500)", marginBottom: 12 }}>{deal.property_address}</p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, margin: "16px 0", padding: 16, background: "var(--gray-50)", borderRadius: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 10 : 16, margin: "16px 0", padding: isMobile ? 12 : 16, background: "var(--gray-50)", borderRadius: 8 }}>
               <div>
                 <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Seller</span>
                 <div><strong>{deal.seller_name || "—"}</strong></div>

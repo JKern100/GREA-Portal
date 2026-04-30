@@ -5,6 +5,7 @@ import SubmitFeedbackModal from "@/components/feedback/SubmitFeedbackModal";
 import type { DealRecord, DealStage, Office, Profile } from "@/lib/types";
 import { DEAL_STAGES } from "@/lib/types";
 import { officeBadgeStyle } from "@/lib/officeColor";
+import { useIsMobile } from "@/lib/useIsMobile";
 import DealDetailModal from "./DealDetailModal";
 
 interface Props {
@@ -24,6 +25,7 @@ function formatValue(v: number | null) {
 }
 
 export default function PipelineView({ profile, offices, initialDeals, profiles }: Props) {
+  const isMobile = useIsMobile();
   const [deals] = useState<DealRecord[]>(initialDeals);
   const [stageFilter, setStageFilter] = useState<string>("");
   const [officeFilter, setOfficeFilter] = useState<string>("");
@@ -128,15 +130,31 @@ export default function PipelineView({ profile, offices, initialDeals, profiles 
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <select className="form-input" style={{ width: "auto" }} value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
+        <select
+          className="form-input"
+          style={isMobile ? { flex: "1 1 45%" } : { width: "auto" }}
+          value={stageFilter}
+          onChange={(e) => setStageFilter(e.target.value)}
+        >
           <option value="">All Stages</option>
           {DEAL_STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select className="form-input" style={{ width: "auto" }} value={officeFilter} onChange={(e) => setOfficeFilter(e.target.value)}>
+        <select
+          className="form-input"
+          style={isMobile ? { flex: "1 1 45%" } : { width: "auto" }}
+          value={officeFilter}
+          onChange={(e) => setOfficeFilter(e.target.value)}
+        >
           <option value="">All Offices</option>
           {offices.map((o) => <option key={o.id} value={o.id}>{o.code}</option>)}
         </select>
-        <input className="form-input" style={{ flex: 1, minWidth: 200 }} placeholder="Search deals…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input
+          className="form-input"
+          style={{ flex: 1, minWidth: isMobile ? 0 : 200 }}
+          placeholder="Search deals…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -150,85 +168,169 @@ export default function PipelineView({ profile, offices, initialDeals, profiles 
         ))}
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: "auto" }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th onClick={() => setSort("deal_name")}>Deal{arrow("deal_name")}</th>
-              <th>Type</th>
-              <th onClick={() => setSort("seller_name")}>Seller / Buyer{arrow("seller_name")}</th>
-              <th onClick={() => setSort("office")}>Office{arrow("office")}</th>
-              <th onClick={() => setSort("stage")}>Stage{arrow("stage")}</th>
-              <th onClick={() => setSort("deal_value")}>Value{arrow("deal_value")}</th>
-              <th onClick={() => setSort("assigned_broker_name")}>Broker{arrow("assigned_broker_name")}</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 24, color: "var(--gray-400)" }}>
-                  No deals match your filters.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((d) => {
-                const office = officeById[d.office_id];
-                const stageClass =
-                  d.stage === "Closed" && d.sub_status === "Lost"
-                    ? "stage-closed-lost"
-                    : `stage-${d.stage.toLowerCase()}`;
-                return (
-                  <tr key={d.id}>
-                    <td>
-                      <strong>{d.deal_name}</strong>
+      {isMobile ? (
+        // Mobile: card stack. The 8-column table is unusable below ~900px,
+        // so we reflow each deal into its own card with the most useful
+        // fields on top and View/Report as full-width buttons below.
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtered.length === 0 ? (
+            <div className="card" style={{ textAlign: "center", color: "var(--gray-500)", fontSize: 13 }}>
+              No deals match your filters.
+            </div>
+          ) : (
+            filtered.map((d) => {
+              const office = officeById[d.office_id];
+              const stageClass =
+                d.stage === "Closed" && d.sub_status === "Lost"
+                  ? "stage-closed-lost"
+                  : `stage-${d.stage.toLowerCase()}`;
+              return (
+                <div key={d.id} className="card" style={{ padding: 14 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>{d.deal_name}</div>
                       {d.property_address && (
-                        <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.property_address}</div>
+                        <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>{d.property_address}</div>
                       )}
-                    </td>
-                    <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{d.property_type || "—"}</td>
-                    <td style={{ fontSize: 12 }}>
-                      <div>
-                        <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>S:</span>{" "}
-                        {d.seller_name || "—"}
-                      </div>
-                      <div>
-                        <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>B:</span>{" "}
-                        {d.buyer_name || "—"}
-                      </div>
-                    </td>
-                    <td>
-                      {office ? <span className={`office-badge ${office.code.toLowerCase()}`} style={officeBadgeStyle(office)}>{office.code}</span> : "—"}
-                    </td>
-                    <td>
-                      <span className={`stage-badge ${stageClass}`}>{d.stage}</span>{" "}
-                      {d.sub_status && <span className={`substatus-${d.sub_status.toLowerCase()}`}>{d.sub_status}</span>}
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{formatValue(d.deal_value)}</td>
-                    <td>{d.assigned_broker_name || "—"}</td>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => setDetailId(d.id)}>
-                        View
-                      </button>{" "}
-                      <button
-                        type="button"
-                        className="btn-outline"
-                        style={{ padding: "3px 10px", fontSize: 11 }}
-                        onClick={() =>
-                          setReportFor({ dealId: d.id, title: `Issue with deal: ${d.deal_name}` })
-                        }
-                        title="Report an issue with this deal"
+                    </div>
+                    {office && (
+                      <span
+                        className={`office-badge ${office.code.toLowerCase()}`}
+                        style={{ ...officeBadgeStyle(office), flexShrink: 0 }}
                       >
-                        Report
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                        {office.code}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    <span className={`stage-badge ${stageClass}`}>{d.stage}</span>
+                    {d.sub_status && <span className={`substatus-${d.sub_status.toLowerCase()}`}>{d.sub_status}</span>}
+                    {d.property_type && (
+                      <span style={{ fontSize: 12, color: "var(--gray-600)" }}>{d.property_type}</span>
+                    )}
+                    <span style={{ fontWeight: 700, color: "var(--navy)", marginLeft: "auto" }}>
+                      {formatValue(d.deal_value)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--gray-700)", marginTop: 8, lineHeight: 1.5 }}>
+                    <div>
+                      <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>S:</span>{" "}
+                      {d.seller_name || "—"}
+                    </div>
+                    <div>
+                      <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>B:</span>{" "}
+                      {d.buyer_name || "—"}
+                    </div>
+                    {d.assigned_broker_name && (
+                      <div style={{ color: "var(--gray-600)" }}>Broker: {d.assigned_broker_name}</div>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                    <button
+                      className="btn-outline"
+                      style={{ flex: 1, padding: "8px", fontSize: 12 }}
+                      onClick={() => setDetailId(d.id)}
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      style={{ flex: 1, padding: "8px", fontSize: 12 }}
+                      onClick={() =>
+                        setReportFor({ dealId: d.id, title: `Issue with deal: ${d.deal_name}` })
+                      }
+                      title="Report an issue with this deal"
+                    >
+                      Report
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: "auto" }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th onClick={() => setSort("deal_name")}>Deal{arrow("deal_name")}</th>
+                <th>Type</th>
+                <th onClick={() => setSort("seller_name")}>Seller / Buyer{arrow("seller_name")}</th>
+                <th onClick={() => setSort("office")}>Office{arrow("office")}</th>
+                <th onClick={() => setSort("stage")}>Stage{arrow("stage")}</th>
+                <th onClick={() => setSort("deal_value")}>Value{arrow("deal_value")}</th>
+                <th onClick={() => setSort("assigned_broker_name")}>Broker{arrow("assigned_broker_name")}</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: "center", padding: 24, color: "var(--gray-400)" }}>
+                    No deals match your filters.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((d) => {
+                  const office = officeById[d.office_id];
+                  const stageClass =
+                    d.stage === "Closed" && d.sub_status === "Lost"
+                      ? "stage-closed-lost"
+                      : `stage-${d.stage.toLowerCase()}`;
+                  return (
+                    <tr key={d.id}>
+                      <td>
+                        <strong>{d.deal_name}</strong>
+                        {d.property_address && (
+                          <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.property_address}</div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{d.property_type || "—"}</td>
+                      <td style={{ fontSize: 12 }}>
+                        <div>
+                          <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>S:</span>{" "}
+                          {d.seller_name || "—"}
+                        </div>
+                        <div>
+                          <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>B:</span>{" "}
+                          {d.buyer_name || "—"}
+                        </div>
+                      </td>
+                      <td>
+                        {office ? <span className={`office-badge ${office.code.toLowerCase()}`} style={officeBadgeStyle(office)}>{office.code}</span> : "—"}
+                      </td>
+                      <td>
+                        <span className={`stage-badge ${stageClass}`}>{d.stage}</span>{" "}
+                        {d.sub_status && <span className={`substatus-${d.sub_status.toLowerCase()}`}>{d.sub_status}</span>}
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{formatValue(d.deal_value)}</td>
+                      <td>{d.assigned_broker_name || "—"}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        <button className="btn-outline" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => setDetailId(d.id)}>
+                          View
+                        </button>{" "}
+                        <button
+                          type="button"
+                          className="btn-outline"
+                          style={{ padding: "3px 10px", fontSize: 11 }}
+                          onClick={() =>
+                            setReportFor({ dealId: d.id, title: `Issue with deal: ${d.deal_name}` })
+                          }
+                          title="Report an issue with this deal"
+                        >
+                          Report
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {detailId && (
         <DealDetailModal

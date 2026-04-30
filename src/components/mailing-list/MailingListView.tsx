@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MailingListEntry, Office, Profile } from "@/lib/types";
+import { useIsMobile } from "@/lib/useIsMobile";
 import MailingListImportModal from "./MailingListImportModal";
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function MailingListView({ profile, offices, initialEntries, manage = false }: Props) {
+  const isMobile = useIsMobile();
   const [entries, setEntries] = useState(initialEntries);
   const [query, setQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState<string>("");
@@ -346,55 +348,42 @@ export default function MailingListView({ profile, offices, initialEntries, mana
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflow: "auto" }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              {canManage && (
-                <th style={{ width: 32, textAlign: "center" }}>
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={(e) => toggleAllVisible(e.target.checked)}
-                    aria-label="Select all visible"
-                  />
-                </th>
-              )}
-              <th>Name</th>
-              <th>Email</th>
-              <th>Organization</th>
-              <th>Title</th>
-              <th>Location</th>
-              <th>Source</th>
-              {canManage && <th></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((e) => {
-              // Combine city + state into one cell. Fall back gracefully if
-              // either is missing — we don't want to render lone commas.
+      {isMobile ? (
+        // Mobile: card stack. Bulk-select checkboxes are dropped on mobile
+        // (canManage admin can still bulk-delete on desktop). Per-row
+        // Delete stays accessible.
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {filtered.length === 0 ? (
+            <div className="card" style={{ textAlign: "center", color: "var(--gray-500)", fontSize: 13 }}>
+              No entries match your filters.
+            </div>
+          ) : (
+            filtered.map((e) => {
               const locParts = [e.city, e.state].filter(Boolean) as string[];
-              const location = locParts.length ? locParts.join(", ") : "—";
+              const location = locParts.length ? locParts.join(", ") : "";
               const isDuplicate = !!e.email && (emailCounts.get(e.email.toLowerCase()) ?? 0) > 1;
+              const sourceCode = (e.source_office_id && officeById[e.source_office_id]?.code) || "";
               return (
-                <tr key={e.id} style={e.opted_out ? { background: "#fafafa", opacity: 0.7 } : undefined}>
-                  {canManage && (
-                    <td style={{ textAlign: "center" }}>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(e.id)}
-                        onChange={(ev) => toggleRow(e.id, ev.target.checked)}
-                        aria-label={`Select ${e.name || e.email || "entry"}`}
-                      />
-                    </td>
-                  )}
-                  <td style={{ fontWeight: 600, color: "var(--navy)" }}>
-                    {e.name || "—"}
+                <div
+                  key={e.id}
+                  className="card"
+                  style={{ padding: 12, ...(e.opted_out ? { background: "#fafafa", opacity: 0.75 } : {}) }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: "var(--navy)", fontSize: 14 }}>
+                        {e.name || "—"}
+                      </div>
+                      {e.organization && (
+                        <div style={{ fontSize: 12, color: "var(--gray-700)" }}>{e.organization}</div>
+                      )}
+                      {e.title && (
+                        <div style={{ fontSize: 12, color: "var(--gray-500)" }}>{e.title}</div>
+                      )}
+                    </div>
                     {e.opted_out && (
                       <span
                         style={{
-                          marginLeft: 8,
                           fontSize: 10,
                           fontWeight: 700,
                           textTransform: "uppercase",
@@ -402,61 +391,159 @@ export default function MailingListView({ profile, offices, initialEntries, mana
                           padding: "1px 7px",
                           borderRadius: 10,
                           background: "#fee2e2",
-                          color: "#991b1b"
+                          color: "#991b1b",
+                          whiteSpace: "nowrap"
                         }}
                       >
                         Opted out
                       </span>
                     )}
-                  </td>
-                  <td
-                    style={{
-                      fontSize: 12,
-                      ...(isDuplicate ? { color: "#dc2626", fontWeight: 600 } : null)
-                    }}
-                    title={isDuplicate ? "duplicate" : undefined}
-                  >
-                    {e.email ? (
-                      <a
-                        href={`mailto:${e.email}`}
-                        style={isDuplicate ? { color: "#dc2626" } : undefined}
-                      >
+                  </div>
+                  {e.email && (
+                    <div
+                      style={{ fontSize: 12, marginTop: 6, ...(isDuplicate ? { color: "#dc2626", fontWeight: 600 } : {}) }}
+                      title={isDuplicate ? "duplicate" : undefined}
+                    >
+                      <a href={`mailto:${e.email}`} style={isDuplicate ? { color: "#dc2626" } : undefined}>
                         {e.email}
                       </a>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td>{e.organization || "—"}</td>
-                  <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{e.title || "—"}</td>
-                  <td style={{ fontSize: 12 }}>{location}</td>
-                  <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
-                    {(e.source_office_id && officeById[e.source_office_id]?.code) || "—"}
-                  </td>
+                    </div>
+                  )}
+                  {(location || sourceCode) && (
+                    <div style={{ fontSize: 11, color: "var(--gray-500)", marginTop: 4, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {location && <span>{location}</span>}
+                      {sourceCode && <span>Source: {sourceCode}</span>}
+                    </div>
+                  )}
                   {canManage && (
-                    <td style={{ whiteSpace: "nowrap" }}>
+                    <div style={{ marginTop: 10 }}>
                       <button
                         className="btn-outline"
-                        style={{ padding: "2px 8px", fontSize: 11 }}
+                        style={{ padding: "8px 14px", fontSize: 12, width: "100%" }}
                         onClick={() => deleteEntry(e.id, e.name || e.email || "this entry")}
                       >
                         Delete
                       </button>
-                    </td>
+                    </div>
                   )}
-                </tr>
+                </div>
               );
-            })}
-            {filtered.length === 0 && (
+            })
+          )}
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: "auto" }}>
+          <table className="data-table">
+            <thead>
               <tr>
-                <td colSpan={canManage ? 8 : 6} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
-                  No entries match your filters.
-                </td>
+                {canManage && (
+                  <th style={{ width: 32, textAlign: "center" }}>
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={(e) => toggleAllVisible(e.target.checked)}
+                      aria-label="Select all visible"
+                    />
+                  </th>
+                )}
+                <th>Name</th>
+                <th>Email</th>
+                <th>Organization</th>
+                <th>Title</th>
+                <th>Location</th>
+                <th>Source</th>
+                {canManage && <th></th>}
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filtered.map((e) => {
+                // Combine city + state into one cell. Fall back gracefully if
+                // either is missing — we don't want to render lone commas.
+                const locParts = [e.city, e.state].filter(Boolean) as string[];
+                const location = locParts.length ? locParts.join(", ") : "—";
+                const isDuplicate = !!e.email && (emailCounts.get(e.email.toLowerCase()) ?? 0) > 1;
+                return (
+                  <tr key={e.id} style={e.opted_out ? { background: "#fafafa", opacity: 0.7 } : undefined}>
+                    {canManage && (
+                      <td style={{ textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(e.id)}
+                          onChange={(ev) => toggleRow(e.id, ev.target.checked)}
+                          aria-label={`Select ${e.name || e.email || "entry"}`}
+                        />
+                      </td>
+                    )}
+                    <td style={{ fontWeight: 600, color: "var(--navy)" }}>
+                      {e.name || "—"}
+                      {e.opted_out && (
+                        <span
+                          style={{
+                            marginLeft: 8,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                            padding: "1px 7px",
+                            borderRadius: 10,
+                            background: "#fee2e2",
+                            color: "#991b1b"
+                          }}
+                        >
+                          Opted out
+                        </span>
+                      )}
+                    </td>
+                    <td
+                      style={{
+                        fontSize: 12,
+                        ...(isDuplicate ? { color: "#dc2626", fontWeight: 600 } : null)
+                      }}
+                      title={isDuplicate ? "duplicate" : undefined}
+                    >
+                      {e.email ? (
+                        <a
+                          href={`mailto:${e.email}`}
+                          style={isDuplicate ? { color: "#dc2626" } : undefined}
+                        >
+                          {e.email}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>{e.organization || "—"}</td>
+                    <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{e.title || "—"}</td>
+                    <td style={{ fontSize: 12 }}>{location}</td>
+                    <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
+                      {(e.source_office_id && officeById[e.source_office_id]?.code) || "—"}
+                    </td>
+                    {canManage && (
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        <button
+                          className="btn-outline"
+                          style={{ padding: "2px 8px", fontSize: 11 }}
+                          onClick={() => deleteEntry(e.id, e.name || e.email || "this entry")}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={canManage ? 8 : 6} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
+                    No entries match your filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {showImport && (
         <MailingListImportModal
