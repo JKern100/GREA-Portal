@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
+import MobileAdminHint from "@/components/admin/MobileAdminHint";
 import { listOffices, requireOfficeAdminOrSuperadmin } from "@/lib/data";
 
 export default async function MyOfficeLayout({ children }: { children: React.ReactNode }) {
@@ -32,7 +33,8 @@ export default async function MyOfficeLayout({ children }: { children: React.Rea
         </h2>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "200px minmax(0, 1fr)", gap: 28, alignItems: "start" }}>
+      <MobileAdminHint />
+      <div className="admin-grid">
         <AdminSidebar mode="office_admin" />
         <div>{children}</div>
       </div>

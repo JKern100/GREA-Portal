@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useIsMobile } from "@/lib/useIsMobile";
 
 interface Tab {
   href: string;
@@ -60,6 +61,7 @@ const headerStyle: React.CSSProperties = {
 
 export default function AdminSidebar({ mode }: Props) {
   const pathname = usePathname();
+  const isMobile = useIsMobile();
   const isSuper = mode === "superadmin";
   const adminTabs = isSuper ? SUPERADMIN_TABS : OFFICE_ADMIN_TABS;
   const sharedTabs = isSuper ? SUPERADMIN_SHARED_TABS : OFFICE_ADMIN_SHARED_TABS;
@@ -68,6 +70,29 @@ export default function AdminSidebar({ mode }: Props) {
   const renderLink = (t: Tab) => {
     const active =
       pathname != null && (pathname === t.href || pathname.startsWith(t.href + "/"));
+    if (isMobile) {
+      // Mobile chip-style tab. The desktop list-style padding/background
+      // doesn't read well in a horizontal strip.
+      return (
+        <Link
+          key={t.href}
+          href={t.href}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 999,
+            fontSize: 12,
+            fontWeight: 600,
+            textDecoration: "none",
+            color: active ? "white" : "var(--gray-700)",
+            background: active ? "var(--navy)" : "var(--gray-100)",
+            whiteSpace: "nowrap",
+            flexShrink: 0
+          }}
+        >
+          {t.label}
+        </Link>
+      );
+    }
     return (
       <Link
         key={t.href}
@@ -86,6 +111,29 @@ export default function AdminSidebar({ mode }: Props) {
       </Link>
     );
   };
+
+  if (isMobile) {
+    // Horizontal scroll strip with both groups inlined. The two-section
+    // visual treatment (Super Admin / Data) doesn't survive at narrow
+    // widths; we keep the labels as a small section header instead.
+    return (
+      <nav
+        aria-label={`${sectionLabel} navigation`}
+        className="scroll-x-hide"
+        style={{
+          display: "flex",
+          gap: 6,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          padding: "4px 2px",
+          marginBottom: 4
+        }}
+      >
+        {adminTabs.map(renderLink)}
+        {sharedTabs.map(renderLink)}
+      </nav>
+    );
+  }
 
   return (
     <aside style={{ position: "sticky", top: 140, display: "grid", gap: 14 }}>

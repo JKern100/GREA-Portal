@@ -272,6 +272,18 @@ body {
 .scroll-x-hide { scrollbar-width: none; -ms-overflow-style: none; }
 .scroll-x-hide::-webkit-scrollbar { display: none; }
 
+/* Admin / my-office two-pane layout: sidebar + main content. Server
+   components can't read useIsMobile(), so the responsive switch lives
+   in CSS — on mobile the grid collapses to a single column and the
+   sidebar (re-rendered by AdminSidebar as a horizontal tab strip)
+   sits above the content. */
+.admin-grid {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
 /* ============================================================
    Mobile foundation (≤640px). Handles the "first paint" before
    useIsMobile() hydrates, so widths/padding don't overflow even
@@ -321,5 +333,14 @@ body {
   .data-table { font-size: 12px; }
   .data-table th,
   .data-table td { padding: 8px; }
+
+  /* Admin layout collapses to a single column. The AdminSidebar
+     component itself swaps to a horizontal tab strip via
+     useIsMobile(), so the sidebar lands above the main content as
+     a compact header instead of as a fixed left column. */
+  .admin-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }
 
