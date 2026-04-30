@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import SubmitFeedbackModal from "@/components/feedback/SubmitFeedbackModal";
 import { officeBadgeStyle } from "@/lib/officeColor";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
+import { useIsMobile } from "@/lib/useIsMobile";
 
 interface Props {
   profile: Profile;
@@ -49,6 +50,7 @@ function cls(s: string) {
 }
 
 export default function ContactsView({ profile, offices, initialContacts }: Props) {
+  const isMobile = useIsMobile();
   const [contacts] = useState<ContactRecord[]>(initialContacts);
   const [query, setQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("all");
@@ -214,14 +216,18 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <input
             className="form-input"
-            style={{ flex: 1, minWidth: 260, fontSize: 16, padding: "12px 16px" }}
+            style={{ flex: 1, minWidth: isMobile ? 0 : 260, fontSize: 16, padding: "12px 16px" }}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
             placeholder="Enter a contact name or account name…"
             autoComplete="off"
           />
-          <button className="btn-primary" style={{ padding: "12px 22px" }} onClick={runSearch}>
+          <button
+            className="btn-primary"
+            style={{ padding: "12px 22px", ...(isMobile ? { width: "100%" } : {}) }}
+            onClick={runSearch}
+          >
             Search
           </button>
         </div>
@@ -398,15 +404,16 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                           key={idx}
                           style={{
                             display: "flex",
-                            alignItems: "center",
-                            padding: "14px 24px",
+                            flexDirection: isMobile ? "column" : "row",
+                            alignItems: isMobile ? "stretch" : "center",
+                            padding: isMobile ? "12px 14px" : "14px 24px",
                             borderBottom: idx < g.offices.length - 1 ? "1px solid var(--gray-100)" : "none",
-                            gap: 10
+                            gap: isMobile ? 8 : 10
                           }}
                         >
                           <div
                             style={{
-                              width: 44,
+                              width: isMobile ? "auto" : 44,
                               fontSize: 11,
                               fontWeight: 700,
                               textTransform: "uppercase",
@@ -494,44 +501,88 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                             // compose so the user lands on the message rather
                             // than the inbox.
                             const gmail = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                            return (
-                              <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                                <span style={{ fontSize: 11, color: "var(--gray-500)" }}>Intro:</span>
-                                <a
-                                  className="btn-outline"
-                                  style={{ padding: "4px 10px", fontSize: 11 }}
-                                  href={mailto}
-                                  title="Open in your default mail client (e.g. Outlook)"
-                                >
-                                  Outlook
-                                </a>
-                                <a
-                                  className="btn-outline"
-                                  style={{ padding: "4px 10px", fontSize: 11 }}
-                                  href={gmail}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open a Gmail compose window in a new tab"
-                                >
-                                  Gmail
-                                </a>
-                              </div>
-                            );
-                          })()}
-                          <button
-                            type="button"
-                            className="btn-outline"
-                            style={{ padding: "4px 10px", fontSize: 11 }}
-                            onClick={() =>
+                            const reportClick = () =>
                               setReportFor({
                                 contactId: o.contactId,
                                 title: `Issue with contact: ${g.contactName} (${o.office})`
-                              })
+                              });
+                            if (isMobile) {
+                              // Single full-width row of three equal-flex
+                              // buttons — drops the "Intro:" label so the
+                              // buttons can be larger, easier to tap.
+                              const btnStyle = {
+                                padding: "8px 8px",
+                                fontSize: 12,
+                                flex: 1,
+                                textAlign: "center" as const
+                              };
+                              return (
+                                <div style={{ display: "flex", gap: 6, width: "100%", marginTop: 4 }}>
+                                  <a
+                                    className="btn-outline"
+                                    style={btnStyle}
+                                    href={mailto}
+                                    title="Open in your default mail client"
+                                  >
+                                    Outlook
+                                  </a>
+                                  <a
+                                    className="btn-outline"
+                                    style={btnStyle}
+                                    href={gmail}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Open a Gmail compose window in a new tab"
+                                  >
+                                    Gmail
+                                  </a>
+                                  <button
+                                    type="button"
+                                    className="btn-outline"
+                                    style={btnStyle}
+                                    onClick={reportClick}
+                                    title="Report an issue with this contact"
+                                  >
+                                    Report
+                                  </button>
+                                </div>
+                              );
                             }
-                            title="Report an issue with this contact"
-                          >
-                            Report
-                          </button>
+                            return (
+                              <>
+                                <div style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                                  <span style={{ fontSize: 11, color: "var(--gray-500)" }}>Intro:</span>
+                                  <a
+                                    className="btn-outline"
+                                    style={{ padding: "4px 10px", fontSize: 11 }}
+                                    href={mailto}
+                                    title="Open in your default mail client (e.g. Outlook)"
+                                  >
+                                    Outlook
+                                  </a>
+                                  <a
+                                    className="btn-outline"
+                                    style={{ padding: "4px 10px", fontSize: 11 }}
+                                    href={gmail}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Open a Gmail compose window in a new tab"
+                                  >
+                                    Gmail
+                                  </a>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn-outline"
+                                  style={{ padding: "4px 10px", fontSize: 11 }}
+                                  onClick={reportClick}
+                                  title="Report an issue with this contact"
+                                >
+                                  Report
+                                </button>
+                              </>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
