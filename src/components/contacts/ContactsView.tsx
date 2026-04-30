@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import SubmitFeedbackModal from "@/components/feedback/SubmitFeedbackModal";
 import { officeBadgeStyle } from "@/lib/officeColor";
 import type { ContactRecord, Office, Profile } from "@/lib/types";
-import { useIsIOS, useIsMobile } from "@/lib/useIsMobile";
+import { useIsAndroid, useIsIOS, useIsMobile } from "@/lib/useIsMobile";
 
 interface Props {
   profile: Profile;
@@ -52,6 +52,7 @@ function cls(s: string) {
 export default function ContactsView({ profile, offices, initialContacts }: Props) {
   const isMobile = useIsMobile();
   const isIOS = useIsIOS();
+  const isAndroid = useIsAndroid();
   const [contacts] = useState<ContactRecord[]>(initialContacts);
   const [query, setQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("all");
@@ -498,16 +499,33 @@ export default function ContactsView({ profile, offices, initialContacts }: Prop
                             const body =
                               "Hi " + o.brokerName + ",\r\n\r\nI see you manage " + g.contactName + " at " + g.accountName + ". I'd like to discuss a potential opportunity — could we connect?\r\n\r\nBest regards";
                             const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                            // Gmail's web compose URL. fs=1 forces full-screen
-                            // compose so the user lands on the message rather
-                            // than the inbox. On iOS, mobile Safari/Chrome
-                            // deeplink mail.google.com to the Gmail app,
-                            // which silently drops ?su= and ?body=. The
-                            // googlegmail:// app scheme honors them, so use
-                            // it on iOS instead.
-                            const gmail = isIOS
-                              ? `googlegmail:///co?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-                              : `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                            // Gmail's web compose URL works on desktop, but
+                            // on mobile both iOS and Android deeplink it to
+                            // the native Gmail app, which silently drops
+                            // the ?su= and ?body= params. The fix is
+                            // platform-specific:
+                            //   iOS: googlegmail:///co?subject=&body=
+                            //   Android: Chrome intent:// URL invoking
+                            //     android.intent.action.SEND on the Gmail
+                            //     package with SUBJECT/TEXT string extras.
+                            //   Desktop: the regular mail.google.com URL.
+                            let gmail: string;
+                            if (isIOS) {
+                              gmail = `googlegmail:///co?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                            } else if (isAndroid) {
+                              gmail =
+                                `intent:#Intent;action=android.intent.action.SEND` +
+                                `;type=text/plain` +
+                                `;package=com.google.android.gm` +
+                                `;S.android.intent.extra.SUBJECT=${encodeURIComponent(subject)}` +
+                                `;S.android.intent.extra.TEXT=${encodeURIComponent(body)}` +
+                                `;end`;
+                            } else {
+                              // fs=1 forces the full-screen compose pane
+                              // so the user lands on the message instead of
+                              // the inbox.
+                              gmail = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                            }
                             const reportClick = () =>
                               setReportFor({
                                 contactId: o.contactId,

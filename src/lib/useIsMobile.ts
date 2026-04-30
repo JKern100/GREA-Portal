@@ -43,3 +43,16 @@ export function useIsIOS(): boolean {
   }, []);
   return isIOS;
 }
+
+// Detects Android so callers can use Chrome's intent:// URL scheme to
+// invoke specific apps with proper extras (the Gmail Android app
+// likewise drops query params from deep-linked https URLs, but it
+// honors action.SEND intents with SUBJECT/TEXT string extras).
+export function useIsAndroid(): boolean {
+  const [isAndroid, setIsAndroid] = useState(false);
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    setIsAndroid(/Android/.test(navigator.userAgent));
+  }, []);
+  return isAndroid;
+}
