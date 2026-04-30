@@ -531,31 +531,35 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                             if (isIOS) {
                               gmail = `googlegmail:///co?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                             } else if (isAndroid) {
-                              // Previous attempt used ACTION_SEND with
-                              // type=text/plain — Chrome bounced to the
-                              // Play Store because Gmail's SEND activity
-                              // isn't BROWSABLE (a security category
-                              // Android requires for web-launched intents).
-                              // SENDTO + scheme=mailto targets Gmail's
-                              // mailto: handler activity instead, which IS
-                              // browsable. Subject/body/recipient ride along
-                              // as Android intent extras and as URL params
-                              // for belt-and-braces. browser_fallback_url is
-                              // the existing mailto: link so a missing
-                              // handler routes through the system mail app
-                              // instead of the Play Store.
+                              // Previous attempts:
+                              //   1. ACTION_SEND + type=text/plain → Chrome
+                              //      bounced to Play Store (the SEND
+                              //      activity isn't BROWSABLE).
+                              //   2. SENDTO + scheme=mailto via intent://
+                              //      with the email in the authority
+                              //      position → subject/body filled but
+                              //      To: stayed empty. The // makes Chrome
+                              //      reconstruct the data URI as
+                              //      `mailto://addr?…` and Android's
+                              //      MailTo.parse() requires the canonical
+                              //      `mailto:addr?…` (no //) to extract the
+                              //      recipient.
+                              //
+                              // Use the slash-less form with the email in
+                              // the URI's path position. Drop the EMAIL
+                              // extra — Gmail's mailto handler reads the
+                              // recipient straight from the data URI, and
+                              // the EMAIL extra was being ignored anyway.
                               const enc = (s: string) => encodeURIComponent(s);
                               const fallback = mailto;
-                              const toExtra = to ? `;S.android.intent.extra.EMAIL=${enc(to)}` : "";
                               gmail =
-                                `intent://${enc(to)}?subject=${enc(subject)}&body=${enc(body)}` +
+                                `intent:${enc(to)}?subject=${enc(subject)}&body=${enc(body)}` +
                                 `#Intent` +
                                 `;action=android.intent.action.SENDTO` +
                                 `;scheme=mailto` +
                                 `;package=com.google.android.gm` +
                                 `;S.android.intent.extra.SUBJECT=${enc(subject)}` +
                                 `;S.android.intent.extra.TEXT=${enc(body)}` +
-                                toExtra +
                                 `;S.browser_fallback_url=${enc(fallback)}` +
                                 `;end`;
                             } else {
