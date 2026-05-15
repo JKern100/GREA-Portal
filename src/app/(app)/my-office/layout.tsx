@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import AdminSidebar from "@/components/AdminSidebar";
+import AdminShell from "@/components/AdminShell";
 import MobileAdminHint from "@/components/admin/MobileAdminHint";
 import { listOffices, requireOfficeAdminOrSuperadmin } from "@/lib/data";
 
@@ -34,10 +34,7 @@ export default async function MyOfficeLayout({ children }: { children: React.Rea
       </div>
 
       <MobileAdminHint />
-      <div className="admin-grid">
-        <AdminSidebar mode="office_admin" />
-        <div>{children}</div>
-      </div>
+      <AdminShell mode="office_admin">{children}</AdminShell>
     </div>
   );
 }

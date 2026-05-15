@@ -1,4 +1,4 @@
-import AdminSidebar from "@/components/AdminSidebar";
+import AdminShell from "@/components/AdminShell";
 import FeedbackView from "@/components/feedback/FeedbackView";
 import { listFeedbackItems, listOffices, listProfiles, requireProfile } from "@/lib/data";
 
@@ -27,21 +27,13 @@ export default async function FeedbackPage() {
             </h2>
           </div>
         )}
-        <div style={{ display: "grid", gridTemplateColumns: "200px minmax(0, 1fr)", gap: 28, alignItems: "start" }}>
-          <AdminSidebar mode="office_admin" />
-          <div>{view}</div>
-        </div>
+        <AdminShell mode="office_admin">{view}</AdminShell>
       </div>
     );
   }
 
   if (profile.role === "superadmin") {
-    return (
-      <div style={{ display: "grid", gridTemplateColumns: "200px minmax(0, 1fr)", gap: 28, alignItems: "start" }}>
-        <AdminSidebar mode="superadmin" />
-        <div>{view}</div>
-      </div>
-    );
+    return <AdminShell mode="superadmin">{view}</AdminShell>;
   }
 
   return view;

@@ -7,6 +7,7 @@ import { useIsMobile } from "@/lib/useIsMobile";
 interface Tab {
   href: string;
   label: string;
+  icon: React.ReactNode;
 }
 
 interface Props {
@@ -16,31 +17,118 @@ interface Props {
    * component.
    */
   mode: "superadmin" | "office_admin";
+  /**
+   * Render as a narrow icon-only rail. Owned by AdminShell so the
+   * preference persists across navigations.
+   */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
+// Inline stroke icons keep this component dependency-free. Sized via
+// the parent <svg> so the same path JSX renders at any scale.
+const iconProps = {
+  width: 18,
+  height: 18,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true
+};
+
+const ICON = {
+  overview: (
+    <svg {...iconProps}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  ),
+  users: (
+    <svg {...iconProps}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <circle cx="17" cy="9" r="2.4" />
+      <path d="M16 14c2.8 0 5 2.2 5 5" />
+    </svg>
+  ),
+  building: (
+    <svg {...iconProps}>
+      <rect x="4" y="3" width="16" height="18" rx="1.5" />
+      <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2" />
+      <path d="M10 21v-3h4v3" />
+    </svg>
+  ),
+  activity: (
+    <svg {...iconProps}>
+      <path d="M3 12h4l3-8 4 16 3-8h4" />
+    </svg>
+  ),
+  settings: (
+    <svg {...iconProps}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+    </svg>
+  ),
+  feedback: (
+    <svg {...iconProps}>
+      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12Z" />
+    </svg>
+  ),
+  contact: (
+    <svg {...iconProps}>
+      <circle cx="12" cy="8" r="3.4" />
+      <path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6" />
+    </svg>
+  ),
+  pipeline: (
+    <svg {...iconProps}>
+      <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
+    </svg>
+  ),
+  mail: (
+    <svg {...iconProps}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
+  ),
+  team: (
+    <svg {...iconProps}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <circle cx="17" cy="9" r="2.4" />
+      <path d="M16 14c2.8 0 5 2.2 5 5" />
+    </svg>
+  )
+} as const;
+
 const SUPERADMIN_TABS: Tab[] = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/offices", label: "Offices" },
-  { href: "/admin/activity", label: "Activity" },
-  { href: "/admin/settings", label: "Settings" },
-  { href: "/feedback", label: "Feedback" }
+  { href: "/admin", label: "Overview", icon: ICON.overview },
+  { href: "/admin/users", label: "Users", icon: ICON.users },
+  { href: "/admin/offices", label: "Offices", icon: ICON.building },
+  { href: "/admin/activity", label: "Activity", icon: ICON.activity },
+  { href: "/admin/settings", label: "Settings", icon: ICON.settings },
+  { href: "/feedback", label: "Feedback", icon: ICON.feedback }
 ];
 
 const SUPERADMIN_SHARED_TABS: Tab[] = [
-  { href: "/admin/contacts", label: "Contacts" },
-  { href: "/admin/deals", label: "Pipeline" },
-  { href: "/admin/mailing-list", label: "Mailing List" }
+  { href: "/admin/contacts", label: "Contacts", icon: ICON.contact },
+  { href: "/admin/deals", label: "Pipeline", icon: ICON.pipeline },
+  { href: "/admin/mailing-list", label: "Mailing List", icon: ICON.mail }
 ];
 
 const OFFICE_ADMIN_TABS: Tab[] = [
-  { href: "/my-office", label: "Office Members" },
-  { href: "/feedback", label: "Feedback" }
+  { href: "/my-office", label: "Office Members", icon: ICON.team },
+  { href: "/feedback", label: "Feedback", icon: ICON.feedback }
 ];
 
 const OFFICE_ADMIN_SHARED_TABS: Tab[] = [
-  { href: "/my-office/contacts", label: "Contacts" },
-  { href: "/my-office/deals", label: "Pipeline" }
+  { href: "/my-office/contacts", label: "Contacts", icon: ICON.contact },
+  { href: "/my-office/deals", label: "Pipeline", icon: ICON.pipeline }
 ];
 
 const cardStyle: React.CSSProperties = {
@@ -59,7 +147,7 @@ const headerStyle: React.CSSProperties = {
   marginBottom: 10
 };
 
-export default function AdminSidebar({ mode }: Props) {
+export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse }: Props) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
   const isSuper = mode === "superadmin";
@@ -93,6 +181,29 @@ export default function AdminSidebar({ mode }: Props) {
         </Link>
       );
     }
+    if (collapsed) {
+      return (
+        <Link
+          key={t.href}
+          href={t.href}
+          title={t.label}
+          aria-label={t.label}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 36,
+            height: 36,
+            borderRadius: 6,
+            textDecoration: "none",
+            color: active ? "var(--navy)" : "var(--gray-600)",
+            background: active ? "var(--gray-100)" : "transparent"
+          }}
+        >
+          {t.icon}
+        </Link>
+      );
+    }
     return (
       <Link
         key={t.href}
@@ -111,6 +222,44 @@ export default function AdminSidebar({ mode }: Props) {
       </Link>
     );
   };
+
+  const toggleButton = onToggleCollapse ? (
+    <button
+      type="button"
+      onClick={onToggleCollapse}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-expanded={!collapsed}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 28,
+        height: 28,
+        padding: 0,
+        borderRadius: 6,
+        border: "1px solid var(--gray-200)",
+        background: "white",
+        color: "var(--gray-600)",
+        cursor: "pointer"
+      }}
+    >
+      <svg
+        width={14}
+        height={14}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        style={{ transform: collapsed ? "rotate(180deg)" : "none" }}
+      >
+        <path d="M15 6l-6 6 6 6" />
+      </svg>
+    </button>
+  ) : null;
 
   if (isMobile) {
     // Horizontal scroll strip with both groups inlined. The two-section
@@ -135,10 +284,44 @@ export default function AdminSidebar({ mode }: Props) {
     );
   }
 
+  if (collapsed) {
+    return (
+      <aside style={{ position: "sticky", top: 140, display: "grid", gap: 10, justifyItems: "center" }}>
+        <div style={{ ...cardStyle, padding: 6, display: "flex", justifyContent: "center" }}>
+          {toggleButton}
+        </div>
+        <div style={{ ...cardStyle, padding: 6 }}>
+          <nav
+            aria-label={sectionLabel}
+            style={{ display: "grid", gap: 2, justifyItems: "center" }}
+          >
+            {adminTabs.map(renderLink)}
+          </nav>
+        </div>
+        <div style={{ ...cardStyle, padding: 6 }}>
+          <nav aria-label="Data" style={{ display: "grid", gap: 2, justifyItems: "center" }}>
+            {sharedTabs.map(renderLink)}
+          </nav>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside style={{ position: "sticky", top: 140, display: "grid", gap: 14 }}>
       <div style={cardStyle}>
-        <div style={headerStyle}>{sectionLabel}</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 10
+          }}
+        >
+          <div style={{ ...headerStyle, marginBottom: 0 }}>{sectionLabel}</div>
+          {toggleButton}
+        </div>
         <nav style={{ display: "grid", gap: 2 }}>{adminTabs.map(renderLink)}</nav>
       </div>
       <div style={cardStyle}>
