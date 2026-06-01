@@ -17,8 +17,9 @@ records.*
    stuck, and a **Feedback** button to flag anything.
 
 > **Your north star on every screen:**
-> *"If I needed this information for a real deal, would this give me what I
-> need — and is anything missing?"*
+> *"Does this core feature work the way I'd actually use it — and is anything
+> about *how* it's built getting in my way?"*
+> We're refining how the proposed features work, not adding new ones.
 
 ---
 
@@ -125,7 +126,8 @@ deadline.
 
 ### Remember
 - It's **dummy data** — don't react to the names or numbers.
-- Phase 1 is about **fields and views**, not features (save those for the
-  Parking Lot).
-- The goal is simple: **confirm the mirror shows what you'd actually need to
-  see.**
+- Phase 1 is about getting the **core features right** — refining *how* they
+  work, not adding new ones or touching the data/upload process (those are
+  later phases).
+- The goal is simple: **confirm the proposed functionality works the way you'd
+  actually use it.**

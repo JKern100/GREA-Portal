@@ -17,16 +17,18 @@ across every GREA office in one place.
 
 ## What we need from you right now
 
-Phase 1 has **one job: alignment.** We need to confirm the portal shows the
-**right fields and views** for cross-office lookup *before* real data goes in.
+Phase 1 is about getting the **core functionality right** — confirming the
+features in the proposal work the way you'd actually use them. The feature
+*set* is fixed by the proposal; what's open is **how each feature is
+implemented**: the layout, the search, the filters, the flow.
 
-> The single question to keep in mind:
-> **"Does this show the information I'd actually need to find a contact or deal
-> in another office?"**
+> Two questions to keep in mind:
+> 1. **"Do the core features cover how I'd actually look up a contact or deal?"**
+> 2. **"Is anything about *how* they work getting in my way?"**
 
-Please **don't** send feature wish-lists, design opinions, or workflow ideas
-yet — there's a place for those (see *Parking Lot* below), but they're not the
-focus of this round.
+Please focus on **refining the features we already have**, not adding new ones.
+New feature ideas — and anything about *data* (formats, uploads, sync) — belong
+to later phases (see *In scope vs. Parking Lot* below).
 
 ## How to give feedback — one channel only
 
@@ -66,10 +68,10 @@ This isn't bureaucracy; it's what keeps the project on schedule and on budget.
 
 | ✅ In scope for Phase 1 feedback | 🅿️ Parking Lot (noted, but later) |
 |---|---|
-| Missing or wrong **fields** on a contact/deal | New features and integrations |
-| Views or columns that don't match how you search | Visual / branding preferences |
-| Anything confusing or unclear in the layout | Workflow & automation requests |
-| Data you'd expect to see but can't | Anything requiring real/live data |
+| **How** a core feature works, looks, or is laid out | **New** features beyond the proposal's core scope |
+| Search, filters, intro flow, deal detail behaving how you work | Data format, hygiene & upload process *(Phase 2)* |
+| Fields shown on the core entities (missing / wrong / extra) | API, automated sync & integrations *(Phase 3)* |
+| Anything confusing or unclear *within* the defined features | Pure visual / branding nitpicks |
 
 Parking-lot ideas are welcome — submit them the same way and we'll log them for
 the right phase.
