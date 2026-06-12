@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FEEDBACK_CATEGORIES } from "@/lib/types";
 import type { FeedbackCategory, FeedbackItem, Profile } from "@/lib/types";
@@ -33,6 +33,15 @@ export default function SubmitFeedbackModal({
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+
+  // Close on Escape, matching the PageHelp modal behavior.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   async function submit() {
     setErr(null);

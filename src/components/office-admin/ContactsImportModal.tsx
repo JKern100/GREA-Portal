@@ -79,13 +79,10 @@ export default function ContactsImportModal({ onClose }: Props) {
 
         <h3 style={{ fontSize: 18, color: "var(--navy)", marginBottom: 6 }}>Upload Contacts</h3>
         <p style={{ fontSize: 13, color: "var(--gray-600)", marginBottom: 14 }}>
-          Upload a CSV or XLSX file matching the template. Need a copy?{" "}
+          Upload a CSV file matching the template. Working in Excel? Use{" "}
+          <strong>Save As → CSV</strong> first. Need a copy?{" "}
           <a href="/api/contacts/template?format=csv" style={{ textDecoration: "underline" }}>
             Download CSV template
-          </a>{" "}
-          ·{" "}
-          <a href="/api/contacts/template?format=xlsx" style={{ textDecoration: "underline" }}>
-            Download Excel template
           </a>
         </p>
 
@@ -95,7 +92,7 @@ export default function ContactsImportModal({ onClose }: Props) {
               <label className="form-label">File</label>
               <input
                 type="file"
-                accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                accept=".csv,text/csv"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 disabled={busy}
               />

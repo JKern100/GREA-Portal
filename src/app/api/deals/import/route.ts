@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/data";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,30 +28,17 @@ interface ImportResponse {
 }
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_ROWS = 10_000; // data rows, excluding the header
 
 /**
- * Read file bytes into a 2D string array (header row + data rows), regardless
- * of whether the upload is CSV or XLSX. We work in strings throughout so date
- * / boolean parsing stays in `parseRow`.
+ * Read CSV file bytes into a 2D string array (header row + data rows). We work
+ * in strings throughout so date / boolean parsing stays in `parseRow`.
+ *
+ * CSV only: .xlsx/.xls uploads are rejected up front by the route handler so
+ * we never feed an untrusted spreadsheet to the SheetJS parser (see the
+ * dependency note in docs/PHASE1_AUDIT.md).
  */
 async function readSheet(file: File): Promise<string[][]> {
-  const name = file.name.toLowerCase();
-  const isXlsx = name.endsWith(".xlsx") || name.endsWith(".xls");
-
-  if (isXlsx) {
-    const buf = Buffer.from(await file.arrayBuffer());
-    const wb = XLSX.read(buf, { type: "buffer" });
-    const firstSheet = wb.Sheets[wb.SheetNames[0]];
-    if (!firstSheet) return [];
-    const rows = XLSX.utils.sheet_to_json<string[]>(firstSheet, {
-      header: 1,
-      raw: false,
-      defval: ""
-    });
-    return rows.map((r) => r.map((c) => (c == null ? "" : String(c))));
-  }
-
-  // CSV / TSV — let Papa handle quoting / escaping.
   const text = await file.text();
   const parsed = Papa.parse<string[]>(text, { skipEmptyLines: "greedy" });
   return parsed.data;
@@ -116,6 +102,20 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
       { status: 400 }
     );
   }
+  if (/\.(xlsx|xls)$/i.test(file.name)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        mode: "add_on",
+        inserted: 0,
+        deleted: 0,
+        skipped: 0,
+        skippedRows: [],
+        error: "Excel uploads aren't supported. Please upload a CSV file — use the Download CSV template button, or Save As → CSV from Excel."
+      },
+      { status: 400 }
+    );
+  }
   const mode: ImportMode = modeRaw === "replace" ? "replace" : "add_on";
 
   let rows: string[][];
@@ -139,6 +139,20 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
   if (rows.length < 1) {
     return NextResponse.json(
       { ok: false, mode, inserted: 0, deleted: 0, skipped: 0, skippedRows: [], error: "File is empty." },
+      { status: 400 }
+    );
+  }
+  if (rows.length - 1 > MAX_ROWS) {
+    return NextResponse.json(
+      {
+        ok: false,
+        mode,
+        inserted: 0,
+        deleted: 0,
+        skipped: 0,
+        skippedRows: [],
+        error: `File has too many rows (${rows.length - 1}). The limit is ${MAX_ROWS.toLocaleString()} per import — split the file and upload in batches.`
+      },
       { status: 400 }
     );
   }

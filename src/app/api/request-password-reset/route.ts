@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rateLimit";
 
 /**
  * Public endpoint for "Forgot password?" on /login.
@@ -12,7 +13,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Behaviour:
  *   - Always returns 200 OK regardless of whether the email matched a
  *     real account, so the response can't be used to enumerate which
- *     emails exist on the portal.
+ *     emails exist on the portal. Rate-limited responses are also a
+ *     silent 200 for the same reason.
  *   - If the email matches, we resolve it to a user_id so the request
  *     shows up scoped to the right office for office admins.
  *   - If there's already an unresolved request for this email in the
@@ -21,21 +23,31 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *     letting the table grow unbounded under spam.
  */
 export async function POST(request: Request) {
+  // Abuse damping on this public, unauthenticated write path. Keyed on the
+  // forwarded client IP, with a coarse global ceiling as a backstop. A
+  // throttled caller gets the same generic 200 as everyone else, so the
+  // limiter can't be used to probe which emails or IPs are known.
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  if (!rateLimit(`forgot-pw:${ip}`, 5, 15 * 60 * 1000)) {
+    return NextResponse.json({ ok: true });
+  }
+  if (!rateLimit("forgot-pw:global", 100, 15 * 60 * 1000)) {
+    return NextResponse.json({ ok: true });
+  }
+
   const body = (await request.json().catch(() => ({}))) as { email?: string };
   const email = body.email?.trim().toLowerCase() ?? "";
 
-  // TEMP debug logging — remove once we've isolated why the form submission
-  // wasn't producing rows in production.
-  console.log("[forgot-pw] received", { email, hasAt: email.includes("@") });
-
   if (!email || !email.includes("@")) {
-    console.log("[forgot-pw] rejected: empty or malformed email");
     return NextResponse.json({ ok: true });
   }
 
   const admin = createAdminClient();
 
-  const { data: profile, error: profileErr } = await admin
+  const { data: profile } = await admin
     .from("profiles")
     .select("id, is_active")
     // ilike with no wildcards is case-insensitive equality. Supabase Auth
@@ -44,12 +56,6 @@ export async function POST(request: Request) {
     // so a forgot-password request doesn't silently miss.
     .ilike("email", email)
     .maybeSingle();
-
-  console.log("[forgot-pw] profile lookup", {
-    matched: !!profile,
-    is_active: profile?.is_active ?? null,
-    error: profileErr?.message ?? null
-  });
 
   // Don't accept requests for unknown or deactivated accounts. Both fail
   // silently to avoid leaking which emails exist or which are disabled.
@@ -61,7 +67,7 @@ export async function POST(request: Request) {
   // in the last hour, skip the insert. Multiple clicks from the same
   // forgetful user shouldn't litter the admin's view.
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { data: existing, error: existingErr } = await admin
+  const { data: existing } = await admin
     .from("password_reset_requests")
     .select("id")
     .eq("user_id", profile.id)
@@ -70,23 +76,11 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
 
-  console.log("[forgot-pw] dedupe check", {
-    existing: !!existing,
-    error: existingErr?.message ?? null
-  });
-
   if (existing) {
     return NextResponse.json({ ok: true });
   }
 
-  const { error: insertErr } = await admin
-    .from("password_reset_requests")
-    .insert({ user_id: profile.id, email });
-
-  console.log("[forgot-pw] insert result", {
-    ok: !insertErr,
-    error: insertErr?.message ?? null
-  });
+  await admin.from("password_reset_requests").insert({ user_id: profile.id, email });
 
   return NextResponse.json({ ok: true });
 }

@@ -19,6 +19,7 @@ export default function DealDetailModal({ dealId, offices, profiles, profile, on
   const [deal, setDeal] = useState<DealRecord | null>(null);
   const [history, setHistory] = useState<DealStageHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [omEditing, setOmEditing] = useState(false);
   const [omDraft, setOmDraft] = useState("");
   const [omSaving, setOmSaving] = useState(false);
@@ -69,6 +70,7 @@ export default function DealDetailModal({ dealId, offices, profiles, profile, on
   useEffect(() => {
     const load = async () => {
       setLoading(true);
+      setLoadError(null);
       const supabase = createClient();
       const [d, h] = await Promise.all([
         supabase.from("deals").select("*").eq("id", dealId).single(),
@@ -76,10 +78,21 @@ export default function DealDetailModal({ dealId, offices, profiles, profile, on
       ]);
       if (d.data) setDeal(d.data as DealRecord);
       if (h.data) setHistory(h.data as DealStageHistory[]);
+      // Surface a real failure instead of leaving a permanent "Loading…".
+      if (!d.data) setLoadError(d.error?.message ?? "Couldn't load this deal.");
       setLoading(false);
     };
     load();
   }, [dealId]);
+
+  // Close on Escape, matching the PageHelp modal behavior.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const office = deal ? offices.find((o) => o.id === deal.office_id) : null;
   const officeById = useMemo(() => {
@@ -112,8 +125,17 @@ export default function DealDetailModal({ dealId, offices, profiles, profile, on
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-panel" style={{ maxWidth: 680 }}>
         <button className="modal-close" onClick={onClose}>×</button>
-        {loading || !deal ? (
+        {loading ? (
           <p style={{ color: "var(--gray-500)" }}>Loading…</p>
+        ) : !deal ? (
+          <div style={{ padding: "8px 0" }}>
+            <p style={{ color: "#991b1b", fontSize: 14, marginBottom: 12 }}>
+              {loadError ?? "Couldn't load this deal — it may have been removed."}
+            </p>
+            <button className="btn-outline" onClick={onClose}>
+              Close
+            </button>
+          </div>
         ) : (
           <>
             <h2 style={{ fontSize: 18, color: "var(--navy)" }}>{deal.deal_name}</h2>

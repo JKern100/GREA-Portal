@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
 import { revalidatePath } from "next/cache";
 import { getCurrentProfile } from "@/lib/data";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,24 +28,12 @@ interface ImportResponse {
 }
 
 const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_ROWS = 10_000; // data rows, excluding the header
 
+// CSV only: .xlsx/.xls uploads are rejected up front by the route handler so
+// we never feed an untrusted spreadsheet to the SheetJS parser (see the
+// dependency note in docs/PHASE1_AUDIT.md).
 async function readSheet(file: File): Promise<string[][]> {
-  const name = file.name.toLowerCase();
-  const isXlsx = name.endsWith(".xlsx") || name.endsWith(".xls");
-
-  if (isXlsx) {
-    const buf = Buffer.from(await file.arrayBuffer());
-    const wb = XLSX.read(buf, { type: "buffer" });
-    const firstSheet = wb.Sheets[wb.SheetNames[0]];
-    if (!firstSheet) return [];
-    const rows = XLSX.utils.sheet_to_json<string[]>(firstSheet, {
-      header: 1,
-      raw: false,
-      defval: ""
-    });
-    return rows.map((r) => r.map((c) => (c == null ? "" : String(c))));
-  }
-
   const text = await file.text();
   const parsed = Papa.parse<string[]>(text, { skipEmptyLines: "greedy" });
   return parsed.data;
@@ -108,6 +95,13 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
 
     if (!(file instanceof File)) return err(400, { mode: "add_on", error: "Missing file." });
     if (file.size > MAX_BYTES) return err(400, { mode: "add_on", error: "File exceeds 5 MB limit." });
+    if (/\.(xlsx|xls)$/i.test(file.name)) {
+      return err(400, {
+        mode: "add_on",
+        error:
+          "Excel uploads aren't supported. Please upload a CSV file — use the Download CSV template button, or Save As → CSV from Excel."
+      });
+    }
     const mode: ImportMode = modeRaw === "replace" ? "replace" : "add_on";
 
     // Resolve where new rows get tagged and what the "replace" scope means.
@@ -127,6 +121,12 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     }
 
     if (rows.length < 1) return err(400, { mode, error: "File is empty." });
+    if (rows.length - 1 > MAX_ROWS) {
+      return err(400, {
+        mode,
+        error: `File has too many rows (${rows.length - 1}). The limit is ${MAX_ROWS.toLocaleString()} per import — split the file and upload in batches.`
+      });
+    }
 
     const headerRow = rows[0];
     const { headerToKey, unknownHeaders, missingRequired } = mapHeaders(headerRow);

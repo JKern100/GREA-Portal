@@ -3,13 +3,14 @@ import * as XLSX from "xlsx";
 import { getCurrentProfile } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { TEMPLATE_COLUMNS } from "@/lib/contacts/import-schema";
+import { escapeFormula } from "@/lib/csvSafety";
 import type { ContactRecord } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 function csvCell(v: string): string {
-  return `"${v.replace(/"/g, '""')}"`;
+  return `"${escapeFormula(v).replace(/"/g, '""')}"`;
 }
 
 function fmt(v: unknown): string {
@@ -113,7 +114,10 @@ export async function GET(request: Request) {
     const stamp = new Date().toISOString().slice(0, 10);
 
     if (format === "xlsx") {
-      const sheet = XLSX.utils.aoa_to_sheet([EXPORT_HEADERS, ...rows]);
+      // Neutralize formula injection in the spreadsheet path too — Excel/Sheets
+      // execute a leading =, +, -, or @ in any cell, not just CSV.
+      const safeRows = rows.map((r) => r.map(escapeFormula));
+      const sheet = XLSX.utils.aoa_to_sheet([EXPORT_HEADERS, ...safeRows]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, sheet, "Contacts");
       // Use type:"buffer" so SheetJS takes the Node-aware code path. With
@@ -145,17 +149,14 @@ export async function GET(request: Request) {
       }
     });
   } catch (err) {
-    // Unhandled errors here surface as Vercel's generic 500 page, which gives
-    // us nothing to debug from. Catch and return the message + a short stack
-    // so it's visible in the browser response body.
+    // Log the full error (with stack) server-side for debugging, but return a
+    // generic message to the client so internal paths / implementation detail
+    // aren't disclosed in the HTTP response.
     const e = err as Error;
     console.error("[contacts/export] unhandled error:", e?.stack || e);
-    return new NextResponse(
-      `Export failed: ${e?.message || "unknown error"}\n\n${(e?.stack || "").split("\n").slice(0, 6).join("\n")}`,
-      {
-        status: 500,
-        headers: { "Content-Type": "text/plain; charset=utf-8" }
-      }
-    );
+    return new NextResponse("Export failed. Please try again or contact support.", {
+      status: 500,
+      headers: { "Content-Type": "text/plain; charset=utf-8" }
+    });
   }
 }

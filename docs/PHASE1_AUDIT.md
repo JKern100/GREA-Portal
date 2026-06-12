@@ -2,7 +2,34 @@
 
 *Date: 2026-06-12 · Scope: end-to-end audit (security, RLS/tenant isolation,
 dependencies, usability, robustness) ahead of opening the Phase 1 prototype to
-external GREA brokers. Audit only — no application code was changed.*
+external GREA brokers.*
+
+---
+
+## Resolution status (2026-06-12, fixes applied)
+
+All findings below have been addressed. `typecheck`, `lint`, and `next build`
+all pass after the changes.
+
+| ID | Finding | Status |
+|---|---|---|
+| H-1 | PII/debug logging in password-reset endpoint | **Fixed** — all `console.log` removed |
+| H-2 | CSV/spreadsheet formula injection in exports | **Fixed** — `escapeFormula` (`src/lib/csvSafety.ts`) applied to all CSV + XLSX export paths |
+| H-3 | `xlsx` parses untrusted uploads (unpatched CVEs) | **Mitigated** — imports are now CSV-only; no untrusted `XLSX.read`. Excel template/export (write-only) retained. Re-enable Excel upload after upgrading SheetJS — see README deploy checklist |
+| M-1 | Cross-office read default | **Documented as intended** — recorded in README deploy checklist as a conscious pre-real-data decision (national-mirror model per proposal) |
+| M-2 | Full directory visible to all users | **Documented** — same checklist; revisit before loading real data |
+| M-3 | No rate limiting on public reset endpoint | **Fixed** — per-IP + global limiter (`src/lib/rateLimit.ts`) |
+| M-4 | No row-count cap on imports | **Fixed** — 10,000-row cap on all three import routes |
+| M-5 | Export error handler leaks stack traces | **Fixed** — generic client message, full error logged server-side |
+| M-6 | Deal modal blank on fetch failure | **Fixed** — explicit error state with Close action |
+| L-1 | Modals lack Escape-to-close | **Fixed** — Escape handler added to Deal + Feedback modals |
+| L-2 | `alert()` for errors in mailing list | **Fixed** — inline error banner |
+| L-3 | Dependency advisories | **Partly addressed** — `npm audit fix` applied; remaining (`next`/`glob`/`postcss`) need a major Next upgrade out of Phase 1 scope; `xlsx` mitigated via H-3 |
+| L-4 | Document required Auth signup setting | **Fixed** — README deploy checklist + Auth section |
+| L-5 | ESLint not configured | **Fixed** — `.eslintrc.json` added; `next lint` now runs |
+| L-6 | Minor a11y label gaps | **Noted** — low impact, deferred |
+
+The remainder of this document is the original audit detail.
 
 ---
 

@@ -30,6 +30,7 @@ export default function MailingListView({ profile, offices, initialEntries, mana
   const [showImport, setShowImport] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // After a bulk import the modal calls router.refresh(), which produces a
   // fresh `initialEntries` prop. Sync it down so the table updates without a
@@ -42,10 +43,11 @@ export default function MailingListView({ profile, offices, initialEntries, mana
 
   async function deleteEntry(id: string, name: string) {
     if (!confirm(`Delete "${name}" from the mailing list?`)) return;
+    setActionError(null);
     const supabase = createClient();
     const { error } = await supabase.from("mailing_list_entries").delete().eq("id", id);
     if (error) {
-      alert(error.message);
+      setActionError(`Couldn't delete "${name}": ${error.message}`);
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== id));
@@ -56,11 +58,12 @@ export default function MailingListView({ profile, offices, initialEntries, mana
     if (ids.length === 0) return;
     if (!confirm(`Delete ${ids.length} entr${ids.length === 1 ? "y" : "ies"}?`)) return;
     setBusy(true);
+    setActionError(null);
     const supabase = createClient();
     const { error } = await supabase.from("mailing_list_entries").delete().in("id", ids);
     setBusy(false);
     if (error) {
-      alert(error.message);
+      setActionError(`Couldn't delete the selected entries: ${error.message}`);
       return;
     }
     setEntries((prev) => prev.filter((e) => !selected.has(e.id)));
@@ -204,8 +207,11 @@ export default function MailingListView({ profile, offices, initialEntries, mana
       e.notes ?? "",
       (e.source_office_id && officeById[e.source_office_id]?.code) || ""
     ]);
+    // Neutralize CSV formula injection: a cell starting with =, +, -, @, tab,
+    // or CR is treated as a formula by Excel/Sheets, so prefix it with a quote.
+    const safe = (c: string) => (/^[=+\-@\t\r]/.test(c) ? "'" + c : c);
     const csv = [headers, ...rows]
-      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .map((r) => r.map((c) => `"${safe(String(c)).replace(/"/g, '""')}"`).join(","))
       .join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -319,6 +325,21 @@ export default function MailingListView({ profile, offices, initialEntries, mana
           </label>
         </div>
       </div>
+
+      {actionError && (
+        <div
+          style={{
+            padding: "8px 12px",
+            marginBottom: 10,
+            background: "#fee2e2",
+            color: "#991b1b",
+            borderRadius: 6,
+            fontSize: 13
+          }}
+        >
+          {actionError}
+        </div>
+      )}
 
       {canManage && selected.size > 0 && (
         <div

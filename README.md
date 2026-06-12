@@ -8,7 +8,10 @@ Based on the single-page HTML prototype, rebuilt as a full-fledged multi-user ap
 
 ## Features
 
-- **Authentication** — Email/password login via Supabase Auth. New signups default to `broker` role.
+- **Authentication** — Email/password login via Supabase Auth. **Invite-only**: a
+  profile is only created for users invited by an admin (enforced at the DB level
+  in migration `0018`). For defense-in-depth, also disable **"Allow new users to
+  sign up"** in the Supabase dashboard — see the **Production deploy checklist** below.
 - **Contacts** — Fuzzy search across all offices (Fuse.js), tag & sector filters, cross-office consolidation, "Request Intro" mailto, **Add Contact** form.
 - **My Office (Admin)** — View and CSV-export the full contact list for an office; available to `office_admin` and `superadmin`.
 - **Pipeline** — Deal CRUD, stage filtering, stage-advance flow, deal detail modal with specialty-team contacts and stage history.
@@ -124,6 +127,28 @@ supabase/
 | `superadmin`   | Everything + **Admin** tab                      | All tables                                    |
 
 Rules are enforced with **Row-Level Security** policies on every table. See the bottom of `supabase/migrations/0001_initial_schema.sql`.
+
+---
+
+## Production deploy checklist
+
+Before sharing the app externally (Phase 1), verify:
+
+- [ ] **Disable public signup.** Supabase dashboard → **Authentication → Providers
+      → Email** → turn **off** "Allow new users to sign up". The app enforces
+      invite-only in the DB (`0018`), but this closes the door at the auth layer too.
+- [ ] **Service-role key is server-only.** `SUPABASE_SERVICE_ROLE_KEY` must be set
+      as a server environment variable, never exposed with a `NEXT_PUBLIC_` prefix.
+- [ ] **Imports are CSV-only.** Excel (`.xlsx`) *upload* parsing is disabled because
+      the pinned `xlsx` dependency has unpatched advisories; uploads must be CSV.
+      (Excel template download and exports are unaffected — those only *write*
+      files.) To re-enable Excel upload, first upgrade to a patched SheetJS build
+      (`npm i https://cdn.sheetjs.com/xlsx-<latest>/xlsx-<latest>.tgz`), then restore
+      the xlsx branch in the three `src/app/api/*/import/route.ts` handlers.
+- [ ] **Cross-office visibility is intended.** By design, every authenticated user
+      can read all non-confidential contacts/deals and the full user directory
+      across offices (see `docs/PHASE1_AUDIT.md`, M-1/M-2). Fine for dummy-data
+      Phase 1; confirm this is the desired model before loading real office data.
 
 ---
 
