@@ -10,6 +10,7 @@
  */
 
 import { DEAL_STAGES, type DealStage } from "@/lib/types";
+import { parseImportDate } from "@/lib/importDate";
 
 export interface TemplateColumn {
   key: string;
@@ -24,12 +25,13 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "property_type", header: "Property Type", required: false, hint: "Optional. e.g. Multifamily, Mixed-Use." },
   { key: "deal_value", header: "Amount ($)", required: false, hint: "Optional. Numeric, e.g. 12500000 or 12,500,000." },
   { key: "stage", header: "Stage", required: true, hint: `Required. One of: ${DEAL_STAGES.join(", ")}.` },
-  { key: "broker_email", header: "Broker Email", required: false, hint: "Optional. Email of the broker in your office to assign. Leave blank for unassigned." },
+  { key: "broker_email", header: "Broker Email", required: false, hint: "Optional. Email of the broker in your office to link to their account. If they aren't a registered user yet, the row still imports — use Broker Name to show who owns it." },
+  { key: "broker_name", header: "Broker Name", required: false, hint: "Optional. Broker's display name. Used when the broker isn't a registered user yet." },
   { key: "seller_name", header: "Seller", required: false, hint: "Optional." },
   { key: "buyer_name", header: "Buyer", required: false, hint: "Optional." },
   { key: "sectors", header: "Sectors", required: false, hint: "Optional. Semicolon-separated, e.g. 'Multifamily; General'." },
   { key: "om_link", header: "OM Link", required: false, hint: "Optional. URL to the offering memorandum." },
-  { key: "date_added", header: "Date Added", required: true, hint: "Required. YYYY-MM-DD." },
+  { key: "date_added", header: "Date Added", required: true, hint: "Required. YYYY-MM-DD preferred; M/D/YYYY also accepted." },
   { key: "notes", header: "Notes", required: false, hint: "Optional free-text notes." },
   { key: "is_confidential", header: "Confidential", required: false, hint: "Optional. true / false. Defaults to false." }
 ];
@@ -44,6 +46,7 @@ export const TEMPLATE_SAMPLE_ROW: string[] = [
   "12500000",
   "Listing",
   "broker@grea.com",
+  "Sam Broker",
   "Goldberg Family Trust",
   "Chen Properties Group",
   "Multifamily",
@@ -63,6 +66,7 @@ export interface ParsedRow {
   deal_value: number | null;
   stage: DealStage;
   broker_email: string | null;
+  broker_name: string | null;
   seller_name: string | null;
   buyer_name: string | null;
   sectors: string[];
@@ -71,8 +75,6 @@ export interface ParsedRow {
   notes: string | null;
   is_confidential: boolean;
 }
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function nullable(v: unknown): string | null {
   if (v === undefined || v === null) return null;
@@ -196,10 +198,13 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
   let date_added = "";
   if (!date) {
     errors.push("date_added is required");
-  } else if (!DATE_RE.test(date)) {
-    errors.push(`date_added "${date}" is not in YYYY-MM-DD format`);
   } else {
-    date_added = date;
+    const parsed = parseImportDate(date);
+    if (parsed.error) {
+      errors.push(`date_added ${parsed.error}`);
+    } else {
+      date_added = parsed.value ?? "";
+    }
   }
 
   const amount = parseAmount(raw.deal_value);
@@ -220,6 +225,7 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
     deal_value: amount.value,
     stage: stageRes.value,
     broker_email,
+    broker_name: nullable(raw.broker_name),
     seller_name: nullable(raw.seller_name),
     buyer_name: nullable(raw.buyer_name),
     sectors: splitList(raw.sectors),

@@ -20,19 +20,9 @@ function fmt(v: unknown): string {
   return String(v);
 }
 
-// The export is a SUPERSET of the import template: we add the broker name so
-// an admin reviewing an export sees who owns each deal. Re-importing the file
-// is still fine — the importer ignores unknown columns with a warning, and the
-// broker assignment is rebuilt from broker_email.
-const EXTRA_HEADERS = ["Broker Name"];
-const EXPORT_HEADERS = (() => {
-  const out: string[] = [];
-  for (const col of TEMPLATE_COLUMNS) {
-    out.push(col.header);
-    if (col.key === "broker_email") out.push(...EXTRA_HEADERS);
-  }
-  return out;
-})();
+// Export columns mirror the import template exactly, so a re-import round-trips
+// cleanly. Broker name comes from the snapshot field on the deal row.
+const EXPORT_HEADERS = TEMPLATE_COLUMNS.map((c) => c.header);
 
 function rowFor(d: DealRecord, brokerEmailById: Map<string, string>): string[] {
   const broker_email = d.assigned_broker_id ? brokerEmailById.get(d.assigned_broker_id) ?? "" : "";
@@ -43,6 +33,7 @@ function rowFor(d: DealRecord, brokerEmailById: Map<string, string>): string[] {
     deal_value: d.deal_value,
     stage: d.stage,
     broker_email,
+    broker_name: d.assigned_broker_name,
     seller_name: d.seller_name,
     buyer_name: d.buyer_name,
     sectors: d.sectors,
@@ -51,14 +42,7 @@ function rowFor(d: DealRecord, brokerEmailById: Map<string, string>): string[] {
     notes: d.notes,
     is_confidential: d.is_confidential
   };
-  const out: string[] = [];
-  for (const col of TEMPLATE_COLUMNS) {
-    out.push(fmt(bag[col.key]));
-    if (col.key === "broker_email") {
-      out.push(fmt(d.assigned_broker_name));
-    }
-  }
-  return out;
+  return TEMPLATE_COLUMNS.map((col) => fmt(bag[col.key]));
 }
 
 export async function GET(request: Request) {

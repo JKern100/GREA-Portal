@@ -228,20 +228,27 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
 
   const validInserts: Array<Record<string, unknown>> = [];
   const skippedRows: SkippedRow[] = [];
+  // broker_email values that don't (yet) match a registered office member.
+  // These rows still import (unassigned) — we surface an aggregate warning.
+  const unmatchedBrokerEmails = new Set<string>();
 
   for (const r of parsedRows) {
     const errs = [...r.errors];
     let assigned_broker_id: string | null = null;
     let assigned_broker_name = "";
 
-    if (r.broker_email) {
-      const broker = brokerByEmail.get(r.broker_email);
-      if (!broker) {
-        errs.push(`broker_email "${r.broker_email}" does not match any member of your office`);
-      } else {
-        assigned_broker_id = broker.id;
-        assigned_broker_name = broker.name;
-      }
+    const matchedBroker = r.broker_email ? brokerByEmail.get(r.broker_email) : undefined;
+    if (matchedBroker) {
+      // Email matched a registered office member — link to their account.
+      assigned_broker_id = matchedBroker.id;
+      assigned_broker_name = matchedBroker.name;
+    } else {
+      // No account (broker not invited yet, or no email given). Don't drop the
+      // row — import it unassigned and display the broker name from the file so
+      // ownership still shows. It links on a later import once the broker is a
+      // registered user with that email.
+      assigned_broker_name = r.broker_name ?? "";
+      if (r.broker_email) unmatchedBrokerEmails.add(r.broker_email);
     }
 
     if (errs.length > 0) {
@@ -281,6 +288,14 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
   // all-bad file would wipe the existing deals and leave the office
   // empty. Admins who actually want to clear the table can use the
   // "Delete all" action on the pipeline page.
+  if (unmatchedBrokerEmails.size > 0) {
+    const list = Array.from(unmatchedBrokerEmails).slice(0, 5).join(", ");
+    const more = unmatchedBrokerEmails.size > 5 ? `, +${unmatchedBrokerEmails.size - 5} more` : "";
+    fileWarnings.push(
+      `${unmatchedBrokerEmails.size} broker email(s) aren't registered users yet (${list}${more}). Those deals were imported unassigned, showing the Broker Name from the file. Re-import after inviting the broker to link them.`
+    );
+  }
+
   if (mode === "replace" && validInserts.length === 0) {
     return NextResponse.json(
       {

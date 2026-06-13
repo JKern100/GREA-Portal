@@ -8,6 +8,8 @@
  * Keep column order stable — admins paste the same template back.
  */
 
+import { parseImportDate } from "@/lib/importDate";
+
 export interface TemplateColumn {
   key: string;
   header: string;
@@ -18,7 +20,9 @@ export interface TemplateColumn {
 export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "contact_name", header: "Contact Name", required: true, hint: "Required. Full name of the contact." },
   { key: "account_name", header: "Account / Company", required: true, hint: "Required. Company or account the contact belongs to." },
-  { key: "broker_email", header: "Broker Email", required: false, hint: "Optional. Email of the broker in your office to assign. Leave blank for unassigned." },
+  { key: "broker_email", header: "Broker Email", required: false, hint: "Optional. Email of the broker in your office to link to their account. If they aren't a registered user yet, the row still imports — use Broker Name to show who owns it." },
+  { key: "broker_name", header: "Broker Name", required: false, hint: "Optional. Broker's display name. Used when the broker isn't a registered user yet." },
+  { key: "broker_phone", header: "Broker Phone", required: false, hint: "Optional. Broker's display phone." },
   { key: "contact_phone", header: "Phone", required: false, hint: "Optional." },
   { key: "contact_email", header: "Email", required: false, hint: "Optional." },
   { key: "relationship_status", header: "Relationship Status", required: false, hint: "Optional. e.g. Active, Prospect, Former." },
@@ -26,7 +30,7 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "note", header: "Note", required: false, hint: "Optional free-text note." },
   { key: "tags", header: "Tags", required: false, hint: "Optional. Semicolon-separated, e.g. 'Client; Active'." },
   { key: "sectors", header: "Sectors", required: false, hint: "Optional. Semicolon-separated, e.g. 'Multifamily; General'." },
-  { key: "last_contact_date", header: "Last Contact Date", required: false, hint: "Optional. YYYY-MM-DD." },
+  { key: "last_contact_date", header: "Last Contact Date", required: false, hint: "Optional. YYYY-MM-DD preferred; M/D/YYYY also accepted." },
   { key: "is_confidential", header: "Confidential", required: false, hint: "Optional. true / false. Defaults to false." }
 ];
 
@@ -37,6 +41,8 @@ export const TEMPLATE_SAMPLE_ROW: string[] = [
   "Jane Doe",
   "Acme Industrial",
   "broker@grea.com",
+  "Sam Broker",
+  "(212) 555-0199",
   "(212) 555-0100",
   "jane@acme.com",
   "Active",
@@ -55,6 +61,8 @@ export interface ParsedRow {
   contact_name: string;
   account_name: string;
   broker_email: string | null;
+  broker_name: string | null;
+  broker_phone: string | null;
   contact_phone: string | null;
   contact_email: string | null;
   relationship_status: string | null;
@@ -65,8 +73,6 @@ export interface ParsedRow {
   last_contact_date: string | null;
   is_confidential: boolean;
 }
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function nullable(v: unknown): string | null {
   if (v === undefined || v === null) return null;
@@ -151,10 +157,11 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
   const last = nullable(raw.last_contact_date);
   let last_contact_date: string | null = null;
   if (last) {
-    if (!DATE_RE.test(last)) {
-      errors.push(`last_contact_date "${last}" is not in YYYY-MM-DD format`);
+    const parsed = parseImportDate(last);
+    if (parsed.error) {
+      errors.push(`last_contact_date ${parsed.error}`);
     } else {
-      last_contact_date = last;
+      last_contact_date = parsed.value ?? null;
     }
   }
 
@@ -168,6 +175,8 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
     contact_name,
     account_name,
     broker_email,
+    broker_name: nullable(raw.broker_name),
+    broker_phone: nullable(raw.broker_phone),
     contact_phone: nullable(raw.contact_phone),
     contact_email: nullable(raw.contact_email),
     relationship_status: nullable(raw.relationship_status),

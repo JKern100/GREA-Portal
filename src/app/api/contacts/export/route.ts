@@ -20,20 +20,9 @@ function fmt(v: unknown): string {
   return String(v);
 }
 
-// The export is a SUPERSET of the import template: we add the broker name
-// and phone (sourced from the snapshot fields on the contact row, no profile
-// lookup needed) so an admin reviewing an export sees who owns each contact.
-// Re-importing the file is still fine — the importer ignores unknown columns
-// with a warning, and the broker assignment is rebuilt from broker_email.
-const EXTRA_HEADERS = ["Broker Name", "Broker Phone"];
-const EXPORT_HEADERS = (() => {
-  const out: string[] = [];
-  for (const col of TEMPLATE_COLUMNS) {
-    out.push(col.header);
-    if (col.key === "broker_email") out.push(...EXTRA_HEADERS);
-  }
-  return out;
-})();
+// Export columns mirror the import template exactly, so a re-import round-trips
+// cleanly. Broker name/phone come from the snapshot fields on the contact row.
+const EXPORT_HEADERS = TEMPLATE_COLUMNS.map((c) => c.header);
 
 function rowFor(c: ContactRecord, brokerEmailById: Map<string, string>): string[] {
   const broker_email = c.broker_id ? brokerEmailById.get(c.broker_id) ?? "" : "";
@@ -41,6 +30,8 @@ function rowFor(c: ContactRecord, brokerEmailById: Map<string, string>): string[
     contact_name: c.contact_name,
     account_name: c.account_name,
     broker_email,
+    broker_name: c.broker_name_snapshot,
+    broker_phone: c.broker_phone_snapshot,
     contact_phone: c.contact_phone,
     contact_email: c.contact_email,
     relationship_status: c.relationship_status,
@@ -51,15 +42,7 @@ function rowFor(c: ContactRecord, brokerEmailById: Map<string, string>): string[
     last_contact_date: c.last_contact_date,
     is_confidential: c.is_confidential
   };
-  const out: string[] = [];
-  for (const col of TEMPLATE_COLUMNS) {
-    out.push(fmt(bag[col.key]));
-    if (col.key === "broker_email") {
-      out.push(fmt(c.broker_name_snapshot));
-      out.push(fmt(c.broker_phone_snapshot));
-    }
-  }
-  return out;
+  return TEMPLATE_COLUMNS.map((col) => fmt(bag[col.key]));
 }
 
 export async function GET(request: Request) {

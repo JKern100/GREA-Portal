@@ -230,6 +230,9 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
 
   const validInserts: Array<Record<string, unknown>> = [];
   const skippedRows: SkippedRow[] = [];
+  // broker_email values that don't (yet) match a registered office member.
+  // These rows still import (unassigned) — we surface an aggregate warning.
+  const unmatchedBrokerEmails = new Set<string>();
   const today = new Date().toISOString().slice(0, 10);
 
   for (const r of parsedRows) {
@@ -238,15 +241,21 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
     let broker_name_snapshot = "";
     let broker_phone_snapshot = "";
 
-    if (r.broker_email) {
-      const broker = brokerByEmail.get(r.broker_email);
-      if (!broker) {
-        errs.push(`broker_email "${r.broker_email}" does not match any member of your office`);
-      } else {
-        broker_id = broker.id;
-        broker_name_snapshot = broker.name;
-        broker_phone_snapshot = broker.phone ?? "";
-      }
+    const matchedBroker = r.broker_email ? brokerByEmail.get(r.broker_email) : undefined;
+    if (matchedBroker) {
+      // Email matched a registered office member — link to their account and
+      // snapshot their current name/phone.
+      broker_id = matchedBroker.id;
+      broker_name_snapshot = matchedBroker.name;
+      broker_phone_snapshot = matchedBroker.phone ?? "";
+    } else {
+      // No account (broker not invited yet, or no email given). Don't drop the
+      // row — import it unassigned and display the broker name/phone from the
+      // file so ownership still shows. It links automatically on a later import
+      // once the broker is a registered user with that email.
+      broker_name_snapshot = r.broker_name ?? "";
+      broker_phone_snapshot = r.broker_phone ?? "";
+      if (r.broker_email) unmatchedBrokerEmails.add(r.broker_email);
     }
 
     if (errs.length > 0) {
@@ -281,6 +290,14 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
       is_confidential: r.is_confidential,
       created_by: profile.id
     });
+  }
+
+  if (unmatchedBrokerEmails.size > 0) {
+    const list = Array.from(unmatchedBrokerEmails).slice(0, 5).join(", ");
+    const more = unmatchedBrokerEmails.size > 5 ? `, +${unmatchedBrokerEmails.size - 5} more` : "";
+    fileWarnings.push(
+      `${unmatchedBrokerEmails.size} broker email(s) aren't registered users yet (${list}${more}). Those contacts were imported unassigned, showing the Broker Name from the file. Re-import after inviting the broker to link them.`
+    );
   }
 
   // Refuse replace when the upload yielded no valid rows. Otherwise an
