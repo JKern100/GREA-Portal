@@ -20,12 +20,7 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
   const [officeFilter, setOfficeFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
-
-  const officeById = useMemo(() => {
-    const m: Record<string, Office> = {};
-    offices.forEach((o) => (m[o.id] = o));
-    return m;
-  }, [offices]);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -199,7 +194,7 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflow: "auto" }}>
+      <div className="card" style={{ padding: 0, overflow: "visible" }}>
         <table className="data-table">
           <thead>
             <tr>
@@ -213,19 +208,15 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
                 />
               </th>
               <th>Contact</th>
-              <th>Account</th>
               <th>Office</th>
               <th>Broker</th>
-              <th>Tags</th>
-              <th>Sectors</th>
-              <th>Added</th>
-              <th style={{ width: 50 }}>Hide</th>
-              <th style={{ width: 90 }}></th>
+              <th>Labels</th>
+              <th aria-label="Actions" style={{ width: 40 }}></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((c) => {
-              const office = officeById[c.office_id];
+              const menuOpen = openMenuId === c.id;
               return (
                 <tr key={c.id}>
                   <td style={{ textAlign: "center" }}>
@@ -236,10 +227,29 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
                       aria-label={`Select ${c.contact_name}`}
                     />
                   </td>
-                  <td style={{ minWidth: 120 }}>
-                    <strong>{c.contact_name}</strong>
+                  <td style={{ minWidth: 160 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <strong>{c.contact_name}</strong>
+                      {c.is_confidential && (
+                        <span
+                          title="Hidden from offices other than the owning office."
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                            padding: "1px 6px",
+                            borderRadius: 10,
+                            background: "var(--gray-200)",
+                            color: "var(--gray-600)"
+                          }}
+                        >
+                          Hidden
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--gray-500)" }}>{c.account_name}</div>
                   </td>
-                  <td style={{ minWidth: 140 }}>{c.account_name}</td>
                   <td>
                     <select
                       className="form-input"
@@ -250,30 +260,73 @@ export default function ContactsAdmin({ contacts: initial, offices }: Props) {
                       {offices.map((o) => <option key={o.id} value={o.id}>{o.code}</option>)}
                     </select>
                   </td>
-                  <td style={{ fontSize: 12, minWidth: 160, whiteSpace: "nowrap" }}>
+                  <td style={{ fontSize: 12, minWidth: 140 }}>
                     <div>{c.broker_name_snapshot}</div>
                     <div style={{ color: "var(--gray-400)" }}>{c.broker_phone_snapshot}</div>
                   </td>
-                  <td style={{ minWidth: 110 }}>
-                    {(c.tags || []).map((t) => (
-                      <span key={t} className={`contact-tag tag-${cls(t)}`} style={{ marginRight: 4 }}>{t}</span>
-                    ))}
+                  <td style={{ minWidth: 180 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {(c.tags || []).map((t) => (
+                        <span key={t} className={`contact-tag tag-${cls(t)}`}>{t}</span>
+                      ))}
+                      {(c.sectors || []).map((s) => (
+                        <span key={s} className={`sector-badge sector-${cls(s)}`}>{s}</span>
+                      ))}
+                    </div>
                   </td>
-                  <td style={{ minWidth: 160 }}>
-                    {(c.sectors || []).map((s) => (
-                      <span key={s} className={`sector-badge sector-${cls(s)}`} style={{ marginRight: 4 }}>{s}</span>
-                    ))}
-                  </td>
-                  <td style={{ fontSize: 12, whiteSpace: "nowrap" }}>{c.date_added}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={c.is_confidential}
-                      onChange={(e) => toggleConfidential(c.id, e.target.checked)}
-                    />
-                  </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => remove(c.id)}>Delete</button>
+                  <td style={{ position: "relative", textAlign: "right", width: 40 }}>
+                    <button
+                      type="button"
+                      className="kebab-btn"
+                      aria-haspopup="menu"
+                      aria-expanded={menuOpen}
+                      aria-label={`Actions for ${c.contact_name}`}
+                      onClick={() => setOpenMenuId(menuOpen ? null : c.id)}
+                    >
+                      ⋯
+                    </button>
+                    {menuOpen && (
+                      <>
+                        <div
+                          onClick={() => setOpenMenuId(null)}
+                          style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                        />
+                        <div role="menu" className="kebab-menu">
+                          <div
+                            style={{
+                              padding: "6px 12px 8px",
+                              fontSize: 11,
+                              color: "var(--gray-500)",
+                              borderBottom: "1px solid var(--gray-100)",
+                              marginBottom: 4
+                            }}
+                          >
+                            Added {c.date_added}
+                          </div>
+                          <button
+                            role="menuitem"
+                            className="kebab-item"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              toggleConfidential(c.id, !c.is_confidential);
+                            }}
+                          >
+                            {c.is_confidential ? "Unhide" : "Hide from other offices"}
+                          </button>
+                          <div className="kebab-sep" />
+                          <button
+                            role="menuitem"
+                            className="kebab-item kebab-item-danger"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              remove(c.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </td>
                 </tr>
               );
