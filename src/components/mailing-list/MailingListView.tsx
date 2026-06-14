@@ -31,6 +31,7 @@ export default function MailingListView({ profile, offices, initialEntries, mana
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // After a bulk import the modal calls router.refresh(), which produces a
   // fresh `initialEntries` prop. Sync it down so the table updates without a
@@ -453,7 +454,7 @@ export default function MailingListView({ profile, offices, initialEntries, mana
           )}
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: "auto" }}>
+        <div className="card" style={{ padding: 0, overflow: "visible" }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -468,13 +469,11 @@ export default function MailingListView({ profile, offices, initialEntries, mana
                     />
                   </th>
                 )}
-                <th>Name</th>
+                <th>Contact</th>
                 <th>Email</th>
-                <th>Organization</th>
-                <th>Title</th>
                 <th>Location</th>
                 <th>Source</th>
-                {canManage && <th></th>}
+                {canManage && <th aria-label="Actions" style={{ width: 40 }}></th>}
               </tr>
             </thead>
             <tbody>
@@ -484,6 +483,10 @@ export default function MailingListView({ profile, offices, initialEntries, mana
                 const locParts = [e.city, e.state].filter(Boolean) as string[];
                 const location = locParts.length ? locParts.join(", ") : "—";
                 const isDuplicate = !!e.email && (emailCounts.get(e.email.toLowerCase()) ?? 0) > 1;
+                // Organization and Title fold into the Contact cell as a muted
+                // subtitle so the table fits without horizontal scroll.
+                const subParts = [e.organization, e.title].filter(Boolean) as string[];
+                const menuOpen = openMenuId === e.id;
                 return (
                   <tr key={e.id} style={e.opted_out ? { background: "#fafafa", opacity: 0.7 } : undefined}>
                     {canManage && (
@@ -496,24 +499,28 @@ export default function MailingListView({ profile, offices, initialEntries, mana
                         />
                       </td>
                     )}
-                    <td style={{ fontWeight: 600, color: "var(--navy)" }}>
-                      {e.name || "—"}
-                      {e.opted_out && (
-                        <span
-                          style={{
-                            marginLeft: 8,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.4,
-                            padding: "1px 7px",
-                            borderRadius: 10,
-                            background: "#fee2e2",
-                            color: "#991b1b"
-                          }}
-                        >
-                          Opted out
-                        </span>
+                    <td style={{ minWidth: 150 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--navy)" }}>
+                        {e.name || "—"}
+                        {e.opted_out && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: 0.4,
+                              padding: "1px 7px",
+                              borderRadius: 10,
+                              background: "#fee2e2",
+                              color: "#991b1b"
+                            }}
+                          >
+                            Opted out
+                          </span>
+                        )}
+                      </div>
+                      {subParts.length > 0 && (
+                        <div style={{ fontSize: 12, color: "var(--gray-500)" }}>{subParts.join(" · ")}</div>
                       )}
                     </td>
                     <td
@@ -534,21 +541,42 @@ export default function MailingListView({ profile, offices, initialEntries, mana
                         "—"
                       )}
                     </td>
-                    <td>{e.organization || "—"}</td>
-                    <td style={{ fontSize: 12, color: "var(--gray-600)" }}>{e.title || "—"}</td>
                     <td style={{ fontSize: 12 }}>{location}</td>
                     <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
                       {(e.source_office_id && officeById[e.source_office_id]?.code) || "—"}
                     </td>
                     {canManage && (
-                      <td style={{ whiteSpace: "nowrap" }}>
+                      <td style={{ position: "relative", textAlign: "right", width: 40 }}>
                         <button
-                          className="btn-outline"
-                          style={{ padding: "2px 8px", fontSize: 11 }}
-                          onClick={() => deleteEntry(e.id, e.name || e.email || "this entry")}
+                          type="button"
+                          className="kebab-btn"
+                          aria-haspopup="menu"
+                          aria-expanded={menuOpen}
+                          aria-label={`Actions for ${e.name || e.email || "entry"}`}
+                          onClick={() => setOpenMenuId(menuOpen ? null : e.id)}
                         >
-                          Delete
+                          ⋯
                         </button>
+                        {menuOpen && (
+                          <>
+                            <div
+                              onClick={() => setOpenMenuId(null)}
+                              style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                            />
+                            <div role="menu" className="kebab-menu">
+                              <button
+                                role="menuitem"
+                                className="kebab-item kebab-item-danger"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  deleteEntry(e.id, e.name || e.email || "this entry");
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -556,7 +584,7 @@ export default function MailingListView({ profile, offices, initialEntries, mana
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={canManage ? 8 : 6} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
+                  <td colSpan={canManage ? 6 : 4} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
                     No entries match your filters.
                   </td>
                 </tr>

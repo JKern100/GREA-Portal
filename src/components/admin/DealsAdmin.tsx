@@ -23,6 +23,7 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
   const [officeFilter, setOfficeFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const officeById = useMemo(() => {
     const m: Record<string, Office> = {};
@@ -205,7 +206,7 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflow: "auto" }}>
+      <div className="card" style={{ padding: 0, overflow: "visible" }}>
         <table className="data-table">
           <thead>
             <tr>
@@ -219,19 +220,18 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                 />
               </th>
               <th>Deal</th>
-              <th>Type</th>
-              <th>Seller / Buyer</th>
+              <th>Parties</th>
               <th style={{ width: 60 }}>Office</th>
-              <th style={{ width: 110 }}>Stage</th>
+              <th style={{ width: 130 }}>Stage</th>
               <th>Value</th>
               <th>Broker</th>
-              <th style={{ width: 50 }}>Hide</th>
-              <th style={{ width: 90 }}></th>
+              <th aria-label="Actions" style={{ width: 40 }}></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((d) => {
               const office = officeById[d.office_id];
+              const menuOpen = openMenuId === d.id;
               return (
                 <tr key={d.id}>
                   <td style={{ textAlign: "center" }}>
@@ -243,11 +243,30 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                     />
                   </td>
                   <td style={{ minWidth: 180 }}>
-                    <strong>{d.deal_name}</strong>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <strong>{d.deal_name}</strong>
+                      {d.is_confidential && (
+                        <span
+                          title="Hidden from offices other than the owning office."
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.4,
+                            padding: "1px 6px",
+                            borderRadius: 10,
+                            background: "var(--gray-200)",
+                            color: "var(--gray-600)"
+                          }}
+                        >
+                          Hidden
+                        </span>
+                      )}
+                    </div>
                     {d.property_address && <div style={{ fontSize: 11, color: "var(--gray-400)" }}>{d.property_address}</div>}
+                    {d.property_type && <div style={{ fontSize: 11, color: "var(--gray-500)" }}>{d.property_type}</div>}
                   </td>
-                  <td style={{ fontSize: 12, color: "var(--gray-600)", whiteSpace: "nowrap" }}>{d.property_type || "—"}</td>
-                  <td style={{ fontSize: 12, minWidth: 170, whiteSpace: "nowrap" }}>
+                  <td style={{ fontSize: 12, minWidth: 150 }}>
                     <div>
                       <span style={{ color: "var(--gray-500)", fontSize: 10, textTransform: "uppercase" }}>S:</span> {d.seller_name || "—"}
                     </div>
@@ -267,16 +286,49 @@ export default function DealsAdmin({ deals: initial, offices }: Props) {
                     </select>
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>{formatValue(d.deal_value)}</td>
-                  <td style={{ fontSize: 12, minWidth: 130, whiteSpace: "nowrap" }}>{d.assigned_broker_name}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={d.is_confidential}
-                      onChange={(e) => toggleConfidential(d.id, e.target.checked)}
-                    />
-                  </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    <button className="btn-danger" style={{ padding: "3px 10px", fontSize: 11 }} onClick={() => remove(d.id)}>Delete</button>
+                  <td style={{ fontSize: 12, minWidth: 120 }}>{d.assigned_broker_name}</td>
+                  <td style={{ position: "relative", textAlign: "right", width: 40 }}>
+                    <button
+                      type="button"
+                      className="kebab-btn"
+                      aria-haspopup="menu"
+                      aria-expanded={menuOpen}
+                      aria-label={`Actions for ${d.deal_name}`}
+                      onClick={() => setOpenMenuId(menuOpen ? null : d.id)}
+                    >
+                      ⋯
+                    </button>
+                    {menuOpen && (
+                      <>
+                        <div
+                          onClick={() => setOpenMenuId(null)}
+                          style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                        />
+                        <div role="menu" className="kebab-menu">
+                          <button
+                            role="menuitem"
+                            className="kebab-item"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              toggleConfidential(d.id, !d.is_confidential);
+                            }}
+                          >
+                            {d.is_confidential ? "Unhide" : "Hide from other offices"}
+                          </button>
+                          <div className="kebab-sep" />
+                          <button
+                            role="menuitem"
+                            className="kebab-item kebab-item-danger"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              remove(d.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </td>
                 </tr>
               );
