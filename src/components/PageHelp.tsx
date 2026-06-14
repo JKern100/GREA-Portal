@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import type { UserRole } from "@/lib/types";
 
 interface HelpSection {
   heading: string;
@@ -156,19 +157,12 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
         {
           heading: "Roster",
           bullets: [
-            "Each row is one member. Edit the name and title fields inline, or click a sector chip to toggle a specialty on or off.",
-            "Use the 'Active' toggle to deactivate someone who has left — they lose access on next request."
-          ]
-        },
-        {
-          heading: "Invite a broker",
-          bullets: [
-            "Fill in the email and (optionally) name at the top of the page. Submitting creates an invite link in-page — copy it and share via Slack, email, or however you reach them.",
-            "Invitees join as brokers in your office. Only superadmins can create new office_admin or superadmin accounts."
+            "Each row is one member of your office. Use the Active toggle to deactivate someone who has left — they lose access on their next request.",
+            "To edit a member's name, title, or specialties, open the row's actions menu (⋯) and select Edit details."
           ]
         }
       ],
-      tip: "If a member forgot their password, the 'Reset password' button on their row generates a one-time recovery link to share."
+      tip: "If a member forgets their password, open their row's actions menu (⋯) and select Reset password to generate a one-time recovery link to share."
     }
   },
   {
@@ -257,24 +251,16 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
         "Manage every account in the portal: invite new people, change roles, assign offices, and deactivate accounts.",
       sections: [
         {
-          heading: "Invite",
-          bullets: [
-            "Fill in the invite form. Brokers and office admins must be assigned to an office; superadmins are office-less.",
-            "Submitting creates an invite link in-page — copy it and share via Slack, email, or however you reach the user. Nothing is emailed automatically."
-          ]
-        },
-        {
           heading: "Edit a user",
           bullets: [
-            "Edit name, title, role, office, and specialty chips inline on each row — there's no expand step.",
-            "The 'Active' toggle disables the account at the application layer — they're bounced to /login on next request. Your own row's toggle is locked so you can't deactivate yourself."
+            "Change a user's Office and Role with the dropdowns on their row, and use the Active toggle to enable or disable the account. Disabling an account returns the user to the sign-in screen on their next request; your own toggle is locked so you can't disable yourself.",
+            "To edit a user's name, title, or specialties, open the row's actions menu (⋯) and select Edit details."
           ]
         },
         {
-          heading: "Sign-in status & resets",
+          heading: "Account status",
           bullets: [
-            "The status pill on each row tells you whether the account has ever signed in (versus sitting on an unused invite).",
-            "Use 'Reset password' on any registered user to mint a one-time recovery link — handy when a user uses Forgot password? on /login."
+            "The Status column shows whether an account has signed in (Registered) or is still on an unused invite (Pending), and flags any open password-reset request."
           ]
         }
       ]
@@ -411,14 +397,84 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
   }
 ];
 
-function getHelp(pathname: string): HelpEntry | null {
-  for (const { match, entry } of HELP_BY_PATH) {
-    if (match(pathname)) return entry;
-  }
-  return null;
+// Detailed invite guidance, shown according to who's signed in. The two
+// invite forms live on role-specific pages (Super Admin → Users and
+// My Office → Members), so each block is injected only on its page and only
+// for the matching role.
+interface InviteHelp {
+  sections: HelpSection[];
+  tip: string;
 }
 
-export default function PageHelp() {
+const SUPERADMIN_INVITE: InviteHelp = {
+  sections: [
+    {
+      heading: "Invite a user",
+      bullets: [
+        "In the Invite User panel, enter the person's email address (required) and, optionally, their name.",
+        "Choose a Role (Broker, Office Admin, or Super Admin) and an Office. Brokers and office admins must be assigned to an office; super admins are not tied to one.",
+        "Select Create Invite. The portal generates a secure, single-use sign-in link and displays it in the panel — no email is sent automatically.",
+        "Select Copy link and send it to the recipient through Slack, email, or any other channel. They open the link, set a password on the Welcome screen, and are signed in."
+      ]
+    },
+    {
+      heading: "Resend an invite or reset a password",
+      bullets: [
+        "For a user who hasn't signed in yet (Pending), open their row's actions menu (⋯) and select Copy invite link to generate a fresh link.",
+        "For a user who has already signed in (Registered), the actions menu offers Reset password instead, which creates a one-time recovery link to share."
+      ]
+    }
+  ],
+  tip: "Invite and reset links expire 24 hours after they are generated and can be used only once. If a link lapses, generate a new one."
+};
+
+const OFFICE_ADMIN_INVITE: InviteHelp = {
+  sections: [
+    {
+      heading: "Invite a broker",
+      bullets: [
+        "In the Invite Broker panel, enter the broker's email address (required) and, optionally, their name.",
+        "Select Send Invite. New brokers join your office automatically — the role and office are fixed, and only super admins can create office admins or super admins.",
+        "The portal generates a secure, single-use sign-in link and displays it in the panel — no email is sent automatically. Select Copy link and send it to the broker. They open the link, set a password on the Welcome screen, and are signed in."
+      ]
+    },
+    {
+      heading: "Resend an invite",
+      bullets: [
+        "If a broker hasn't signed in yet (Pending), open their row's actions menu (⋯) and select Copy invite link to generate a fresh link to share.",
+        "Invite links expire 24 hours after they are generated and can be used only once — generate a new one if a link lapses."
+      ]
+    }
+  ],
+  tip: "Invite links expire 24 hours after they are generated and can be used only once. If a link lapses, generate a new one."
+};
+
+// Prepend the role-appropriate invite sections to a page's help, preserving
+// the page's own tip when it has one.
+function withInvite(entry: HelpEntry, invite: InviteHelp): HelpEntry {
+  return {
+    ...entry,
+    sections: [...invite.sections, ...entry.sections],
+    tip: entry.tip ?? invite.tip
+  };
+}
+
+function getHelp(pathname: string, role: UserRole | undefined): HelpEntry | null {
+  let entry: HelpEntry | null = null;
+  for (const { match, entry: e } of HELP_BY_PATH) {
+    if (match(pathname)) {
+      entry = e;
+      break;
+    }
+  }
+  if (!entry) return null;
+
+  if (pathname === "/admin/users" && role === "superadmin") return withInvite(entry, SUPERADMIN_INVITE);
+  if (pathname === "/my-office" && role === "office_admin") return withInvite(entry, OFFICE_ADMIN_INVITE);
+  return entry;
+}
+
+export default function PageHelp({ role }: { role?: UserRole }) {
   const pathname = usePathname() ?? "";
   const [open, setOpen] = useState(false);
 
@@ -433,7 +489,7 @@ export default function PageHelp() {
   }, [open]);
 
   if (pathname.startsWith("/login") || pathname.startsWith("/welcome")) return null;
-  const help = getHelp(pathname);
+  const help = getHelp(pathname, role);
   if (!help) return null;
 
   return (

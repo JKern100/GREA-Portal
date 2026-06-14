@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppHeader profile={profile} officeCode={officeCode} />
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "clamp(12px, 4vw, 28px) clamp(12px, 4vw, 24px)" }}>{children}</main>
       <FeedbackLauncher />
-      <PageHelp />
+      <PageHelp role={profile.role} />
       <PresenceBeacon userId={presenceUserId} />
     </>
   );
