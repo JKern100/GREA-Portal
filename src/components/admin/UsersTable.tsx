@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useOnlineIds } from "@/lib/presence";
@@ -54,6 +54,21 @@ const SECTOR_CLASS: Record<string, string> = {
   General: "sector-general"
 };
 
+const STATUS_BADGE_BASE: CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: 0.4,
+  padding: "2px 8px",
+  borderRadius: 10,
+  whiteSpace: "nowrap"
+};
+const STATUS_BADGE: Record<"registered" | "pending" | "reset", CSSProperties> = {
+  registered: { ...STATUS_BADGE_BASE, background: "#dcfce7", color: "#166534" },
+  pending: { ...STATUS_BADGE_BASE, background: "#fef3c7", color: "#92400e" },
+  reset: { ...STATUS_BADGE_BASE, background: "#ffe4e6", color: "#9f1239" }
+};
+
 function initialsFor(name: string | null | undefined, email: string | null | undefined): string {
   const source = (name ?? "").trim();
   if (source) {
@@ -88,6 +103,8 @@ export default function UsersTable({
   const [resetting, setResetting] = useState<string | null>(null);
   const [linkResult, setLinkResult] = useState<LinkResult | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
 
   // Read live presence from the shared store updated by PresenceBeacon.
   // We can't open our own channel here — Supabase returns the same
@@ -224,6 +241,8 @@ export default function UsersTable({
     router.refresh();
   }
 
+  const detailsProfile = detailsId ? profiles.find((p) => p.id === detailsId) ?? null : null;
+
   return (
     <>
       {linkResult && (
@@ -292,7 +311,7 @@ export default function UsersTable({
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflow: "auto" }}>
+      <div className="card" style={{ padding: 0, overflow: "visible" }}>
         <div
           style={{
             display: "flex",
@@ -322,13 +341,12 @@ export default function UsersTable({
         <table className="data-table">
           <thead>
             <tr>
-              <th style={{ minWidth: 260 }}>User</th>
+              <th style={{ minWidth: 240 }}>User</th>
               {permissions.canEditOffice && <th>Office</th>}
               <th>Role</th>
-              <th>Title</th>
-              <th>Specialties</th>
+              <th>Status</th>
               <th style={{ textAlign: "center" }}>Active</th>
-              <th></th>
+              <th aria-label="Actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -337,11 +355,11 @@ export default function UsersTable({
               const meta = authMeta[p.id];
               const hasSignedIn = !!meta?.last_sign_in_at;
               const isOnline = effectiveOnlineIds.has(p.id);
-              const specialties = p.specialties ?? [];
+              const menuOpen = openMenuId === p.id;
               return (
                 <tr key={p.id}>
                   <td>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ position: "relative", flexShrink: 0 }}>
                         <div
                           aria-hidden
@@ -376,91 +394,40 @@ export default function UsersTable({
                           }}
                         />
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <input
-                          className="form-input"
-                          style={{ padding: "4px 8px", fontSize: 13, fontWeight: 600, color: "var(--navy)" }}
-                          defaultValue={p.name ?? ""}
-                          placeholder="Add name"
-                          onBlur={(e) =>
-                            e.target.value !== (p.name ?? "") &&
-                            updateProfile(p.id, { name: e.target.value })
-                          }
-                        />
+                      <div style={{ minWidth: 0 }}>
                         <div
                           style={{
-                            marginTop: 4,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--navy)",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
+                          }}
+                        >
+                          {p.name || <span style={{ color: "var(--gray-400)", fontWeight: 400 }}>Add name</span>}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 2,
                             display: "flex",
                             alignItems: "center",
-                            gap: 8,
-                            flexWrap: "wrap",
+                            gap: 6,
                             fontSize: 12,
                             color: "var(--gray-600)"
                           }}
                         >
-                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span
+                            style={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: 220
+                            }}
+                          >
                             {p.email}
                           </span>
                           {isSelf && <span style={{ color: "var(--gold)", fontWeight: 600 }}>you</span>}
-                          {hasSignedIn ? (
-                            <span
-                              title={`Last signed in ${new Date(meta!.last_sign_in_at!).toLocaleString()}`}
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: 0.4,
-                                padding: "2px 8px",
-                                borderRadius: 10,
-                                background: "#dcfce7",
-                                color: "#166534"
-                              }}
-                            >
-                              Registered
-                            </span>
-                          ) : (
-                            <span
-                              title={
-                                meta?.invited_at
-                                  ? `Invited ${new Date(meta.invited_at).toLocaleString()} — hasn't signed in yet.`
-                                  : "Hasn't signed in yet."
-                              }
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: 0.4,
-                                padding: "2px 8px",
-                                borderRadius: 10,
-                                background: "#fef3c7",
-                                color: "#92400e"
-                              }}
-                            >
-                              Pending
-                            </span>
-                          )}
-                          {pendingResets?.[p.id] && (
-                            <span
-                              title={`Asked for a password reset on ${new Date(
-                                pendingResets[p.id]!.requested_at
-                              ).toLocaleString()}. Click 'Reset password' to issue a one-time link.`}
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: 0.4,
-                                padding: "2px 8px",
-                                borderRadius: 10,
-                                background: "#ffe4e6",
-                                color: "#9f1239"
-                              }}
-                            >
-                              Reset requested
-                            </span>
-                          )}
-                          {saving === p.id && (
-                            <span style={{ color: "var(--gray-400)", fontSize: 11 }}>saving…</span>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -523,47 +490,39 @@ export default function UsersTable({
                     )}
                   </td>
                   <td>
-                    <input
-                      className="form-input"
-                      style={{ padding: "4px 8px", fontSize: 13, minWidth: 120 }}
-                      defaultValue={p.title ?? ""}
-                      placeholder="—"
-                      onBlur={(e) =>
-                        e.target.value !== (p.title ?? "") &&
-                        updateProfile(p.id, { title: e.target.value })
-                      }
-                    />
-                  </td>
-                  <td style={{ minWidth: 240, maxWidth: 320 }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {SECTOR_OPTIONS.map((s) => {
-                        const checked = specialties.includes(s);
-                        const sectorClass = SECTOR_CLASS[s] ?? "sector-general";
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => {
-                              const next = checked
-                                ? specialties.filter((x) => x !== s)
-                                : Array.from(new Set([...specialties, s]));
-                              updateProfile(p.id, { specialties: next });
-                            }}
-                            className={
-                              checked ? `sector-badge ${sectorClass}` : "sector-badge sector-unselected"
-                            }
-                            style={{
-                              cursor: "pointer",
-                              opacity: checked ? 1 : 0.55,
-                              transition: "opacity 0.12s"
-                            }}
-                            aria-pressed={checked}
-                            title={checked ? `Remove ${s}` : `Add ${s}`}
-                          >
-                            {s}
-                          </button>
-                        );
-                      })}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                      {hasSignedIn ? (
+                        <span
+                          title={`Last signed in ${new Date(meta!.last_sign_in_at!).toLocaleString()}`}
+                          style={STATUS_BADGE.registered}
+                        >
+                          Registered
+                        </span>
+                      ) : (
+                        <span
+                          title={
+                            meta?.invited_at
+                              ? `Invited ${new Date(meta.invited_at).toLocaleString()} — hasn't signed in yet.`
+                              : "Hasn't signed in yet."
+                          }
+                          style={STATUS_BADGE.pending}
+                        >
+                          Pending
+                        </span>
+                      )}
+                      {pendingResets?.[p.id] && (
+                        <span
+                          title={`Asked for a password reset on ${new Date(
+                            pendingResets[p.id]!.requested_at
+                          ).toLocaleString()}. Use the row menu → 'Reset password' to issue a one-time link.`}
+                          style={STATUS_BADGE.reset}
+                        >
+                          Reset requested
+                        </span>
+                      )}
+                      {saving === p.id && (
+                        <span style={{ color: "var(--gray-400)", fontSize: 11 }}>saving…</span>
+                      )}
                     </div>
                   </td>
                   <td style={{ textAlign: "center" }}>
@@ -587,56 +546,96 @@ export default function UsersTable({
                       <span className="toggle-slider" />
                     </label>
                   </td>
-                  <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
-                    {!isSelf && (
-                      <div style={{ display: "inline-flex", gap: 6 }}>
-                        {!hasSignedIn ? (
+                  <td style={{ position: "relative", textAlign: "right", width: 40 }}>
+                    <button
+                      type="button"
+                      className="kebab-btn"
+                      aria-haspopup="menu"
+                      aria-expanded={menuOpen}
+                      aria-label="Row actions"
+                      onClick={() => setOpenMenuId(menuOpen ? null : p.id)}
+                    >
+                      ⋯
+                    </button>
+                    {menuOpen && (
+                      <>
+                        <div
+                          onClick={() => setOpenMenuId(null)}
+                          style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                        />
+                        <div role="menu" className="kebab-menu">
                           <button
-                            className="btn-outline"
-                            style={{ padding: "4px 10px", fontSize: 11 }}
-                            disabled={resending === p.id}
-                            onClick={() => resendInvite(p)}
-                            title="Generate a fresh invite link for this user"
+                            role="menuitem"
+                            className="kebab-item"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              setDetailsId(p.id);
+                            }}
                           >
-                            {resending === p.id ? "…" : "Copy invite link"}
+                            Edit details…
                           </button>
-                        ) : (
-                          <button
-                            className="btn-outline"
-                            style={{ padding: "4px 10px", fontSize: 11 }}
-                            disabled={resetting === p.id || !p.is_active}
-                            onClick={() => sendResetLink(p)}
-                            title={
-                              !p.is_active
-                                ? "Reactivate this user before issuing a password reset."
-                                : "Generate a one-time password-reset link for this user"
-                            }
-                          >
-                            {resetting === p.id ? "…" : "Reset password"}
-                          </button>
-                        )}
-                        {permissions.canImpersonate && (
-                          <button
-                            className="btn-outline"
-                            style={{ padding: "4px 10px", fontSize: 11 }}
-                            disabled={impersonating === p.id || deleting === p.id}
-                            onClick={() => impersonate(p.id)}
-                          >
-                            {impersonating === p.id ? "…" : "Impersonate"}
-                          </button>
-                        )}
-                        {permissions.canDelete && (
-                          <button
-                            className="btn-danger"
-                            style={{ padding: "4px 10px", fontSize: 11 }}
-                            disabled={deleting === p.id || impersonating === p.id}
-                            onClick={() => deleteUser(p)}
-                            title="Permanently delete this user"
-                          >
-                            {deleting === p.id ? "…" : "Delete"}
-                          </button>
-                        )}
-                      </div>
+                          {!isSelf &&
+                            (!hasSignedIn ? (
+                              <button
+                                role="menuitem"
+                                className="kebab-item"
+                                disabled={resending === p.id}
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  resendInvite(p);
+                                }}
+                              >
+                                {resending === p.id ? "Working…" : "Copy invite link"}
+                              </button>
+                            ) : (
+                              <button
+                                role="menuitem"
+                                className="kebab-item"
+                                disabled={resetting === p.id || !p.is_active}
+                                title={
+                                  !p.is_active
+                                    ? "Reactivate this user before issuing a password reset."
+                                    : undefined
+                                }
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  sendResetLink(p);
+                                }}
+                              >
+                                {resetting === p.id ? "Working…" : "Reset password"}
+                              </button>
+                            ))}
+                          {!isSelf && permissions.canImpersonate && (
+                            <button
+                              role="menuitem"
+                              className="kebab-item"
+                              disabled={impersonating === p.id || deleting === p.id}
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                impersonate(p.id);
+                              }}
+                            >
+                              {impersonating === p.id ? "Working…" : "Impersonate"}
+                            </button>
+                          )}
+                          {!isSelf && permissions.canDelete && (
+                            <>
+                              <div className="kebab-sep" />
+                              <button
+                                role="menuitem"
+                                className="kebab-item kebab-item-danger"
+                                disabled={deleting === p.id || impersonating === p.id}
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  deleteUser(p);
+                                }}
+                              >
+                                {deleting === p.id ? "Working…" : "Delete"}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -645,6 +644,107 @@ export default function UsersTable({
           </tbody>
         </table>
       </div>
+
+      {detailsProfile && (
+        <div className="modal-overlay" onClick={() => setDetailsId(null)}>
+          <div
+            className="modal-panel"
+            style={{ maxWidth: 520 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button className="modal-close" aria-label="Close" onClick={() => setDetailsId(null)}>
+              ×
+            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div
+                aria-hidden
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: "var(--navy)",
+                  color: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}
+              >
+                {initialsFor(detailsProfile.name, detailsProfile.email)}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--navy)" }}>
+                  {detailsProfile.name || "Unnamed user"}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--gray-600)" }}>{detailsProfile.email}</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label className="form-label">Name</label>
+              <input
+                key={`name-${detailsProfile.id}`}
+                className="form-input"
+                defaultValue={detailsProfile.name ?? ""}
+                placeholder="Add name"
+                onBlur={(e) =>
+                  e.target.value !== (detailsProfile.name ?? "") &&
+                  updateProfile(detailsProfile.id, { name: e.target.value })
+                }
+              />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label className="form-label">Title</label>
+              <input
+                key={`title-${detailsProfile.id}`}
+                className="form-input"
+                defaultValue={detailsProfile.title ?? ""}
+                placeholder="—"
+                onBlur={(e) =>
+                  e.target.value !== (detailsProfile.title ?? "") &&
+                  updateProfile(detailsProfile.id, { title: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Specialties</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {SECTOR_OPTIONS.map((s) => {
+                  const current = detailsProfile.specialties ?? [];
+                  const checked = current.includes(s);
+                  const sectorClass = SECTOR_CLASS[s] ?? "sector-general";
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        const next = checked
+                          ? current.filter((x) => x !== s)
+                          : Array.from(new Set([...current, s]));
+                        updateProfile(detailsProfile.id, { specialties: next });
+                      }}
+                      className={checked ? `sector-badge ${sectorClass}` : "sector-badge sector-unselected"}
+                      style={{ cursor: "pointer", opacity: checked ? 1 : 0.55, transition: "opacity 0.12s" }}
+                      aria-pressed={checked}
+                      title={checked ? `Remove ${s}` : `Add ${s}`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {saving === detailsProfile.id && (
+              <div style={{ marginTop: 14, color: "var(--gray-400)", fontSize: 12 }}>saving…</div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

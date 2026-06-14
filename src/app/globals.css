@@ -205,6 +205,50 @@ body {
 }
 .data-table tr:hover td { background: var(--gray-50); }
 
+/* Row actions (kebab) menu */
+.kebab-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--gray-600);
+  cursor: pointer;
+}
+.kebab-btn:hover { background: var(--gray-100); color: var(--navy); }
+.kebab-menu {
+  position: absolute;
+  top: 100%;
+  right: 8px;
+  z-index: 40;
+  min-width: 184px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  padding: 4px;
+}
+.kebab-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kebab-item:hover:not(:disabled) { background: var(--gray-100); color: var(--navy); }
+.kebab-item:disabled { color: var(--gray-400); cursor: not-allowed; }
+.kebab-item-danger { color: #b91c1c; }
+.kebab-item-danger:hover:not(:disabled) { background: #fee2e2; color: #991b1b; }
+.kebab-sep { height: 1px; background: var(--gray-100); margin: 4px 0; }
+
 /* Modal overlay */
 .modal-overlay {
   position: fixed;
