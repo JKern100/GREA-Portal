@@ -9,7 +9,7 @@ type Mode = "signin" | "forgot";
 function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get("next") || "/contacts";
+  const next = search.get("next") || "/pipeline";
   const wasDeactivated = search.get("inactive") === "1";
 
   const [mode, setMode] = useState<Mode>("signin");

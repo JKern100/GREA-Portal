@@ -15,8 +15,8 @@ export default function AppHeader({ profile, officeCode }: Props) {
   const isMobile = useIsMobile();
 
   const tabs = [
-    { href: "/contacts", label: "Contacts" },
     { href: "/pipeline", label: "Pipeline" },
+    { href: "/contacts", label: "Contacts" },
     { href: "/mailing-list", label: "Mailing List" }
   ];
   const adminTabs: { href: string; label: string }[] = [];

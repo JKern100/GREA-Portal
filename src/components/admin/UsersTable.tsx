@@ -237,7 +237,7 @@ export default function UsersTable({
       setImpersonating(null);
       return;
     }
-    router.push("/contacts");
+    router.push("/pipeline");
     router.refresh();
   }
 

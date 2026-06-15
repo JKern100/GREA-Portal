@@ -116,8 +116,8 @@ const SUPERADMIN_TABS: Tab[] = [
 ];
 
 const SUPERADMIN_SHARED_TABS: Tab[] = [
-  { href: "/admin/contacts", label: "Contacts", icon: ICON.contact },
   { href: "/admin/deals", label: "Pipeline", icon: ICON.pipeline },
+  { href: "/admin/contacts", label: "Contacts", icon: ICON.contact },
   { href: "/admin/mailing-list", label: "Mailing List", icon: ICON.mail }
 ];
 
@@ -127,8 +127,8 @@ const OFFICE_ADMIN_TABS: Tab[] = [
 ];
 
 const OFFICE_ADMIN_SHARED_TABS: Tab[] = [
-  { href: "/my-office/contacts", label: "Contacts", icon: ICON.contact },
-  { href: "/my-office/deals", label: "Pipeline", icon: ICON.pipeline }
+  { href: "/my-office/deals", label: "Pipeline", icon: ICON.pipeline },
+  { href: "/my-office/contacts", label: "Contacts", icon: ICON.contact }
 ];
 
 const cardStyle: React.CSSProperties = {

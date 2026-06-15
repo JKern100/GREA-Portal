@@ -110,7 +110,7 @@ function WelcomeContent() {
     }
     setPhase("done");
     setTimeout(() => {
-      router.push("/contacts");
+      router.push("/pipeline");
       router.refresh();
     }, 800);
   }

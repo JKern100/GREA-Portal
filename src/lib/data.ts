@@ -77,7 +77,7 @@ export async function requireSuperadmin(): Promise<Profile> {
   const real = await getRealProfile();
   if (!real) redirect("/login");
   const effective = await getCurrentProfile();
-  if (!effective || effective.role !== "superadmin") redirect("/contacts");
+  if (!effective || effective.role !== "superadmin") redirect("/pipeline");
   return effective;
 }
 
@@ -86,7 +86,7 @@ export async function requireOfficeAdminOrSuperadmin(): Promise<Profile> {
   if (!real) redirect("/login");
   const effective = await getCurrentProfile();
   if (!effective || (effective.role !== "office_admin" && effective.role !== "superadmin")) {
-    redirect("/contacts");
+    redirect("/pipeline");
   }
   return effective;
 }

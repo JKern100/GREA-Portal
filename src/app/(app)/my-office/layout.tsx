@@ -22,7 +22,7 @@ export default async function MyOfficeLayout({ children }: { children: React.Rea
 
   const offices = await listOffices();
   const office = offices.find((o) => o.id === profile.office_id);
-  if (!office) redirect("/contacts");
+  if (!office) redirect("/pipeline");
 
   return (
     <div>
