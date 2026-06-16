@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   // superadmin remains afterwards.
   const { data: target, error: targetErr } = await admin
     .from("profiles")
-    .select("id, role, name, email")
+    .select("id, role, name, email, is_protected")
     .eq("id", userId)
     .maybeSingle();
 
@@ -49,6 +49,16 @@ export async function POST(request: Request) {
   }
   if (!target) {
     return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
+
+  // Protected (owner) accounts can't be deleted by another admin. The
+  // service-role client above bypasses RLS, so this guard is what enforces
+  // it on this route.
+  if (target.is_protected && target.id !== real.id) {
+    return NextResponse.json(
+      { error: "This account is protected and can't be deleted by another admin." },
+      { status: 403 }
+    );
   }
 
   if (target.role === "superadmin") {

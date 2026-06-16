@@ -22,21 +22,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Cannot impersonate yourself" }, { status: 400 });
   }
 
+  const admin = createAdminClient();
+  const { data: target, error: targetErr } = await admin
+    .from("profiles")
+    .select("id, role, office_id, is_protected")
+    .eq("id", userId)
+    .maybeSingle();
+  if (targetErr || !target) {
+    return NextResponse.json({ error: "Target user not found." }, { status: 404 });
+  }
+
+  // Protected (owner) accounts can't be impersonated by anyone else. The
+  // service-role client bypasses RLS, so this guard enforces it here.
+  if (target.is_protected) {
+    return NextResponse.json(
+      { error: "This account is protected and can't be impersonated." },
+      { status: 403 }
+    );
+  }
+
   if (real.role === "office_admin") {
     if (!real.office_id) {
       return NextResponse.json(
         { error: "You must be assigned to an office to impersonate brokers." },
         { status: 400 }
       );
-    }
-    const admin = createAdminClient();
-    const { data: target, error } = await admin
-      .from("profiles")
-      .select("id, role, office_id")
-      .eq("id", userId)
-      .maybeSingle();
-    if (error || !target) {
-      return NextResponse.json({ error: "Target user not found." }, { status: 404 });
     }
     if (target.role !== "broker" || target.office_id !== real.office_id) {
       return NextResponse.json(

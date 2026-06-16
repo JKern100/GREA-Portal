@@ -352,6 +352,10 @@ export default function UsersTable({
           <tbody>
             {profiles.map((p) => {
               const isSelf = p.id === currentUserId;
+              // A protected (owner) account can't be edited or acted on by
+              // anyone else — mirror the server guards in the UI so other
+              // admins don't see controls that would just error.
+              const protectedLocked = p.is_protected && !isSelf;
               const meta = authMeta[p.id];
               const hasSignedIn = !!meta?.last_sign_in_at;
               const isOnline = effectiveOnlineIds.has(p.id);
@@ -439,6 +443,7 @@ export default function UsersTable({
                           className="form-input"
                           style={{ padding: "4px 8px", fontSize: 13, width: 110 }}
                           value={p.office_id ?? ""}
+                          disabled={protectedLocked}
                           onChange={(e) => updateProfile(p.id, { office_id: e.target.value || null })}
                         >
                           <option value="">—</option>
@@ -470,7 +475,7 @@ export default function UsersTable({
                     </td>
                   )}
                   <td>
-                    {permissions.canEditRole ? (
+                    {permissions.canEditRole && !protectedLocked ? (
                       <select
                         className="form-input"
                         style={{ padding: "4px 8px", fontSize: 13, width: 130 }}
@@ -510,6 +515,14 @@ export default function UsersTable({
                           Pending
                         </span>
                       )}
+                      {p.is_protected && (
+                        <span
+                          title="Protected owner — can't be demoted, deactivated, deleted, reset, or impersonated by other admins."
+                          style={{ ...STATUS_BADGE_BASE, background: "#e0e7ff", color: "#3730a3" }}
+                        >
+                          Protected
+                        </span>
+                      )}
                       {pendingResets?.[p.id] && (
                         <span
                           title={`Asked for a password reset on ${new Date(
@@ -531,16 +544,18 @@ export default function UsersTable({
                       title={
                         isSelf
                           ? "You can't deactivate your own account."
-                          : p.is_active
-                            ? "Active"
-                            : "Inactive"
+                          : protectedLocked
+                            ? "This account is protected and can't be deactivated by another admin."
+                            : p.is_active
+                              ? "Active"
+                              : "Inactive"
                       }
-                      style={isSelf ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+                      style={isSelf || protectedLocked ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
                     >
                       <input
                         type="checkbox"
                         checked={!!p.is_active}
-                        disabled={isSelf}
+                        disabled={isSelf || protectedLocked}
                         onChange={(e) => updateProfile(p.id, { is_active: e.target.checked })}
                       />
                       <span className="toggle-slider" />
@@ -574,7 +589,7 @@ export default function UsersTable({
                           >
                             Edit details…
                           </button>
-                          {!isSelf &&
+                          {!isSelf && !protectedLocked &&
                             (!hasSignedIn ? (
                               <button
                                 role="menuitem"
@@ -605,7 +620,7 @@ export default function UsersTable({
                                 {resetting === p.id ? "Working…" : "Reset password"}
                               </button>
                             ))}
-                          {!isSelf && permissions.canImpersonate && (
+                          {!isSelf && !protectedLocked && permissions.canImpersonate && (
                             <button
                               role="menuitem"
                               className="kebab-item"
@@ -618,7 +633,7 @@ export default function UsersTable({
                               {impersonating === p.id ? "Working…" : "Impersonate"}
                             </button>
                           )}
-                          {!isSelf && permissions.canDelete && (
+                          {!isSelf && !protectedLocked && permissions.canDelete && (
                             <>
                               <div className="kebab-sep" />
                               <button

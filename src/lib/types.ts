@@ -38,6 +38,13 @@ export interface Profile {
   office_id: string | null;
   role: UserRole;
   is_active: boolean;
+  /**
+   * A protected account cannot be demoted, deactivated, deleted,
+   * password-reset, or impersonated by any other admin — only by
+   * itself. Reserved for the owner so co-equal superadmins can't
+   * lock them out. Only a protected owner can change this flag.
+   */
+  is_protected: boolean;
   specialties: string[];
   /**
    * When a superadmin is impersonating another user, this holds the

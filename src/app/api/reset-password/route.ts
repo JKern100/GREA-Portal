@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   const { data: target, error: targetErr } = await admin
     .from("profiles")
-    .select("id, email, office_id, is_active")
+    .select("id, email, office_id, is_active, is_protected")
     .eq("id", userId)
     .maybeSingle();
 
@@ -41,6 +41,16 @@ export async function POST(request: Request) {
   }
   if (!target || !target.email) {
     return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
+
+  // Protected (owner) accounts can't be password-reset by another admin —
+  // otherwise a co-equal superadmin could issue a recovery link and seize
+  // the account. The service-role client bypasses RLS, so guard here.
+  if (target.is_protected && target.id !== real.id) {
+    return NextResponse.json(
+      { error: "This account is protected — only its owner can reset its password." },
+      { status: 403 }
+    );
   }
   // A deactivated account is bounced to /login on every request, so issuing a
   // reset link would just hand them a token that resets their password without
