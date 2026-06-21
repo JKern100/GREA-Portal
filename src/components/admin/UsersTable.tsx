@@ -82,8 +82,9 @@ function initialsFor(name: string | null | undefined, email: string | null | und
 
 interface LinkResult {
   email: string;
+  /** For invite/reset this is a URL; for "password" it's the temp password. */
   url: string | null;
-  mode: "invite" | "reset";
+  mode: "invite" | "reset" | "password";
 }
 
 export default function UsersTable({
@@ -101,6 +102,7 @@ export default function UsersTable({
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resending, setResending] = useState<string | null>(null);
   const [resetting, setResetting] = useState<string | null>(null);
+  const [settingPw, setSettingPw] = useState<string | null>(null);
   const [linkResult, setLinkResult] = useState<LinkResult | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -188,6 +190,32 @@ export default function UsersTable({
     router.refresh();
   }
 
+  async function setDirectPassword(p: Profile) {
+    if (
+      !confirm(
+        `Set a temporary password for ${p.name || p.email}? This bypasses email links — you'll get a password to share with them directly, and they can change it after signing in.`
+      )
+    ) {
+      return;
+    }
+    setLinkResult(null);
+    setLinkCopied(false);
+    setSettingPw(p.id);
+    const res = await fetch("/api/set-password", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: p.id })
+    });
+    setSettingPw(null);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(body.error ?? "Failed to set a password.");
+      return;
+    }
+    setLinkResult({ email: p.email, url: body.password ?? null, mode: "password" });
+    router.refresh();
+  }
+
   async function copyLink() {
     if (!linkResult?.url) return;
     try {
@@ -259,7 +287,9 @@ export default function UsersTable({
             <div style={{ color: "#065f46", fontWeight: 600, fontSize: 13 }}>
               {linkResult.mode === "reset"
                 ? `Password reset link for ${linkResult.email}`
-                : `Fresh invite link for ${linkResult.email}`}
+                : linkResult.mode === "password"
+                  ? `Temporary password for ${linkResult.email}`
+                  : `Fresh invite link for ${linkResult.email}`}
             </div>
             <button
               type="button"
@@ -294,12 +324,18 @@ export default function UsersTable({
                   style={{ padding: "6px 12px", fontSize: 12, whiteSpace: "nowrap" }}
                   onClick={copyLink}
                 >
-                  {linkCopied ? "Copied!" : "Copy link"}
+                  {linkCopied ? "Copied!" : linkResult.mode === "password" ? "Copy password" : "Copy link"}
                 </button>
               </div>
               {linkResult.mode === "reset" && (
                 <div style={{ marginTop: 8, fontSize: 11, color: "#065f46" }}>
                   Share this link with the user. It expires after 24 hours and can only be used once.
+                </div>
+              )}
+              {linkResult.mode === "password" && (
+                <div style={{ marginTop: 8, fontSize: 11, color: "#065f46" }}>
+                  Share this password with the user privately (not over the same email that may scan links).
+                  They can sign in with it right away and change it afterward.
                 </div>
               )}
             </>
@@ -357,7 +393,10 @@ export default function UsersTable({
               // admins don't see controls that would just error.
               const protectedLocked = p.is_protected && !isSelf;
               const meta = authMeta[p.id];
-              const hasSignedIn = !!meta?.last_sign_in_at;
+              // "Onboarded" = actually finished registering (set a password),
+              // not merely had a verification link opened. This is the honest
+              // signal for the status badge and the invite-vs-reset choice.
+              const onboarded = !!p.onboarded_at;
               const isOnline = effectiveOnlineIds.has(p.id);
               const menuOpen = openMenuId === p.id;
               return (
@@ -496,9 +535,13 @@ export default function UsersTable({
                   </td>
                   <td>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                      {hasSignedIn ? (
+                      {onboarded ? (
                         <span
-                          title={`Last signed in ${new Date(meta!.last_sign_in_at!).toLocaleString()}`}
+                          title={
+                            meta?.last_sign_in_at
+                              ? `Last signed in ${new Date(meta.last_sign_in_at).toLocaleString()}`
+                              : "Completed registration."
+                          }
                           style={STATUS_BADGE.registered}
                         >
                           Registered
@@ -507,8 +550,8 @@ export default function UsersTable({
                         <span
                           title={
                             meta?.invited_at
-                              ? `Invited ${new Date(meta.invited_at).toLocaleString()} — hasn't signed in yet.`
-                              : "Hasn't signed in yet."
+                              ? `Invited ${new Date(meta.invited_at).toLocaleString()} — hasn't set a password yet.`
+                              : "Hasn't set a password yet."
                           }
                           style={STATUS_BADGE.pending}
                         >
@@ -590,7 +633,7 @@ export default function UsersTable({
                             Edit details…
                           </button>
                           {!isSelf && !protectedLocked &&
-                            (!hasSignedIn ? (
+                            (!onboarded ? (
                               <button
                                 role="menuitem"
                                 className="kebab-item"
@@ -620,6 +663,20 @@ export default function UsersTable({
                                 {resetting === p.id ? "Working…" : "Reset password"}
                               </button>
                             ))}
+                          {!isSelf && !protectedLocked && (
+                            <button
+                              role="menuitem"
+                              className="kebab-item"
+                              disabled={settingPw === p.id}
+                              title="Set a password directly and share it with the user — bypasses email links (useful when link scanners consume invite/reset links)."
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setDirectPassword(p);
+                              }}
+                            >
+                              {settingPw === p.id ? "Working…" : "Set password directly"}
+                            </button>
+                          )}
                           {!isSelf && !protectedLocked && permissions.canImpersonate && (
                             <button
                               role="menuitem"

@@ -6,13 +6,24 @@ import { createClient } from "@/lib/supabase/client";
 
 type Phase = "loading" | "set-password" | "saving" | "done" | "error";
 
+// Shared guidance for a link that's already been consumed. The usual cause
+// here is a corporate email security scanner (SafeLinks/Mimecast) opening the
+// one-time link to scan it before the human clicks — which uses it up.
+const USED_LINK_MSG =
+  "This link has already been used. Some corporate email systems automatically open links to scan them, which can use up a one-time link before you click it. Ask for a fresh link and paste it straight into your browser's address bar instead of clicking it.";
+const EXPIRED_LINK_MSG =
+  "This link has expired. Invite and reset links are only valid for a limited time — ask the person who invited you for a fresh one.";
+
 function parseHashError(): string | null {
   if (typeof window === "undefined") return null;
   const hash = window.location.hash;
   if (!hash || !hash.includes("error")) return null;
   const params = new URLSearchParams(hash.slice(1));
-  const desc = params.get("error_description");
-  if (!desc) return "Invite link is invalid or has expired.";
+  const code = params.get("error_code") ?? "";
+  const desc = params.get("error_description") ?? "";
+  if (code === "otp_expired" || /expired/i.test(desc)) return EXPIRED_LINK_MSG;
+  if (code === "access_denied" || /invalid|used|consumed/i.test(desc)) return USED_LINK_MSG;
+  if (!desc) return USED_LINK_MSG;
   return decodeURIComponent(desc.replace(/\+/g, " "));
 }
 
@@ -51,10 +62,7 @@ function WelcomeContent() {
           .setSession({ access_token, refresh_token })
           .then(({ data, error }) => {
             if (error || !data.session?.user) {
-              setErrorMsg(
-                error?.message ??
-                  "This invite link is invalid or has already been used. Ask the person who invited you for a fresh one."
-              );
+              setErrorMsg(error?.message ?? USED_LINK_MSG);
               setPhase("error");
               return;
             }
@@ -80,9 +88,7 @@ function WelcomeContent() {
         setPhase("set-password");
         return;
       }
-      setErrorMsg(
-        "This invite link is invalid or has already been used. Ask the person who invited you for a fresh one."
-      );
+      setErrorMsg(USED_LINK_MSG);
       setPhase("error");
     });
   }, []);
@@ -102,11 +108,21 @@ function WelcomeContent() {
     const supabase = createClient();
     const updates: { password: string; data?: { name: string } } = { password: pwd };
     if (name.trim()) updates.data = { name: name.trim() };
-    const { error } = await supabase.auth.updateUser(updates);
+    const { data: updated, error } = await supabase.auth.updateUser(updates);
     if (error) {
       setErrorMsg(error.message);
       setPhase("set-password");
       return;
+    }
+    // Stamp onboarding completion so the admin "Registered" badge reflects a
+    // real, password-having account (not just a link that was opened). Best
+    // effort — a failure here shouldn't block the user from getting in.
+    const uid = updated.user?.id;
+    if (uid) {
+      await supabase
+        .from("profiles")
+        .update({ onboarded_at: new Date().toISOString() })
+        .eq("id", uid);
     }
     setPhase("done");
     setTimeout(() => {

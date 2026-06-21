@@ -45,6 +45,14 @@ export interface Profile {
    * lock them out. Only a protected owner can change this flag.
    */
   is_protected: boolean;
+  /**
+   * Set when the user actually completes registration — submitting the
+   * set-password form on /welcome, or an admin setting their password
+   * directly. Distinct from auth's last_sign_in_at, which is set merely
+   * by opening a verification link (e.g. an email scanner). Drives the
+   * "Registered" vs "Pending" badge so it reflects a real, usable account.
+   */
+  onboarded_at: string | null;
   specialties: string[];
   /**
    * When a superadmin is impersonating another user, this holds the
