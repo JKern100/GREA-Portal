@@ -35,12 +35,23 @@ export default function ChangePasswordView({ email, impersonating = false }: Pro
     }
     setSaving(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password: pwd });
-    setSaving(false);
+    const { data: updated, error } = await supabase.auth.updateUser({ password: pwd });
     if (error) {
+      setSaving(false);
       setErr(error.message);
       return;
     }
+    // The user set their OWN password → registration is genuinely complete.
+    // Stamp onboarded_at so the admin "Registered" badge reflects real
+    // ownership (an admin-set temp password doesn't count). Best effort.
+    const uid = updated.user?.id;
+    if (uid) {
+      await supabase
+        .from("profiles")
+        .update({ onboarded_at: new Date().toISOString() })
+        .eq("id", uid);
+    }
+    setSaving(false);
     setPwd("");
     setConfirm("");
     setDone(true);

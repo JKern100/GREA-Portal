@@ -88,12 +88,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: updErr.message }, { status: 400 });
   }
 
-  // The account now has a usable password → mark onboarding complete so the
-  // admin status badge is truthful, and clear any open reset requests.
-  await admin
-    .from("profiles")
-    .update({ onboarded_at: new Date().toISOString() })
-    .eq("id", userId);
+  // NOTE: we deliberately do NOT set onboarded_at here. An admin handing out
+  // a temporary password isn't the user completing registration — they still
+  // need to sign in and set their own password (via /account or /welcome),
+  // which is what stamps onboarded_at. So the badge stays "Pending" until the
+  // user actually takes ownership. We do clear any open reset requests.
   await admin
     .from("password_reset_requests")
     .update({ resolved_at: new Date().toISOString(), resolved_by: real.id })

@@ -550,8 +550,8 @@ export default function UsersTable({
                         <span
                           title={
                             meta?.invited_at
-                              ? `Invited ${new Date(meta.invited_at).toLocaleString()} — hasn't set a password yet.`
-                              : "Hasn't set a password yet."
+                              ? `Invited ${new Date(meta.invited_at).toLocaleString()} — hasn't signed in and set their own password yet.`
+                              : "Hasn't signed in and set their own password yet."
                           }
                           style={STATUS_BADGE.pending}
                         >
