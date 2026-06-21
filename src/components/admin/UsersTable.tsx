@@ -558,14 +558,6 @@ export default function UsersTable({
                           Pending
                         </span>
                       )}
-                      {p.is_protected && (
-                        <span
-                          title="Protected owner — can't be demoted, deactivated, deleted, reset, or impersonated by other admins."
-                          style={{ ...STATUS_BADGE_BASE, background: "#e0e7ff", color: "#3730a3" }}
-                        >
-                          Protected
-                        </span>
-                      )}
                       {pendingResets?.[p.id] && (
                         <span
                           title={`Asked for a password reset on ${new Date(
