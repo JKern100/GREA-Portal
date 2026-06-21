@@ -43,8 +43,20 @@ function LoginForm() {
     setLoading(true);
     const supabase = createClient();
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      // A successful password login means the account is genuinely in use —
+      // something an email link-scanner can't do. Mark onboarding complete if
+      // it isn't already, so the admin "Registered" badge reflects real usage
+      // (an admin-set temp password that's never used stays "Pending").
+      const uid = data.user?.id;
+      if (uid) {
+        await supabase
+          .from("profiles")
+          .update({ onboarded_at: new Date().toISOString() })
+          .eq("id", uid)
+          .is("onboarded_at", null);
+      }
       router.push(next);
       router.refresh();
     } catch (err) {
