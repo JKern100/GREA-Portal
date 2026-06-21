@@ -136,6 +136,19 @@ export default function AppHeader({ profile, officeCode }: Props) {
                 </div>
               </div>
             )}
+            <Link
+              href="/account"
+              title="Account & password"
+              style={{
+                color: "rgba(255,255,255,0.85)",
+                fontSize: isMobile ? 11 : 12,
+                fontWeight: 600,
+                textDecoration: "none",
+                whiteSpace: "nowrap"
+              }}
+            >
+              Account
+            </Link>
             <form action="/auth/signout" method="POST">
               <button
                 type="submit"
