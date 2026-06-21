@@ -117,37 +117,33 @@ export default function AppHeader({ profile, officeCode }: Props) {
             </div>
           </div>
           <div style={{ display: "flex", gap: isMobile ? 8 : 18, alignItems: "center", flexShrink: 0 }}>
-            {isMobile ? (
-              officeCode && (
-                <span
-                  title={`${profile.name || profile.email}${profile.role !== "broker" ? " · " + profile.role.replace("_", " ") : ""}`}
-                  style={{ color: "var(--gold)", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, whiteSpace: "nowrap" }}
-                >
-                  {officeCode}
-                </span>
-              )
-            ) : (
-              <div style={{ textAlign: "right", fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
-                <div style={{ fontWeight: 600, color: "white" }}>{profile.name || profile.email}</div>
-                <div>
-                  {officeCode ? <span style={{ color: "var(--gold)" }}>{officeCode}</span> : ""}
-                  {officeCode && profile.role !== "broker" ? " · " : ""}
-                  {profile.role !== "broker" && <span style={{ textTransform: "capitalize" }}>{profile.role.replace("_", " ")}</span>}
-                </div>
-              </div>
-            )}
             <Link
               href="/account"
               title="Account & password"
-              style={{
-                color: "rgba(255,255,255,0.85)",
-                fontSize: isMobile ? 11 : 12,
-                fontWeight: 600,
-                textDecoration: "none",
-                whiteSpace: "nowrap"
-              }}
+              style={{ textDecoration: "none", color: "inherit", cursor: "pointer" }}
             >
-              Account
+              {isMobile ? (
+                officeCode ? (
+                  <span
+                    style={{ color: "var(--gold)", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, whiteSpace: "nowrap" }}
+                  >
+                    {officeCode}
+                  </span>
+                ) : (
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                    Account
+                  </span>
+                )
+              ) : (
+                <div style={{ textAlign: "right", fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
+                  <div style={{ fontWeight: 600, color: "white" }}>{profile.name || profile.email}</div>
+                  <div>
+                    {officeCode ? <span style={{ color: "var(--gold)" }}>{officeCode}</span> : ""}
+                    {officeCode && profile.role !== "broker" ? " · " : ""}
+                    {profile.role !== "broker" && <span style={{ textTransform: "capitalize" }}>{profile.role.replace("_", " ")}</span>}
+                  </div>
+                </div>
+              )}
             </Link>
             <form action="/auth/signout" method="POST">
               <button
