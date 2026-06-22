@@ -106,9 +106,21 @@ export async function POST(request: Request) {
     .eq("user_id", target.id)
     .is("resolved_at", null);
 
+  // Click-to-verify link to our /welcome page (see invite-user for the
+  // rationale): the token is only consumed when the user clicks, so email
+  // link-scanners can't burn it on a GET.
+  const props = linkData.properties;
+  const welcome = new URL("/welcome", request.url);
+  let resetUrl: string | null = props?.action_link ?? null;
+  if (props?.hashed_token && props?.verification_type) {
+    welcome.searchParams.set("token_hash", props.hashed_token);
+    welcome.searchParams.set("type", props.verification_type);
+    resetUrl = welcome.toString();
+  }
+
   return NextResponse.json({
     ok: true,
     email: target.email,
-    resetUrl: linkData.properties?.action_link ?? null
+    resetUrl
   });
 }

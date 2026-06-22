@@ -3,14 +3,15 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { EmailOtpType } from "@supabase/supabase-js";
 
-type Phase = "loading" | "set-password" | "saving" | "done" | "error";
+type Phase = "loading" | "confirm" | "set-password" | "saving" | "done" | "error";
 
 // Shared guidance for a link that's already been consumed. The usual cause
 // here is a corporate email security scanner (SafeLinks/Mimecast) opening the
 // one-time link to scan it before the human clicks — which uses it up.
 const USED_LINK_MSG =
-  "This link has already been used. Some corporate email systems automatically open links to scan them, which can use up a one-time link before you click it. Ask for a fresh link and paste it straight into your browser's address bar instead of clicking it.";
+  "This link has already been used. Some corporate email systems automatically open links to scan them, which can use up a one-time link before you click it. Ask for a fresh link and click it again.";
 const EXPIRED_LINK_MSG =
   "This link has expired. Invite and reset links are only valid for a limited time — ask the person who invited you for a fresh one.";
 
@@ -35,6 +36,9 @@ function WelcomeContent() {
   const [confirmPwd, setConfirmPwd] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState<string | null>(null);
+  // Token from a click-to-verify link, held until the user clicks the button.
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
+  const [otpType, setOtpType] = useState<EmailOtpType | null>(null);
 
   useEffect(() => {
     const hashError = parseHashError();
@@ -47,12 +51,9 @@ function WelcomeContent() {
     const supabase = createClient();
     const hash = typeof window !== "undefined" ? window.location.hash : "";
 
-    // Supabase's /auth/v1/verify endpoint redirects here with
-    // #access_token=...&refresh_token=... (implicit flow). The browser
-    // client created by @supabase/ssr defaults to PKCE, whose URL
-    // detection looks for ?code=...&state=... and ignores the hash —
-    // so we extract the tokens ourselves and seed the session
-    // explicitly. This decouples /welcome from the client's flowType.
+    // Legacy implicit flow: Supabase's /verify endpoint redirects here with
+    // #access_token=...&refresh_token=.... Kept for any older outstanding
+    // links. New links use the click-to-verify query flow below.
     if (hash.includes("access_token")) {
       const params = new URLSearchParams(hash.slice(1));
       const access_token = params.get("access_token");
@@ -66,8 +67,6 @@ function WelcomeContent() {
               setPhase("error");
               return;
             }
-            // Strip the hash so a refresh doesn't try to re-consume the
-            // (now-used) tokens.
             window.history.replaceState(null, "", window.location.pathname);
             setEmail(data.session.user.email ?? null);
             setPhase("set-password");
@@ -80,8 +79,21 @@ function WelcomeContent() {
       }
     }
 
-    // No tokens in the hash — maybe the user is already signed in and
-    // navigated back to /welcome. Honor that; otherwise show the error.
+    // Click-to-verify flow: the token rides in the query string and is NOT
+    // consumed on load. A scanner GET stops here harmlessly; the token is only
+    // exchanged when the user clicks the button (confirmLink), so scanners
+    // can't burn it.
+    const q = new URLSearchParams(window.location.search);
+    const th = q.get("token_hash");
+    const ty = q.get("type");
+    if (th && ty) {
+      setTokenHash(th);
+      setOtpType(ty as EmailOtpType);
+      setPhase("confirm");
+      return;
+    }
+
+    // No tokens at all — maybe already signed in (navigated back to /welcome).
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setEmail(data.user.email ?? null);
@@ -92,6 +104,26 @@ function WelcomeContent() {
       setPhase("error");
     });
   }, []);
+
+  async function confirmLink() {
+    if (!tokenHash || !otpType) return;
+    setErrorMsg("");
+    setPhase("loading");
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: otpType
+    });
+    if (error || !data.session?.user) {
+      setErrorMsg(error?.message ?? USED_LINK_MSG);
+      setPhase("error");
+      return;
+    }
+    // Strip the token from the URL so a refresh can't try to re-use it.
+    window.history.replaceState(null, "", window.location.pathname);
+    setEmail(data.session.user.email ?? null);
+    setPhase("set-password");
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -115,8 +147,7 @@ function WelcomeContent() {
       return;
     }
     // Stamp onboarding completion so the admin "Registered" badge reflects a
-    // real, password-having account (not just a link that was opened). Best
-    // effort — a failure here shouldn't block the user from getting in.
+    // real, password-having account. Best effort.
     const uid = updated.user?.id;
     if (uid) {
       await supabase
@@ -137,13 +168,32 @@ function WelcomeContent() {
       <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>Welcome to the GREA Portal</div>
 
       {phase === "loading" && (
-        <p style={{ color: "var(--gray-500)", fontSize: 13, marginTop: 12 }}>Verifying your invite…</p>
+        <p style={{ color: "var(--gray-500)", fontSize: 13, marginTop: 12 }}>Verifying…</p>
+      )}
+
+      {phase === "confirm" && (
+        <>
+          <p style={{ color: "var(--gray-700)", fontSize: 13, marginTop: 8, marginBottom: 14 }}>
+            You&apos;re almost there. Click below to finish setting up your account.
+          </p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={confirmLink}
+            style={{ justifyContent: "center" }}
+          >
+            Set up my account
+          </button>
+          <p style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 12 }}>
+            This link can only be used once — click it when you&apos;re ready to set your password.
+          </p>
+        </>
       )}
 
       {phase === "error" && (
         <>
           <p style={{ color: "var(--gray-700)", fontSize: 13, marginTop: 8, marginBottom: 14 }}>
-            We couldn&apos;t verify your invite link.
+            We couldn&apos;t verify your link.
           </p>
           <div
             style={{
@@ -157,9 +207,6 @@ function WelcomeContent() {
           >
             {errorMsg}
           </div>
-          <p style={{ fontSize: 12, color: "var(--gray-600)", marginBottom: 14 }}>
-            Invite links expire after 24 hours and can only be used once. Ask the person who invited you to send a fresh link.
-          </p>
           <a
             href="/login"
             className="btn-outline"

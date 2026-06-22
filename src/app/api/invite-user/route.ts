@@ -162,9 +162,23 @@ export async function POST(request: Request) {
     }
   }
 
+  // Build a click-to-verify link to our own /welcome page carrying the token
+  // hash, instead of Supabase's action_link. Supabase's link consumes the
+  // one-time token on any GET (so email security scanners burn it before the
+  // user clicks). Our page only verifies the token on an explicit button
+  // click, so a scanner's GET leaves it intact.
+  const props = linkData.properties;
+  const welcome = new URL("/welcome", request.url);
+  let inviteUrl: string | null = props?.action_link ?? null;
+  if (props?.hashed_token && props?.verification_type) {
+    welcome.searchParams.set("token_hash", props.hashed_token);
+    welcome.searchParams.set("type", props.verification_type);
+    inviteUrl = welcome.toString();
+  }
+
   return NextResponse.json({
     ok: true,
     user: { id: linkData.user.id, email, role, office_id: officeId },
-    inviteUrl: linkData.properties?.action_link ?? null
+    inviteUrl
   });
 }
