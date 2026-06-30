@@ -68,12 +68,42 @@ function Badge({ children, color }: { children: React.ReactNode; color: { bg: st
 }
 
 function OfficeChip({ office }: { office: Office | null }) {
-  if (!office) return null;
+  // A ticket has no office when its submitter is a superadmin or an
+  // unassigned user (office is derived from the submitter's profile). Render
+  // an explicit muted pill rather than nothing, so the office is never
+  // ambiguously blank in the list.
+  if (!office) {
+    return (
+      <span
+        title="No office — submitted by a superadmin or a user with no office assigned"
+        style={{
+          flexShrink: 0,
+          padding: "4px 10px",
+          borderRadius: 4,
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          whiteSpace: "nowrap",
+          background: "var(--gray-100)",
+          color: "var(--gray-500)"
+        }}
+      >
+        No office
+      </span>
+    );
+  }
+  // The .office-badge CSS class only colours nyc/nj/dc/atl. Guarantee a
+  // visible chip for any other office by falling back to an inline style when
+  // it has no stored colour and an unrecognised code.
+  const known = ["nyc", "nj", "dc", "atl"].includes(office.code.toLowerCase());
+  const style = office.color
+    ? officeBadgeStyle(office, { flexShrink: 0 })
+    : known
+      ? { flexShrink: 0 }
+      : { flexShrink: 0, background: "var(--gray-100)", color: "var(--navy)" };
   return (
-    <span
-      className={`office-badge ${office.code.toLowerCase()}`}
-      style={officeBadgeStyle(office, { flexShrink: 0 })}
-    >
+    <span className={`office-badge ${office.code.toLowerCase()}`} style={style}>
       {office.code}
     </span>
   );
@@ -378,7 +408,7 @@ export default function FeedbackView({ profile, initialItems, profiles, offices 
                         <Badge color={statusColor(i.status)}>{i.status.replace("_", " ")}</Badge>
                       </td>
                       <td>
-                        {office ? <OfficeChip office={office} /> : <span style={{ color: "var(--gray-400)" }}>—</span>}
+                        <OfficeChip office={office} />
                       </td>
                       <td style={{ fontSize: 12 }}>
                         {i.submitted_by ? profileById[i.submitted_by]?.name || "—" : "—"}
