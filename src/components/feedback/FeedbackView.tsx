@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { officeBadgeStyle } from "@/lib/officeColor";
 import SubmitFeedbackModal from "@/components/feedback/SubmitFeedbackModal";
 import type {
   FeedbackCategory,
   FeedbackComment,
   FeedbackItem,
   FeedbackStatus,
+  Office,
   Profile
 } from "@/lib/types";
 import { FEEDBACK_CATEGORIES, FEEDBACK_STATUSES } from "@/lib/types";
@@ -17,6 +19,7 @@ interface Props {
   profile: Profile;
   initialItems: FeedbackItem[];
   profiles: Profile[];
+  offices: Office[];
 }
 
 function statusColor(s: FeedbackStatus) {
@@ -64,7 +67,19 @@ function Badge({ children, color }: { children: React.ReactNode; color: { bg: st
   );
 }
 
-export default function FeedbackView({ profile, initialItems, profiles }: Props) {
+function OfficeChip({ office }: { office: Office | null }) {
+  if (!office) return null;
+  return (
+    <span
+      className={`office-badge ${office.code.toLowerCase()}`}
+      style={officeBadgeStyle(office, { flexShrink: 0 })}
+    >
+      {office.code}
+    </span>
+  );
+}
+
+export default function FeedbackView({ profile, initialItems, profiles, offices }: Props) {
   const router = useRouter();
   const [items, setItems] = useState<FeedbackItem[]>(initialItems);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -84,12 +99,30 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | "all">("open");
   const [categoryFilter, setCategoryFilter] = useState<FeedbackCategory | "all">("all");
   const [assigneeFilter, setAssigneeFilter] = useState<"all" | "superadmin" | "other">("all");
+  const [officeFilter, setOfficeFilter] = useState<string | "all">("all");
 
   const profileById = useMemo(() => {
     const m: Record<string, Profile> = {};
     profiles.forEach((p) => (m[p.id] = p));
     return m;
   }, [profiles]);
+
+  const officeById = useMemo(() => {
+    const m: Record<string, Office> = {};
+    offices.forEach((o) => (m[o.id] = o));
+    return m;
+  }, [offices]);
+
+  // A ticket's office is the office of whoever submitted it (resolved live
+  // through their profile). Null for tickets whose submitter has no office or
+  // whose account was deleted.
+  const officeForItem = useCallback(
+    (i: FeedbackItem): Office | null => {
+      const oid = i.submitted_by ? profileById[i.submitted_by]?.office_id : null;
+      return oid ? officeById[oid] ?? null : null;
+    },
+    [profileById, officeById]
+  );
 
   // For the superadmin-only assignee filter: who counts as "super admin"?
   // Anyone whose profile.role === "superadmin". We resolve item.assigned_to
@@ -136,6 +169,7 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
     return items.filter((i) => {
       if (statusFilter !== "all" && i.status !== statusFilter) return false;
       if (categoryFilter !== "all" && i.category !== categoryFilter) return false;
+      if (officeFilter !== "all" && officeForItem(i)?.id !== officeFilter) return false;
       if (assigneeFilter !== "all") {
         // "superadmin" → assignee's profile is role=superadmin
         // "other"      → unassigned, or assigned to a non-superadmin
@@ -145,7 +179,7 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
       }
       return true;
     });
-  }, [items, statusFilter, categoryFilter, assigneeFilter, superadminIds]);
+  }, [items, statusFilter, categoryFilter, officeFilter, assigneeFilter, superadminIds, officeForItem]);
 
   const selected = selectedId ? items.find((i) => i.id === selectedId) ?? null : null;
 
@@ -207,6 +241,24 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
               ))}
             </select>
           </div>
+          {isSuperadmin && offices.length > 1 && (
+            <div>
+              <label className="form-label">Office</label>
+              <select
+                className="form-input"
+                style={{ width: 160 }}
+                value={officeFilter}
+                onChange={(e) => setOfficeFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                {offices.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {isSuperadmin && (
             <div>
               <label className="form-label">Assigned to</label>
@@ -228,59 +280,129 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 1.2fr" : "1fr", gap: 14, alignItems: "start" }}>
-        <div className="card" style={{ padding: 0, overflow: "auto" }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Submitter</th>
-                <th>Assigned</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((i) => (
-                <tr
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: selected ? "minmax(340px, 400px) 1fr" : "1fr",
+          gap: 14,
+          alignItems: "start"
+        }}
+      >
+        {selected ? (
+          // Compact card list: with the detail panel open the column is narrow,
+          // so a multi-column table would scroll sideways and wrap titles. Each
+          // card stacks its fields vertically and truncates the title instead.
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            {filtered.map((i) => {
+              const office = officeForItem(i);
+              const isSel = selectedId === i.id;
+              return (
+                <button
                   key={i.id}
-                  style={{
-                    cursor: "pointer",
-                    background: selectedId === i.id ? "var(--gray-50)" : undefined
-                  }}
+                  type="button"
                   onClick={() => setSelectedId(i.id)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    border: "none",
+                    borderLeft: `3px solid ${isSel ? "var(--navy)" : "transparent"}`,
+                    borderBottom: "1px solid var(--gray-100)",
+                    background: isSel ? "var(--gray-50)" : "transparent",
+                    padding: "10px 12px",
+                    cursor: "pointer"
+                  }}
                 >
-                  <td>
-                    <strong>{i.title}</strong>
-                  </td>
-                  <td>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 5 }}>
+                    <OfficeChip office={office} />
+                    <span
+                      title={i.title}
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "var(--navy)",
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {i.title}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                     <Badge color={categoryColor(i.category)}>{i.category}</Badge>
-                  </td>
-                  <td>
                     <Badge color={statusColor(i.status)}>{i.status.replace("_", " ")}</Badge>
-                  </td>
-                  <td style={{ fontSize: 12 }}>
-                    {i.submitted_by ? profileById[i.submitted_by]?.name || "—" : "—"}
-                  </td>
-                  <td style={{ fontSize: 12 }}>
-                    {i.assigned_to ? profileById[i.assigned_to]?.name || "—" : <em style={{ color: "var(--gray-400)" }}>unassigned</em>}
-                  </td>
-                  <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
-                    {new Date(i.created_at).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+                    <span style={{ fontSize: 11, color: "var(--gray-500)" }}>
+                      {i.submitted_by ? profileById[i.submitted_by]?.name || "—" : "—"} ·{" "}
+                      {new Date(i.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
+                No feedback matches your filters.
+              </div>
+            )}
+          </div>
+        ) : (
+          // Full-width table when nothing is selected — room for every column.
+          <div className="card" style={{ padding: 0, overflow: "auto" }}>
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
-                    No feedback matches your filters.
-                  </td>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Office</th>
+                  <th>Submitter</th>
+                  <th>Assigned</th>
+                  <th>Created</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((i) => {
+                  const office = officeForItem(i);
+                  return (
+                    <tr key={i.id} style={{ cursor: "pointer" }} onClick={() => setSelectedId(i.id)}>
+                      <td>
+                        <strong>{i.title}</strong>
+                      </td>
+                      <td>
+                        <Badge color={categoryColor(i.category)}>{i.category}</Badge>
+                      </td>
+                      <td>
+                        <Badge color={statusColor(i.status)}>{i.status.replace("_", " ")}</Badge>
+                      </td>
+                      <td>
+                        {office ? <OfficeChip office={office} /> : <span style={{ color: "var(--gray-400)" }}>—</span>}
+                      </td>
+                      <td style={{ fontSize: 12 }}>
+                        {i.submitted_by ? profileById[i.submitted_by]?.name || "—" : "—"}
+                      </td>
+                      <td style={{ fontSize: 12 }}>
+                        {i.assigned_to ? profileById[i.assigned_to]?.name || "—" : <em style={{ color: "var(--gray-400)" }}>unassigned</em>}
+                      </td>
+                      <td style={{ fontSize: 12, color: "var(--gray-500)" }}>
+                        {new Date(i.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: "center", color: "var(--gray-500)", padding: 20, fontSize: 13 }}>
+                      No feedback matches your filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {selected && (
           <FeedbackDetail
@@ -288,6 +410,7 @@ export default function FeedbackView({ profile, initialItems, profiles }: Props)
             item={selected}
             profile={profile}
             profiles={profiles}
+            office={officeForItem(selected)}
             isAdmin={isAdmin}
             onClose={() => setSelectedId(null)}
             onChange={upsertLocal}
@@ -320,6 +443,7 @@ function FeedbackDetail({
   item,
   profile,
   profiles,
+  office,
   isAdmin,
   onClose,
   onChange
@@ -327,6 +451,7 @@ function FeedbackDetail({
   item: FeedbackItem;
   profile: Profile;
   profiles: Profile[];
+  office: Office | null;
   isAdmin: boolean;
   onClose: () => void;
   onChange: (item: FeedbackItem) => void;
@@ -407,13 +532,15 @@ function FeedbackDetail({
           <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}>
             <Badge color={categoryColor(item.category)}>{item.category}</Badge>
             <Badge color={statusColor(item.status)}>{item.status.replace("_", " ")}</Badge>
+            <OfficeChip office={office} />
           </div>
           <h3 style={{ fontSize: 16, color: "var(--navy)", marginTop: 4 }}>{item.title}</h3>
           <div style={{ fontSize: 11, color: "var(--gray-500)", marginTop: 2 }}>
             Submitted{" "}
             {item.submitted_by && profileById[item.submitted_by]
               ? `by ${profileById[item.submitted_by].name || profileById[item.submitted_by].email}`
-              : ""}{" "}
+              : ""}
+            {office ? ` (${office.name})` : ""}{" "}
             on {new Date(item.created_at).toLocaleString()}
           </div>
         </div>
