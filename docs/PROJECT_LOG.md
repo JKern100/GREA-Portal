@@ -11,6 +11,38 @@ content.
 
 ---
 
+## 2026-07-10 — Specs from the second office-admin call (Annamaria, Ellie)
+
+Wrote `docs/SPECS_2026-07-10_ADMIN_CALL.md` — ten specs (S-1…S-10) from the
+July 9 call. Highlights and context not in the spec file itself:
+
+- **Root cause of "links expired in 45 minutes"** is almost certainly the
+  Supabase project's Email OTP expiration setting (defaults to 1 h on newer
+  projects), NOT the scanner issue (that was fixed 2026-07-02 via
+  click-to-verify). S-1 = raise the dashboard setting to the 24 h platform
+  max. 48 h (Annamaria's ask) is impossible on Supabase-managed tokens;
+  she accepted 24 h + easy re-issue as the answer on the call.
+- **"Reset password" already exists for office admins** — it's just hidden
+  for never-onboarded users (row menu shows Copy-invite-link XOR
+  Reset-password based on `onboarded`). The fix is naming/UX (S-2/S-3),
+  not new capability.
+- **Matching-rule question got a new dimension on this call**: Annamaria and
+  Ellie both want **company** in the mix (Ellie: company name is the most
+  stable signal; emails/domains churn). Also surfaced as a distinct feature:
+  group-by-company toggle in Contacts (S-6, buildable now, display-only).
+  The email Jeff sent Tiffany (2026-07-02 log entry) listed 3 options that
+  did NOT include company — expect her answer may need a follow-up round
+  incorporating company. Jeff committed on the call to writing a summary
+  email to the admins with conclusions + open questions for async iteration.
+- **Two new Tiffany decisions queued**: required broker email+name on
+  contacts import (S-7, Jeff recommends yes, phone stays optional), and the
+  relationship-strength 1–3 scale criteria (S-10 — Annamaria's "relationship
+  meter"; Jeff's position: worse than nothing if offices populate it
+  inconsistently, so criteria must be ratified cross-office first).
+- Feedback funnel reminder from the call: office feedback due into the
+  in-app tool; Annamaria consolidating her office's list. Ellie already
+  submitted pipeline-labeling feedback through the app.
+
 ## 2026-07-02 — Office-admin scoping review, Feedback UI redesign, dedup/identification questions
 
 ### What was confirmed (no code changes, verification only)
