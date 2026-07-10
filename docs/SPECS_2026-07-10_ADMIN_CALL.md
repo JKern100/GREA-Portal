@@ -199,7 +199,24 @@ existing rows in the DB are untouched.
 
 ---
 
-## S-8 · Feedback waiting — in-app notification for office admins (Ready, small/medium)
+## S-8 · Feedback waiting — in-app notification for office admins (Done — `useUnseenFeedback.ts` + `AdminSidebar.tsx`)
+
+**Built:** `useUnseenFeedback` counts **open** feedback items created after a
+per-device `localStorage` "last seen" timestamp (RLS scopes office admins to
+their own office; superadmins see all). A red count badge renders on the
+**Feedback** nav entry (a small dot in the collapsed icon rail). Opening
+`/feedback` stamps "seen = now" and clears the badge immediately; new
+submissions re-badge afterward. With no baseline yet, the whole current open
+backlog is surfaced.
+
+**Deliberate scope call:** implemented the **badge only**, not the "one-line
+dismissible banner" the spec also mentioned — a persistent nav badge is less
+intrusive than a banner on every page and already satisfies the acceptance
+criteria. Banner remains a trivial follow-up if the badge proves too subtle.
+
+<details><summary>Original spec</summary>
+
+**Change (no email, no migration):**
 
 **Reported:** "Can we get a notification that somebody from our team
 uploaded feedback and we need to review it?" No email engine exists; Jeff
@@ -219,6 +236,8 @@ later, add `profiles.last_feedback_seen_at` (small migration) — not now.
 
 **Acceptance:** admin logs in after a teammate files feedback → sees the
 badge; opens Feedback → badge clears until something new arrives.
+
+</details>
 
 ---
 
@@ -284,7 +303,7 @@ worse than not having it."
 |---|---|---|
 | S-1 | Resolved — verify with a test invite | none (no change needed; setting was already at max) |
 | S-2, S-3, S-4, S-5 | **Done** | none |
-| S-8 | Ready | none |
+| S-8 | **Done** | none |
 | S-6 | **Done** | none (align signal with Tiffany's rule when it lands) |
 | S-9 part 1 | Ready | none |
 | S-7 | Needs sign-off | Tiffany (Jeff recommends yes) |

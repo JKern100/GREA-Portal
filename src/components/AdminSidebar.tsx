@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIsMobile } from "@/lib/useIsMobile";
+import { useUnseenFeedback } from "@/lib/useUnseenFeedback";
 
 interface Tab {
   href: string;
@@ -147,9 +148,26 @@ const headerStyle: React.CSSProperties = {
   marginBottom: 10
 };
 
+const countBadgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 18,
+  height: 18,
+  padding: "0 5px",
+  borderRadius: 9,
+  background: "#dc2626",
+  color: "white",
+  fontSize: 11,
+  fontWeight: 700,
+  lineHeight: 1,
+  flexShrink: 0
+};
+
 export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse }: Props) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
+  const unseenFeedback = useUnseenFeedback();
   const isSuper = mode === "superadmin";
   const adminTabs = isSuper ? SUPERADMIN_TABS : OFFICE_ADMIN_TABS;
   const sharedTabs = isSuper ? SUPERADMIN_SHARED_TABS : OFFICE_ADMIN_SHARED_TABS;
@@ -158,6 +176,8 @@ export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse
   const renderLink = (t: Tab) => {
     const active =
       pathname != null && (pathname === t.href || pathname.startsWith(t.href + "/"));
+    // Badge count for the Feedback tab only (unseen open feedback, S-8).
+    const badge = t.href === "/feedback" ? unseenFeedback : 0;
     if (isMobile) {
       // Mobile chip-style tab. The desktop list-style padding/background
       // doesn't read well in a horizontal strip.
@@ -166,6 +186,9 @@ export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse
           key={t.href}
           href={t.href}
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
             padding: "8px 12px",
             borderRadius: 999,
             fontSize: 12,
@@ -178,6 +201,7 @@ export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse
           }}
         >
           {t.label}
+          {badge > 0 && <span style={countBadgeStyle} aria-label={`${badge} new`}>{badge}</span>}
         </Link>
       );
     }
@@ -186,9 +210,10 @@ export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse
         <Link
           key={t.href}
           href={t.href}
-          title={t.label}
-          aria-label={t.label}
+          title={badge > 0 ? `${t.label} — ${badge} new` : t.label}
+          aria-label={badge > 0 ? `${t.label}, ${badge} new` : t.label}
           style={{
+            position: "relative",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -201,6 +226,21 @@ export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse
           }}
         >
           {t.icon}
+          {badge > 0 && (
+            <span
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: 4,
+                right: 4,
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#dc2626",
+                border: "1.5px solid white"
+              }}
+            />
+          )}
         </Link>
       );
     }
@@ -209,6 +249,10 @@ export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse
         key={t.href}
         href={t.href}
         style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
           padding: "8px 10px",
           borderRadius: 6,
           fontSize: 13,
@@ -218,7 +262,8 @@ export default function AdminSidebar({ mode, collapsed = false, onToggleCollapse
           fontWeight: active ? 600 : 400
         }}
       >
-        {t.label}
+        <span>{t.label}</span>
+        {badge > 0 && <span style={countBadgeStyle} aria-label={`${badge} new`}>{badge}</span>}
       </Link>
     );
   };
