@@ -572,21 +572,24 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                                 </a>
                               </div>
                             )}
-                            {(o.contactEmail || o.contactPhone) && (
-                              <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 4, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
-                                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--gray-400)" }}>
-                                  Contact:
+                            {o.contactPhone && (
+                              <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 4 }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--gray-400)", marginRight: 4 }}>
+                                  Contact phone:
                                 </span>
-                                {o.contactEmail && (
-                                  <a href={`mailto:${o.contactEmail}`} style={{ color: "var(--navy)" }}>
-                                    {o.contactEmail}
-                                  </a>
-                                )}
-                                {o.contactPhone && (
-                                  <a href={`tel:${o.contactPhone}`} style={{ color: "var(--navy)" }}>
-                                    {o.contactPhone}
-                                  </a>
-                                )}
+                                <a href={`tel:${o.contactPhone}`} style={{ color: "var(--navy)" }}>
+                                  {o.contactPhone}
+                                </a>
+                              </div>
+                            )}
+                            {o.contactEmail && (
+                              <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2 }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--gray-400)", marginRight: 4 }}>
+                                  Contact email:
+                                </span>
+                                <a href={`mailto:${o.contactEmail}`} style={{ color: "var(--navy)" }}>
+                                  {o.contactEmail}
+                                </a>
                               </div>
                             )}
                             {o.tags.length > 0 && (
