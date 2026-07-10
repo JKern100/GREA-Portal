@@ -288,7 +288,7 @@ export default function ContactsView({ profile, offices, initialContacts, profil
             Search
           </button>
         </div>
-        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {([
             ["all", "All Fields"],
             ["contact", "Contact Name"],
@@ -317,13 +317,12 @@ export default function ContactsView({ profile, offices, initialContacts, profil
               {label}
             </label>
           ))}
-        </div>
-        <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: "var(--gray-500)", marginRight: 2 }}>Group by:</span>
-          {([
-            ["contact", "Contact"],
-            ["company", "Company"]
-          ] as [GroupBy, string][]).map(([v, label]) => (
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: "var(--gray-500)", marginRight: 2 }}>Group by:</span>
+            {([
+              ["contact", "Contact"],
+              ["company", "Company"]
+            ] as [GroupBy, string][]).map(([v, label]) => (
             <label
               key={v}
               title={
@@ -352,7 +351,8 @@ export default function ContactsView({ profile, offices, initialContacts, profil
               />
               {label}
             </label>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
