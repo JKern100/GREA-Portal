@@ -8,34 +8,37 @@ phase.*
 
 ---
 
-## S-1 · Invite/reset link lifetime — raise to the maximum (Config, do first)
+## S-1 · Invite/reset link lifetime — verify only, no action taken (Resolved: setting was already correct)
 
 **Reported:** links "expired within 45 minutes / an hour" of being sent;
 Annamaria asked for 48-hour validity.
 
-**Analysis:** link lifetime is not set in code — `generateLink()` tokens
-honor the Supabase project's **Auth → Email OTP expiration** setting, which
-defaults to **3600 s (1 hour)** on newer projects. That matches the "expired
-in 45 minutes" reports far better than scanner-consumption (which the
-click-to-verify `/welcome` flow, deployed 2026-07-02 `b297ead`, already
-prevents). Supabase caps this setting at **86400 s (24 h)** — true 48 h is
-not possible with Supabase-managed tokens without building a custom token
-system (out of scope).
+**Original theory (wrong):** assumed the project's Email OTP expiration was
+sitting at Supabase's 1-hour default. **Checked live on 2026-07-10 — it was
+already `86400` (24 h, the platform max).** Nothing to change; 48 h isn't
+achievable on Supabase-managed tokens without a custom token system (out of
+scope, noted below).
 
-**Change (dashboard, not code):**
-1. Supabase Dashboard → Authentication → Sessions/Email → set Email OTP
-   expiration to `86400`.
-2. Add this to the README deploy checklist.
+**Revised theory:** the reported expirations are almost certainly
+**scanner-burn on links generated before the 2026-07-02 click-to-verify fix**
+(`b297ead`) — Supabase's raw `action_link` auto-consumes on any GET,
+including a corporate email scanner's prefetch, and a token burned within
+seconds of being sent would read to the recipient as "expired in 45
+minutes." Links generated after that deploy route through `/welcome` and
+only consume the token on an explicit button click, so this shouldn't
+reproduce anymore.
 
-**Communicate to admins:** links last 24 h (platform maximum); re-issuing is
-one click (see S-2), so a lapsed link is a 30-second fix, and scanners can no
-longer burn links since the click-to-verify change.
+**Verification step (do before considering this closed):** send one fresh
+test invite now, wait a couple of hours, and confirm the link still works.
+If yes — S-1 needs no code or config change; the fix already shipped and the
+reports predate it. If it still fails — this is a live bug, re-open and
+investigate (check Vercel logs for that token).
 
 **Acceptance:** a fresh invite link opened 20 h after issuance still works.
 
 ---
 
-## S-2 · Re-issue link: naming + availability in the row menu (Ready, small)
+## S-2 · Re-issue link: naming + availability in the row menu (Done — `UsersTable.tsx`)
 
 **Reported:** "the only reset functionality is copy their invitation link…
 is there an option to just send them a new link quickly?"
@@ -60,7 +63,7 @@ action mints a new link rather than copying the expired one.
 
 ---
 
-## S-3 · Link result appears at top of page — easy to miss (Ready, small)
+## S-3 · Link result appears at top of page — easy to miss (Done — `UsersTable.tsx`)
 
 **Reported:** "the link pops up at the top. Sometimes when you're down on
 the list, you don't even realize that the link popped up. You have to scroll
@@ -81,7 +84,7 @@ of a long list shows the link without scrolling.
 
 ---
 
-## S-4 · "Email link…" via mailto (Ready, small)
+## S-4 · "Email link…" via mailto (Done — `UsersTable.tsx`)
 
 **Reported:** today the admin copies the link, opens their mail client,
 composes an email by hand. A system-sent email needs an email engine (future
@@ -100,7 +103,7 @@ in the body matches the one shown in the modal.
 
 ---
 
-## S-5 · Label broker vs. contact fields in the Contacts card (Ready, small)
+## S-5 · Label broker vs. contact fields in the Contacts card (Done — `ContactsView.tsx`)
 
 **Reported (Ellie):** in the expanded cross-office contact card, "it looks
 like a complete contact… who's the contact, and who's the broker?" — broker
@@ -112,11 +115,12 @@ next to the broker's name).
 `brokerName` / `brokerPhone` / `contactPhone` / `contactEmail` with layout
 implying — but never stating — which is which.
 
-**Change:** add explicit field labels to every office entry in the expanded
-card: **GREA Broker**, **Broker phone**, **Contact phone**, **Contact
-email**, **Status**, **Listing**. Same treatment in the collapsed row if the
-broker name appears there. Apply the same labels in
-`MyOfficeContacts.tsx` where the ambiguity repeats.
+**Change:** added explicit micro-labels to every office entry in the
+expanded card: **GREA broker:**, **Broker phone:**, **Contact:** (covering
+both contact email and phone together). **Note:** `MyOfficeContacts.tsx`
+turned out not to need this — it's a plain table with a "Broker" column
+header, which already disambiguates; no ambiguity existed there, so it was
+left unchanged.
 
 **Acceptance:** someone who has never seen the app can identify, from one
 expanded card, which person is the GREA broker and whose phone number is
@@ -262,8 +266,9 @@ worse than not having it."
 
 | Spec | Status | Blocking party |
 |---|---|---|
-| S-1 | Config only | none — do immediately |
-| S-2, S-3, S-4, S-5, S-8 | Ready | none |
+| S-1 | Resolved — verify with a test invite | none (no change needed; setting was already at max) |
+| S-2, S-3, S-4, S-5 | **Done** | none |
+| S-8 | Ready | none |
 | S-6 | Ready | none (align signal with Tiffany's rule when it lands) |
 | S-9 part 1 | Ready | none |
 | S-7 | Needs sign-off | Tiffany (Jeff recommends yes) |

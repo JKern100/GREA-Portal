@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useOnlineIds } from "@/lib/presence";
@@ -228,6 +228,30 @@ export default function UsersTable({
     }
   }
 
+  function emailLink() {
+    if (!linkResult?.url || linkResult.mode === "password") return;
+    const subject =
+      linkResult.mode === "reset" ? "Your GREA Portal password reset link" : "Your GREA Portal invite link";
+    const body =
+      `Hi,\n\nHere's your link to ${linkResult.mode === "reset" ? "reset your password" : "set up your account"} ` +
+      `on the GREA Portal:\n\n${linkResult.url}\n\nIt's valid for 24 hours and can only be used once.\n`;
+    const mailto = `mailto:${encodeURIComponent(linkResult.email)}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+  }
+
+  // Escape-to-close for the link-result modal, mirroring the pattern used
+  // elsewhere (e.g. DealDetailModal) for keyboard dismissal.
+  useEffect(() => {
+    if (!linkResult) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setLinkResult(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [linkResult]);
+
   async function deleteUser(p: Profile) {
     const label = p.name || p.email;
     if (
@@ -274,76 +298,66 @@ export default function UsersTable({
   return (
     <>
       {linkResult && (
-        <div
-          className="card"
-          style={{
-            marginBottom: 18,
-            padding: 12,
-            background: "#ecfdf5",
-            border: "1px solid #a7f3d0"
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <div style={{ color: "#065f46", fontWeight: 600, fontSize: 13 }}>
+        <div className="modal-overlay" onClick={() => setLinkResult(null)}>
+          <div className="modal-panel" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" aria-label="Close" onClick={() => setLinkResult(null)}>
+              ×
+            </button>
+            <div style={{ color: "var(--navy)", fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
               {linkResult.mode === "reset"
                 ? `Password reset link for ${linkResult.email}`
                 : linkResult.mode === "password"
                   ? `Temporary password for ${linkResult.email}`
-                  : `Fresh invite link for ${linkResult.email}`}
+                  : `New invite link for ${linkResult.email}`}
             </div>
-            <button
-              type="button"
-              onClick={() => setLinkResult(null)}
-              style={{
-                marginLeft: "auto",
-                background: "none",
-                border: "none",
-                color: "var(--gray-500)",
-                cursor: "pointer",
-                fontSize: 18,
-                lineHeight: 1
-              }}
-              aria-label="Dismiss"
-            >
-              ×
-            </button>
-          </div>
-          {linkResult.url ? (
-            <>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input
-                  id="link-result-input"
-                  readOnly
-                  value={linkResult.url}
-                  onFocus={(e) => e.currentTarget.select()}
-                  className="form-input"
-                  style={{ flex: 1, fontSize: 12, fontFamily: "monospace" }}
-                />
-                <button
-                  className="btn-outline"
-                  style={{ padding: "6px 12px", fontSize: 12, whiteSpace: "nowrap" }}
-                  onClick={copyLink}
-                >
-                  {linkCopied ? "Copied!" : linkResult.mode === "password" ? "Copy password" : "Copy link"}
-                </button>
+            {linkResult.url ? (
+              <>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    id="link-result-input"
+                    readOnly
+                    value={linkResult.url}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="form-input"
+                    style={{ flex: 1, fontSize: 12, fontFamily: "monospace" }}
+                  />
+                  <button
+                    className="btn-outline"
+                    style={{ padding: "6px 12px", fontSize: 12, whiteSpace: "nowrap" }}
+                    onClick={copyLink}
+                  >
+                    {linkCopied ? "Copied!" : linkResult.mode === "password" ? "Copy password" : "Copy link"}
+                  </button>
+                </div>
+                {linkResult.mode !== "password" && (
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    style={{ marginTop: 10, padding: "6px 12px", fontSize: 12 }}
+                    onClick={emailLink}
+                  >
+                    Email link…
+                  </button>
+                )}
+                {(linkResult.mode === "reset" || linkResult.mode === "invite") && (
+                  <div style={{ marginTop: 10, fontSize: 11, color: "var(--gray-600)" }}>
+                    Valid for 24 hours from now and can only be used once — any previous link for this
+                    person stops working once this one is used.
+                  </div>
+                )}
+                {linkResult.mode === "password" && (
+                  <div style={{ marginTop: 10, fontSize: 11, color: "var(--gray-600)" }}>
+                    Share this password with the user privately (not over the same email that may scan
+                    links). They can sign in with it right away and change it afterward.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontSize: 12, color: "var(--gray-600)" }}>
+                No URL came back from Supabase. Check the project&apos;s Auth settings.
               </div>
-              {linkResult.mode === "reset" && (
-                <div style={{ marginTop: 8, fontSize: 11, color: "#065f46" }}>
-                  Share this link with the user. It expires after 24 hours and can only be used once.
-                </div>
-              )}
-              {linkResult.mode === "password" && (
-                <div style={{ marginTop: 8, fontSize: 11, color: "#065f46" }}>
-                  Share this password with the user privately (not over the same email that may scan links).
-                  They can sign in with it right away and change it afterward.
-                </div>
-              )}
-            </>
-          ) : (
-            <div style={{ fontSize: 12, color: "var(--gray-600)" }}>
-              No URL came back from Supabase. Check the project&apos;s Auth settings.
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -630,12 +644,13 @@ export default function UsersTable({
                                 role="menuitem"
                                 className="kebab-item"
                                 disabled={resending === p.id}
+                                title="Generates a fresh 24-hour invite link — any previous link for this person stops working once this one is used."
                                 onClick={() => {
                                   setOpenMenuId(null);
                                   resendInvite(p);
                                 }}
                               >
-                                {resending === p.id ? "Working…" : "Copy invite link"}
+                                {resending === p.id ? "Working…" : "New invite link"}
                               </button>
                             ) : (
                               <button

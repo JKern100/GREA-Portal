@@ -441,7 +441,10 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                             {o.office}
                           </div>
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--gray-400)" }}>
+                                GREA broker:
+                              </span>
                               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--gray-800)" }}>{o.brokerName || "—"}</div>
                               {o.relationshipStatus && (
                                 <span
@@ -462,13 +465,19 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                             </div>
                             {o.brokerPhone && (
                               <div style={{ fontSize: 13, color: "var(--gray-500)" }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--gray-400)", marginRight: 4 }}>
+                                  Broker phone:
+                                </span>
                                 <a href={`tel:${o.brokerPhone}`} style={{ color: "var(--navy)", textDecoration: "none" }}>
                                   {o.brokerPhone}
                                 </a>
                               </div>
                             )}
                             {(o.contactEmail || o.contactPhone) && (
-                              <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 2, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              <div style={{ fontSize: 12, color: "var(--gray-500)", marginTop: 4, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--gray-400)" }}>
+                                  Contact:
+                                </span>
                                 {o.contactEmail && (
                                   <a href={`mailto:${o.contactEmail}`} style={{ color: "var(--navy)" }}>
                                     {o.contactEmail}
