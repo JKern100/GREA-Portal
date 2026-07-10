@@ -15,11 +15,15 @@ interface Props {
 }
 
 type SearchType = "all" | "contact" | "account";
+type GroupBy = "contact" | "company";
 
 interface OfficeGroupEntry {
   office: string;
   officeId: string;
   contactId: string;
+  /** The contact person's name on this specific record. Same across all
+   * entries of a Contact-mode group, but distinct per entry in Company mode. */
+  contactName: string;
   brokerName: string;
   brokerPhone: string;
   brokerEmail: string | null;
@@ -58,6 +62,7 @@ export default function ContactsView({ profile, offices, initialContacts, profil
   const [contacts] = useState<ContactRecord[]>(initialContacts);
   const [query, setQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("all");
+  const [groupBy, setGroupBy] = useState<GroupBy>("contact");
   const [lastQuery, setLastQuery] = useState("");
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [tagFilters, setTagFilters] = useState<string[]>([]);
@@ -128,7 +133,10 @@ export default function ContactsView({ profile, offices, initialContacts, profil
     [contacts]
   );
 
-  function runSearch() {
+  // `modeOverride` lets the Group-by toggle re-run the current query under the
+  // new grouping without waiting for the async setGroupBy to settle.
+  function runSearch(modeOverride?: GroupBy) {
+    const mode = modeOverride ?? groupBy;
     const q = query.trim();
     if (!q) return;
     const fuse = searchType === "contact" ? fuseContact : searchType === "account" ? fuseAccount : fuseAll;
@@ -143,6 +151,7 @@ export default function ContactsView({ profile, offices, initialContacts, profil
         office: officeCode,
         officeId: item.office_id,
         contactId: item.id,
+        contactName: item.contact_name,
         brokerName: item.broker_name_snapshot || "",
         brokerPhone: item.broker_phone_snapshot || "",
         brokerEmail: (item.broker_id && brokerEmailById[item.broker_id]) || null,
@@ -159,17 +168,32 @@ export default function ContactsView({ profile, offices, initialContacts, profil
 
       let merged = false;
       for (const g of out) {
-        if (g.offices.some((o) => o.officeId === item.office_id)) continue;
-        const nameFuse = new Fuse([{ n: g.contactName }], { keys: ["n"], threshold, ignoreLocation: true });
-        const acctFuse = new Fuse([{ n: g.accountName }], { keys: ["n"], threshold, ignoreLocation: true });
-        if (
-          nameFuse.search(item.contact_name).length > 0 &&
-          acctFuse.search(item.account_name).length > 0
-        ) {
-          g.offices.push(entry);
-          if ((r.score ?? 1) < g.score) g.score = r.score ?? 1;
-          merged = true;
-          break;
+        if (mode === "company") {
+          // Group by company (account name) alone. A company legitimately has
+          // many contacts, possibly several in the same office — so, unlike
+          // Contact mode, we do NOT dedupe by office here.
+          const acctFuse = new Fuse([{ n: g.accountName }], { keys: ["n"], threshold, ignoreLocation: true });
+          if (acctFuse.search(item.account_name).length > 0) {
+            g.offices.push(entry);
+            if ((r.score ?? 1) < g.score) g.score = r.score ?? 1;
+            merged = true;
+            break;
+          }
+        } else {
+          // Contact mode: same person = same contact name AND account name.
+          // One entry per office (dedupe) so a person shows once per office.
+          if (g.offices.some((o) => o.officeId === item.office_id)) continue;
+          const nameFuse = new Fuse([{ n: g.contactName }], { keys: ["n"], threshold, ignoreLocation: true });
+          const acctFuse = new Fuse([{ n: g.accountName }], { keys: ["n"], threshold, ignoreLocation: true });
+          if (
+            nameFuse.search(item.contact_name).length > 0 &&
+            acctFuse.search(item.account_name).length > 0
+          ) {
+            g.offices.push(entry);
+            if ((r.score ?? 1) < g.score) g.score = r.score ?? 1;
+            merged = true;
+            break;
+          }
         }
       }
       if (!merged) {
@@ -188,10 +212,25 @@ export default function ContactsView({ profile, offices, initialContacts, profil
     setExpanded({});
   }
 
+  function changeGroupBy(next: GroupBy) {
+    if (next === groupBy) return;
+    setGroupBy(next);
+    // Re-run the already-searched query under the new grouping so the toggle
+    // feels live; no-op if nothing has been searched yet.
+    if (groups !== null) runSearch(next);
+  }
+
+  // Distinct offices in a group — the honest "how many offices touch this"
+  // count. In Company mode g.offices can hold several contacts from one
+  // office, so length alone would overstate cross-office reach.
+  function distinctOfficeCount(g: Group): number {
+    return new Set(g.offices.map((o) => o.officeId)).size;
+  }
+
   const filteredGroups = useMemo(() => {
     if (!groups) return null;
     return groups.filter((g) => {
-      if (sharingFilter === "shared" && g.offices.length < 2) return false;
+      if (sharingFilter === "shared" && distinctOfficeCount(g) < 2) return false;
       if (tagFilters.length > 0) {
         const m = g.offices.some((o) => o.tags.some((t) => tagFilters.includes(t)));
         if (!m) return false;
@@ -244,7 +283,7 @@ export default function ContactsView({ profile, offices, initialContacts, profil
           <button
             className="btn-primary"
             style={{ padding: "12px 22px", ...(isMobile ? { width: "100%" } : {}) }}
-            onClick={runSearch}
+            onClick={() => runSearch()}
           >
             Search
           </button>
@@ -273,6 +312,42 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                 value={v}
                 checked={searchType === v}
                 onChange={() => setSearchType(v)}
+                style={{ display: "none" }}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, color: "var(--gray-500)", marginRight: 2 }}>Group by:</span>
+          {([
+            ["contact", "Contact"],
+            ["company", "Company"]
+          ] as [GroupBy, string][]).map(([v, label]) => (
+            <label
+              key={v}
+              title={
+                v === "company"
+                  ? "Group results by company — see every contact you have at a company, across all offices"
+                  : "Group results by person — see which offices share a contact"
+              }
+              style={{
+                padding: "6px 12px",
+                border: "1px solid var(--gray-200)",
+                borderRadius: 6,
+                fontSize: 13,
+                cursor: "pointer",
+                background: groupBy === v ? "var(--gold)" : "white",
+                color: groupBy === v ? "var(--navy)" : "var(--gray-600)",
+                fontWeight: groupBy === v ? 700 : 400
+              }}
+            >
+              <input
+                type="radio"
+                name="groupby"
+                value={v}
+                checked={groupBy === v}
+                onChange={() => changeGroupBy(v)}
                 style={{ display: "none" }}
               />
               {label}
@@ -368,8 +443,14 @@ export default function ContactsView({ profile, offices, initialContacts, profil
           ) : (
             <div>
               {filteredGroups!.map((g, i) => {
-              const multi = g.offices.length > 1;
+              const officeCount = distinctOfficeCount(g);
+              const multi = officeCount > 1;
               const allSectors = Array.from(new Set(g.offices.flatMap((o) => o.sectors)));
+              // Distinct office badges for the header (Company mode can hold
+              // several contacts from the same office; show each office once).
+              const headerOffices = Array.from(
+                new Map(g.offices.map((o) => [o.officeId, o])).values()
+              );
               return (
                 <div key={i} className="card" style={{ padding: 0, marginBottom: 12 }}>
                   <div
@@ -383,8 +464,20 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 17, fontWeight: 700, color: "var(--navy)" }}>{g.contactName}</div>
-                      <div style={{ fontSize: 14, color: "var(--gray-600)" }}>{g.accountName}</div>
+                      {groupBy === "company" ? (
+                        <>
+                          <div style={{ fontSize: 17, fontWeight: 700, color: "var(--navy)" }}>{g.accountName}</div>
+                          <div style={{ fontSize: 14, color: "var(--gray-600)" }}>
+                            {g.offices.length} contact{g.offices.length === 1 ? "" : "s"}
+                            {multi && ` · ${officeCount} offices`}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 17, fontWeight: 700, color: "var(--navy)" }}>{g.contactName}</div>
+                          <div style={{ fontSize: 14, color: "var(--gray-600)" }}>{g.accountName}</div>
+                        </>
+                      )}
                       {allSectors.length > 0 && (
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
                           {allSectors.map((s) => (
@@ -396,7 +489,7 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                       )}
                     </div>
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                      {g.offices.map((o) => (
+                      {headerOffices.map((o) => (
                         <span
                           key={o.officeId}
                           className={`office-badge ${o.office.toLowerCase()}`}
@@ -412,7 +505,8 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                   </div>
                   {multi && (
                     <div style={{ padding: "0 24px 10px", fontSize: 12, color: "var(--gold)", fontWeight: 600 }}>
-                      ★ Cross-office relationship — present in {g.offices.length} offices
+                      ★ {groupBy === "company" ? "Cross-office company" : "Cross-office relationship"} — present in{" "}
+                      {officeCount} offices
                     </div>
                   )}
                   {expanded[i] && (
@@ -441,6 +535,11 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                             {o.office}
                           </div>
                           <div style={{ flex: 1 }}>
+                            {groupBy === "company" && (
+                              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--navy)", marginBottom: 3 }}>
+                                {o.contactName || "—"}
+                              </div>
+                            )}
                             <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
                               <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--gray-400)" }}>
                                 GREA broker:
@@ -520,9 +619,9 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                             </span>
                           )}
                           {(() => {
-                            const subject = "GREA Contact Inquiry: " + g.contactName + " at " + g.accountName;
+                            const subject = "GREA Contact Inquiry: " + o.contactName + " at " + g.accountName;
                             const body =
-                              "Hi " + o.brokerName + ",\r\n\r\nI see you manage " + g.contactName + " at " + g.accountName + ". I'd like to discuss a potential opportunity — could we connect?\r\n\r\nBest regards";
+                              "Hi " + o.brokerName + ",\r\n\r\nI see you manage " + o.contactName + " at " + g.accountName + ". I'd like to discuss a potential opportunity — could we connect?\r\n\r\nBest regards";
                             const to = o.brokerEmail || "";
                             const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                             // Gmail's web compose URL works on desktop, but
@@ -580,7 +679,7 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                             const reportClick = () =>
                               setReportFor({
                                 contactId: o.contactId,
-                                title: `Issue with contact: ${g.contactName} (${o.office})`
+                                title: `Issue with contact: ${o.contactName} (${o.office})`
                               });
                             if (isMobile) {
                               // Mobile: full-width row of equal-flex

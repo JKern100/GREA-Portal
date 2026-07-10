@@ -128,7 +128,21 @@ whose. (Jeff: "let's not be guessing — label it.")
 
 ---
 
-## S-6 · Group-by toggle: Contact ↔ Company (Ready, medium)
+## S-6 · Group-by toggle: Contact ↔ Company (Done — `ContactsView.tsx`)
+
+**Built:** a gold-highlighted **"Group by: Contact | Company"** toggle in the
+search card. Contact mode = unchanged. Company mode groups results by fuzzy
+`account_name` alone (no per-office dedup, since a company legitimately has
+many contacts and several may sit in one office); the card header shows the
+company + "N contacts · M offices", and each expanded entry leads with the
+contact's name, then the labeled GREA broker (S-5) and contact details.
+Toggling re-runs the current query live. The "Shared only" filter and the
+cross-office banner now count *distinct offices* (not entry count) so a
+company with several contacts in one office isn't mislabeled as cross-office.
+Same fuzzy-signal caveat as before — revisit the grouping signal if/when
+Tiffany rules on the matching rule (see S-7/PROJECT_LOG).
+
+<details><summary>Original spec</summary>
 
 **Reported:** brokers search both directions — "sometimes they have a
 contact, sometimes they're looking for the best contact at a company"
@@ -152,6 +166,8 @@ signal once she rules.
 
 **Acceptance:** searching "Stonefield" in Company mode returns one
 Stonefield group listing all its contacts with their offices and brokers.
+
+</details>
 
 ---
 
@@ -269,7 +285,7 @@ worse than not having it."
 | S-1 | Resolved — verify with a test invite | none (no change needed; setting was already at max) |
 | S-2, S-3, S-4, S-5 | **Done** | none |
 | S-8 | Ready | none |
-| S-6 | Ready | none (align signal with Tiffany's rule when it lands) |
+| S-6 | **Done** | none (align signal with Tiffany's rule when it lands) |
 | S-9 part 1 | Ready | none |
 | S-7 | Needs sign-off | Tiffany (Jeff recommends yes) |
 | S-9 part 2 | Needs decision | Tiffany + broker feedback on real data |
