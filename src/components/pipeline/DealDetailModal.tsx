@@ -172,6 +172,10 @@ export default function DealDetailModal({ dealId, offices, profiles, profile, on
                 <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>Value</span>
                 <div><strong>{deal.deal_value ? "$" + deal.deal_value.toLocaleString() : "—"}</strong></div>
               </div>
+              <div>
+                <span style={{ fontSize: 11, color: "var(--gray-500)", textTransform: "uppercase" }}>List Date</span>
+                <div><strong>{deal.date_added || "—"}</strong></div>
+              </div>
             </div>
 
             <div style={{ marginBottom: 14 }}>

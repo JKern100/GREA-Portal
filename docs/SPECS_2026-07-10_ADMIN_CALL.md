@@ -241,7 +241,7 @@ badge; opens Feedback → badge clears until something new arrives.
 
 ---
 
-## S-9 · Pipeline date field — display it; naming decision open (Blocked on broker feedback)
+## S-9 · Pipeline date field — display it; naming decided as "List Date" (Done — `DealDetailModal.tsx`, `deals/import-schema.ts`, `PageHelp.tsx`)
 
 **Reported:** "Date added doesn't really make sense — we could know about a
 deal a year before it goes live." Suggested "Date launched"/"Listed date";
@@ -249,19 +249,23 @@ Ellie: get broker feedback once real data is in. Jeff also noticed the app
 doesn't display the date at all: "we're not even showing it, so I guess we
 should show it."
 
-**Current:** `deals.date_added` is required at import but not rendered in
-the pipeline card or `DealDetailModal`.
+**Decision (2026-07-10, Jeff):** call it **"List Date"** — no need to wait
+for broker feedback on real data; settled directly.
 
-**Change:**
-1. **Now (Ready):** show the date in `DealDetailModal` (with Stage History,
-   which it chronologically anchors).
-2. **Blocked:** the label ("Date added" vs "Listed"/"Launched") — one
-   GREA-wide term via Tiffany after broker feedback on real data. Import
-   header stays `Date Added` until then (aliases already tolerated by
-   `normaliseHeader`).
+**Built:**
+1. `DealDetailModal.tsx` now shows a **List Date** cell in the deal info grid
+   (next to Value), so the field is visible for the first time.
+2. Import template column header changed from `Date Added` to `List Date`
+   (`deals/import-schema.ts`). The underlying DB column/field name
+   (`date_added`) is unchanged — this is a label-only rename, no migration.
+3. **Backward compatible:** `Date Added` is still accepted as an alternate
+   header, so spreadsheets built from the old template keep importing
+   cleanly.
+4. Updated the two UI copy references in `PageHelp.tsx` that mentioned
+   "Date Added" by name.
 
-**Acceptance (part 1):** opening a deal shows its date with a neutral label
-("Date").
+**Acceptance:** opening a deal shows its List Date; a CSV using either
+`List Date` or `Date Added` as the header imports correctly.
 
 ---
 
@@ -305,7 +309,6 @@ worse than not having it."
 | S-2, S-3, S-4, S-5 | **Done** | none |
 | S-8 | **Done** | none |
 | S-6 | **Done** | none (align signal with Tiffany's rule when it lands) |
-| S-9 part 1 | Ready | none |
+| S-9 | **Done** | none (named "List Date" per Jeff's call) |
 | S-7 | Needs sign-off | Tiffany (Jeff recommends yes) |
-| S-9 part 2 | Needs decision | Tiffany + broker feedback on real data |
 | S-10 | Needs decision | Tiffany (define the 1–3 criteria cross-office) |

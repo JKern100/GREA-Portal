@@ -97,7 +97,7 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           ]
         }
       ],
-      tip: "Freshness is based on when records were uploaded to the portal, not the broker-entered 'Date Added' on each row."
+      tip: "Freshness is based on when records were uploaded to the portal, not the broker-entered 'List Date' on each row."
     }
   },
   {
@@ -208,7 +208,7 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           heading: "Bulk import / export",
           bullets: [
             "Export CSV / Export Excel — download every deal in your office.",
-            "Download template — a CSV (Deal Name, Stage, Date Added, etc.) with an Instructions sheet.",
+            "Download template — a CSV (Deal Name, Stage, List Date, etc.) with an Instructions sheet.",
             "Upload pipeline — Add-on appends new deals; Replace clears your office's pipeline first."
           ]
         },

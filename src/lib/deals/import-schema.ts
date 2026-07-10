@@ -31,7 +31,7 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "buyer_name", header: "Buyer", required: false, hint: "Optional." },
   { key: "sectors", header: "Sectors", required: false, hint: "Optional. Semicolon-separated, e.g. 'Multifamily; General'." },
   { key: "om_link", header: "OM Link", required: false, hint: "Optional. URL to the offering memorandum." },
-  { key: "date_added", header: "Date Added", required: true, hint: "Required. YYYY-MM-DD preferred; M/D/YYYY also accepted." },
+  { key: "date_added", header: "List Date", required: true, hint: "Required. YYYY-MM-DD preferred; M/D/YYYY also accepted." },
   { key: "notes", header: "Notes", required: false, hint: "Optional free-text notes." },
   { key: "is_confidential", header: "Confidential", required: false, hint: "Optional. true / false. Defaults to false." }
 ];
@@ -152,6 +152,9 @@ const HEADER_TO_KEY: Record<string, string> = (() => {
   m[normaliseHeader("Property Type *")] = "property_type";
   m[normaliseHeader("Stage *")] = "stage";
   m[normaliseHeader("Date Added *")] = "date_added";
+  // "Date Added" was the column's original label — keep accepting it so
+  // spreadsheets built from the old template still import cleanly.
+  m[normaliseHeader("Date Added")] = "date_added";
   m[normaliseHeader("Amount")] = "deal_value";
   m[normaliseHeader("amount_$")] = "deal_value";
   m[normaliseHeader("Broker")] = "broker_email";
