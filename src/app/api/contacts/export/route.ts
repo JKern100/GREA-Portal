@@ -35,6 +35,7 @@ function rowFor(c: ContactRecord, brokerEmailById: Map<string, string>): string[
     contact_phone: c.contact_phone,
     contact_email: c.contact_email,
     relationship_status: c.relationship_status,
+    relationship_strength: c.relationship_strength,
     listing: c.listing,
     note: c.note,
     tags: c.tags,

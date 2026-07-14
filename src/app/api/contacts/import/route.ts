@@ -281,6 +281,7 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
       contact_phone: r.contact_phone,
       contact_email: r.contact_email,
       relationship_status: r.relationship_status,
+      relationship_strength: r.relationship_strength,
       listing: r.listing,
       note: r.note,
       tags: r.tags,

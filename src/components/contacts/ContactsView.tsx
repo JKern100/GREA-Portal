@@ -30,6 +30,9 @@ interface OfficeGroupEntry {
   contactPhone: string | null;
   contactEmail: string | null;
   relationshipStatus: string | null;
+  /** 1-3, which office has the strongest relationship with this contact
+   * (spec S-10). Optional -- most rows won't have it populated yet. */
+  relationshipStrength: number | null;
   lastContactDate: string | null;
   listing: string | null;
   note: string | null;
@@ -158,6 +161,7 @@ export default function ContactsView({ profile, offices, initialContacts, profil
         contactPhone: item.contact_phone,
         contactEmail: item.contact_email,
         relationshipStatus: item.relationship_status,
+        relationshipStrength: item.relationship_strength,
         lastContactDate: item.last_contact_date,
         listing: item.listing,
         note: item.note,
@@ -207,6 +211,11 @@ export default function ContactsView({ profile, offices, initialContacts, profil
     });
 
     out.sort((a, b) => a.score - b.score);
+    // Within each group, strongest relationship first (spec S-10) — nulls
+    // (not yet rated) sort last, ties keep their original office order.
+    out.forEach((g) => {
+      g.offices.sort((a, b) => (b.relationshipStrength ?? 0) - (a.relationshipStrength ?? 0));
+    });
     setGroups(out);
     setLastQuery(q);
     setExpanded({});
@@ -559,6 +568,23 @@ export default function ContactsView({ profile, offices, initialContacts, profil
                                   }}
                                 >
                                   {o.relationshipStatus}
+                                </span>
+                              )}
+                              {o.relationshipStrength && (
+                                <span
+                                  title={`Relationship strength: ${o.relationshipStrength}/3`}
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    padding: "1px 7px",
+                                    borderRadius: 10,
+                                    background: "#fdf8ec",
+                                    color: "var(--gold)",
+                                    border: "1px solid #f3e2b8",
+                                    letterSpacing: 1
+                                  }}
+                                >
+                                  {"★".repeat(o.relationshipStrength) + "☆".repeat(3 - o.relationshipStrength)}
                                 </span>
                               )}
                             </div>

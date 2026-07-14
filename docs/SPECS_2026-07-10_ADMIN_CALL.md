@@ -171,31 +171,28 @@ Stonefield group listing all its contacts with their offices and brokers.
 
 ---
 
-## S-7 · Contacts import: broker email + name become required (Blocked → Ready pending Tiffany's OK)
+## S-7 · Contacts import: broker email + name become required (Done — Tiffany replied "Agreed" 2026-07-10)
 
 **Reported:** Annamaria: "broker name and email and phone need to be
 required." Jeff: agree on **name and email; phone stays optional**.
 "Otherwise, what's the point? Here's a great contact… and what do I do with
-it?" Needs Tiffany's confirmation as a cross-office rule (Jeff will
-recommend it).
+it?"
 
-**Current:** `src/lib/contacts/import-schema.ts:23-25` — `broker_email`,
-`broker_name`, `broker_phone` all `required: false`.
+**Built:** `src/lib/contacts/import-schema.ts` — `broker_email` and
+`broker_name` are now `required: true` (`broker_phone` stays optional).
+`parseRow` pushes a per-row error when either is blank, so the row is
+skipped and reported exactly like `contact_name`/`account_name` today — no
+change to the import route itself was needed, since it already generically
+skips-and-reports any row with `errors.length > 0`.
 
-**Change (once confirmed):**
-1. Flip `required: true` on `broker_email` and `broker_name`
-   (`mapHeaders` then auto-rejects files missing the columns).
-2. In `parseRow`, empty `broker_email` or `broker_name` becomes a per-row
-   error → row is skipped and reported, consistent with other required
-   fields.
-3. **Unchanged:** an email that doesn't match a registered user still
-   imports unassigned with the aggregate warning — required means
-   *present*, not *registered*.
-4. Update the template hints and the field-definition spreadsheet shared
-   with admins.
+**Unchanged (by design):** an email that doesn't match a registered office
+member still imports unassigned, snapshotting the broker name/phone from the
+file, with the aggregate "N broker emails aren't registered yet" warning —
+required means *present in the file*, not *a matched account*.
 
 **Acceptance:** a row without broker email or name is skipped and reported;
-existing rows in the DB are untouched.
+existing rows already in the DB are untouched (validation only applies at
+import time).
 
 ---
 
@@ -269,7 +266,7 @@ for broker feedback on real data; settled directly.
 
 ---
 
-## S-10 · Relationship-strength field, 1–3 (Blocked — Tiffany defines the scale)
+## S-10 · Relationship-strength field, 1–3 (Done — Tiffany: "sounds good in theory... start with this" 2026-07-10)
 
 **Reported (Annamaria):** a "relationship meter" so that when multiple
 offices hold the same contact, brokers can see who has the strongest
@@ -278,16 +275,88 @@ to reach out to is"). Jeff: simple 1/2/3 scale, but criteria must be defined
 once, cross-office, by Tiffany — "if people populate it differently, it's
 worse than not having it."
 
-**Change (pre-speced, do not build until the scale is ratified):**
-1. Migration: `contacts.relationship_strength smallint null check (1..3)`.
-2. Import template: optional `Relationship Strength` column (1–3; blank ok);
-   per-row error on other values.
-3. Display: badge on each office entry in the grouped contact card (works
-   in both S-6 modes — in Company view it directly answers "who should call
-   Dominion"); entries sorted strongest-first within a group.
-4. Export: round-trips like every other column.
+**Tiffany's answer treated as approval of the *mechanism*, not a final
+rubric** — she flagged wanting to see real data before fully committing
+("I feel like we may need to see the data come in"). What "1" vs "2" vs "3"
+concretely means is still undefined; built the scale as a plain numeric
+1–3 rating without baking in specific criteria text, so it's ready to use
+but the actual definitions are still an open cross-office conversation.
 
-**Acceptance:** deferred until unblocked.
+**Built:**
+1. Migration `0024_contact_relationship_strength.sql`:
+   `contacts.relationship_strength smallint null check (between 1 and 3)`.
+   **Not yet applied to the live database** — needs the normal migration
+   push before it takes effect; the column doesn't exist in production
+   until then.
+2. Import template: optional `Relationship Strength` column (1–3, blank
+   allowed); `parseRelationshipStrength` rejects anything else as a per-row
+   error, consistent with other validated fields.
+3. Display: a gold star badge (★★☆ etc., with a tooltip showing "N/3") next
+   to the relationship-status pill on each office entry in the Contacts
+   card — works in both S-6 modes. Entries within a group are now sorted
+   strongest-first, so in Company mode the top entry directly answers "who
+   should call Dominion."
+4. Export/`ContactRecord`/`ParsedRow`: threaded through like every other
+   column; round-trips cleanly.
+
+**Acceptance:** importing a contact with `Relationship Strength = 3` shows a
+full gold star badge; a group with mixed ratings displays strongest office
+first; an out-of-range value (e.g. "5") is skipped and reported.
+
+---
+
+## S-11 · Cross-office matching signal — Tiffany gave direction, exact rule still needed
+
+**Background:** the open question sent to Tiffany on 2026-07-02 (see
+PROJECT_LOG) asked her to pick the signal that decides two contacts across
+offices are "the same person" for display grouping, offering three
+email/name-based options. This call added a fourth input: both Annamaria and
+Ellie feel **company name** is actually the more stable signal, since emails
+and domains change but a company's name usually doesn't.
+
+**Tiffany's answer (2026-07-10):** "I trust this POV from the team... add
+the company name in per their suggestion along with the email-based
+options... hopefully we don't have to check and adjust once the data comes
+in."
+
+**Why this isn't built yet:** her answer is directional, not a precise
+algorithm. Still undefined: does an email match override a company-name
+mismatch (or vice versa)? Is company-only matching allowed when a contact
+has no email at all? How loose should company-name fuzzy matching be, given
+Annamaria's earlier fear of false merges from renames/acquisitions? Building
+the wrong precedence order risks exactly the false-merge problem the room
+has been worried about since the first call — so this needs one more
+round with Jeff to nail the exact rule before implementation, rather than
+guessing.
+
+**Status:** direction confirmed, precise rule pending. Once settled, this
+should update S-6's grouping logic (`ContactsView.tsx`) in both Contact and
+Company modes.
+
+---
+
+## S-12 · Office-admin instructions for the first real-data import — gap identified, not yet written
+
+**Surfaced by:** Tiffany's reply asked directly, "Do they have the
+instructions on this first pull?" — in response to the ask for every office
+to prepare a real (non-dummy) test import using the shared field-mapping
+spreadsheet.
+
+**Finding:** no, there isn't a dedicated guide. What exists today:
+- The downloaded Excel template's built-in "Instructions" sheet (per-column
+  required/optional + format hints, generated straight from
+  `TEMPLATE_COLUMNS`).
+- `docs/PHASE1_PROTOTYPE_GUIDE.md` — but this only covers *using* the
+  read-only mirror, not preparing an import.
+
+Nothing walks an office admin through turning their own system's export into
+a file that matches the template for the first time.
+
+**Status:** gap confirmed, not yet built. A short first-import guide is the
+natural fix — should probably cover: where to get the template, what "required"
+means and what happens to a row that fails validation, how replace-all vs.
+add-on behave, and the review-before-first-import step Jeff already
+committed to in the recap email.
 
 ---
 
@@ -310,5 +379,7 @@ worse than not having it."
 | S-8 | **Done** | none |
 | S-6 | **Done** | none (align signal with Tiffany's rule when it lands) |
 | S-9 | **Done** | none (named "List Date" per Jeff's call) |
-| S-7 | Needs sign-off | Tiffany (Jeff recommends yes) |
-| S-10 | Needs decision | Tiffany (define the 1–3 criteria cross-office) |
+| S-7 | **Done** | none |
+| S-10 | **Done** (migration not yet applied to prod — see note) | none for the mechanism; exact 1–3 criteria still open |
+| S-11 | Direction confirmed, rule pending | Jeff (nail the exact precedence before building) |
+| S-12 | Gap confirmed, not built | none — ready to write |

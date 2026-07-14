@@ -11,6 +11,41 @@ content.
 
 ---
 
+## 2026-07-10 (later) — Tiffany's decisions on the three pending items
+
+Replied to Jeff's recap email (sent to the full office-admin distribution
+list). Three rulings:
+
+1. **S-10 relationship-strength scale**: approved to start with 1-3, with an
+   explicit caveat — "I feel like we may need to see the data come in...
+   I suggest we start with this." Read as: build it now, but treat the 1/2/3
+   *criteria* as provisional, likely to be recalibrated once real data is in.
+   Not a request to hold off building.
+2. **S-7 required broker fields on import**: "Agreed" — unambiguous, no
+   caveat. Cleared to build (broker name + email required, phone stays
+   optional, per the original spec).
+3. **Matching/identification signal**: "I trust this POV from the team...
+   add the company name in per their suggestion along with the email-based
+   options." Directional (combine company + email), not a precise algorithm
+   — doesn't specify precedence (does an email match override a company
+   mismatch? is company-only matching allowed when there's no email?) or how
+   loose company-name fuzzy matching should be, which matters given
+   Annamaria's earlier fear of false merges (company renames/acquisitions).
+   Treated as a business-direction confirmation, not yet translated into an
+   exact rule — flagged back to Jeff before implementing, rather than
+   guessing the precedence order silently.
+
+**Real gap surfaced**: Tiffany asked "Do they have the instructions on this
+first pull?" in reply to the ask for offices to submit real test-data
+spreadsheets. Checked — no, they don't. The only existing self-serve
+material is the per-column hints baked into the downloaded Excel template's
+"Instructions" sheet; there's no guide for an office admin mapping their own
+system's data into the template for the first time.
+`docs/PHASE1_PROTOTYPE_GUIDE.md` only covers *using* the read-only mirror,
+not preparing an import. Drafting a short first-import guide as a result.
+
+---
+
 ## 2026-07-10 — Specs from the second office-admin call (Annamaria, Ellie)
 
 Wrote `docs/SPECS_2026-07-10_ADMIN_CALL.md` — ten specs (S-1…S-10) from the

@@ -20,12 +20,13 @@ export interface TemplateColumn {
 export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "contact_name", header: "Contact Name", required: true, hint: "Required. Full name of the contact." },
   { key: "account_name", header: "Account / Company", required: true, hint: "Required. Company or account the contact belongs to." },
-  { key: "broker_email", header: "Broker Email", required: false, hint: "Optional. Email of the broker in your office to link to their account. If they aren't a registered user yet, the row still imports — use Broker Name to show who owns it." },
-  { key: "broker_name", header: "Broker Name", required: false, hint: "Optional. Broker's display name. Used when the broker isn't a registered user yet." },
+  { key: "broker_email", header: "Broker Email", required: true, hint: "Required. Email of the broker in your office who owns this contact. If they aren't a registered user yet, the row still imports — use Broker Name to show who owns it." },
+  { key: "broker_name", header: "Broker Name", required: true, hint: "Required. Broker's display name. Used when the broker isn't a registered user yet." },
   { key: "broker_phone", header: "Broker Phone", required: false, hint: "Optional. Broker's display phone." },
   { key: "contact_phone", header: "Phone", required: false, hint: "Optional." },
   { key: "contact_email", header: "Email", required: false, hint: "Optional." },
   { key: "relationship_status", header: "Relationship Status", required: false, hint: "Optional. e.g. Active, Prospect, Former." },
+  { key: "relationship_strength", header: "Relationship Strength", required: false, hint: "Optional. 1-3, where 3 is the strongest relationship. Leave blank if unsure." },
   { key: "listing", header: "Listing", required: false, hint: "Optional. Associated listing or property." },
   { key: "note", header: "Note", required: false, hint: "Optional free-text note." },
   { key: "tags", header: "Tags", required: false, hint: "Optional. Semicolon-separated, e.g. 'Client; Active'." },
@@ -46,6 +47,7 @@ export const TEMPLATE_SAMPLE_ROW: string[] = [
   "(212) 555-0100",
   "jane@acme.com",
   "Active",
+  "2",
   "123 Main St",
   "Met at conference",
   "Client; Active",
@@ -66,6 +68,7 @@ export interface ParsedRow {
   contact_phone: string | null;
   contact_email: string | null;
   relationship_status: string | null;
+  relationship_strength: number | null;
   listing: string | null;
   note: string | null;
   tags: string[];
@@ -96,6 +99,16 @@ function parseBool(v: unknown): { value: boolean; error?: string } {
   if (["true", "yes", "y", "1"].includes(lower)) return { value: true };
   if (["false", "no", "n", "0"].includes(lower)) return { value: false };
   return { value: false, error: `Invalid boolean "${s}" — use true/false.` };
+}
+
+function parseRelationshipStrength(v: unknown): { value: number | null; error?: string } {
+  const s = nullable(v);
+  if (!s) return { value: null };
+  const n = Number(s);
+  if (!Number.isInteger(n) || n < 1 || n > 3) {
+    return { value: null, error: `Invalid relationship_strength "${s}" — use a whole number 1-3, or leave blank.` };
+  }
+  return { value: n };
 }
 
 /**
@@ -153,6 +166,10 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
   if (!account_name) errors.push("account_name is required");
 
   const broker_email = nullable(raw.broker_email)?.toLowerCase() ?? null;
+  if (!broker_email) errors.push("broker_email is required");
+
+  const broker_name = nullable(raw.broker_name);
+  if (!broker_name) errors.push("broker_name is required");
 
   const last = nullable(raw.last_contact_date);
   let last_contact_date: string | null = null;
@@ -168,6 +185,9 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
   const conf = parseBool(raw.is_confidential);
   if (conf.error) errors.push(conf.error);
 
+  const strength = parseRelationshipStrength(raw.relationship_strength);
+  if (strength.error) errors.push(strength.error);
+
   return {
     rowNumber,
     raw,
@@ -175,11 +195,12 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
     contact_name,
     account_name,
     broker_email,
-    broker_name: nullable(raw.broker_name),
+    broker_name,
     broker_phone: nullable(raw.broker_phone),
     contact_phone: nullable(raw.contact_phone),
     contact_email: nullable(raw.contact_email),
     relationship_status: nullable(raw.relationship_status),
+    relationship_strength: strength.value,
     listing: nullable(raw.listing),
     note: nullable(raw.note),
     tags: splitList(raw.tags),

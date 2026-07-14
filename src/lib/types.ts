@@ -72,6 +72,13 @@ export interface ContactRecord {
   contact_phone: string | null;
   contact_email: string | null;
   relationship_status: string | null;
+  /**
+   * Optional 1-3 scale: which office's relationship with this (possibly
+   * shared) contact is strongest. Criteria for what each level means is a
+   * cross-office decision (spec S-10) -- the column only enforces the
+   * numeric range.
+   */
+  relationship_strength: number | null;
   listing: string | null;
   note: string | null;
   tags: string[];
