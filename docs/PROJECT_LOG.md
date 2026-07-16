@@ -11,6 +11,16 @@ content.
 
 ---
 
+## 2026-07-14 — Created docs/WISHLIST.md (future-version feature list)
+
+Consolidated the deferred/"future version" items — from the office-admin
+feedback round (exported via the new Feedback CSV) plus known parking-lot
+items from the earlier calls — into `docs/WISHLIST.md`, grouped by theme with
+source attribution. Biggest deferred theme = a collaboration layer (comments/
+notes on records + tag broker/office in a comment), raised independently by
+Ellie and Annamaria. Refer to it when scoping the next version. Standardization
+decisions (Tiffany's) and bugs are explicitly excluded from it.
+
 ## 2026-07-14 — Superadmin Feedback CSV export (S-14)
 
 Added an "Export CSV" button on the Feedback page, superadmin-only, so Jeff
