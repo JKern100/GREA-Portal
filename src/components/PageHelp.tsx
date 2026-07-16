@@ -53,7 +53,7 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
     entry: {
       title: "Pipeline",
       intro:
-        "Cross-office deal pipeline. See every active deal across the firm, drill into stage history, and report problems on a deal back to the owning office.",
+        "Cross-office deal pipeline. See every active deal across the firm, drill into the details, and report problems on a deal back to the owning office.",
       sections: [
         {
           heading: "Browse and filter",
@@ -343,7 +343,7 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
           heading: "Filter and edit",
           bullets: [
             "Filter by office or search by name / party / address / broker / property type.",
-            "Stage is editable inline via the row's stage dropdown (changes are recorded in deal_stage_history); other fields are read-only here — edit them in My Office → Pipeline."
+            "Stage is editable inline via the row's stage dropdown; other fields are read-only here — edit them in My Office → Pipeline."
           ]
         },
         {

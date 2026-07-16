@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { officeBadgeStyle } from "@/lib/officeColor";
-import type { DealRecord, DealStageHistory, Office, Profile } from "@/lib/types";
+import type { DealRecord, Office, Profile } from "@/lib/types";
 import { useIsMobile } from "@/lib/useIsMobile";
 
 interface Props {
@@ -17,7 +17,6 @@ interface Props {
 export default function DealDetailModal({ dealId, offices, profiles, profile, onClose }: Props) {
   const isMobile = useIsMobile();
   const [deal, setDeal] = useState<DealRecord | null>(null);
-  const [history, setHistory] = useState<DealStageHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [omEditing, setOmEditing] = useState(false);
@@ -72,12 +71,8 @@ export default function DealDetailModal({ dealId, offices, profiles, profile, on
       setLoading(true);
       setLoadError(null);
       const supabase = createClient();
-      const [d, h] = await Promise.all([
-        supabase.from("deals").select("*").eq("id", dealId).single(),
-        supabase.from("deal_stage_history").select("*").eq("deal_id", dealId).order("occurred_on", { ascending: true })
-      ]);
+      const d = await supabase.from("deals").select("*").eq("id", dealId).single();
       if (d.data) setDeal(d.data as DealRecord);
-      if (h.data) setHistory(h.data as DealStageHistory[]);
       // Surface a real failure instead of leaving a permanent "Loading…".
       if (!d.data) setLoadError(d.error?.message ?? "Couldn't load this deal.");
       setLoading(false);
@@ -271,36 +266,6 @@ export default function DealDetailModal({ dealId, offices, profiles, profile, on
                 <strong>Notes:</strong> {deal.notes}
               </div>
             )}
-
-            <h3 style={{ fontSize: 14, color: "var(--navy)", marginBottom: 8 }}>Stage History</h3>
-            <div style={{ borderLeft: "2px solid var(--gray-200)", marginLeft: 8, paddingLeft: 16, marginBottom: 18 }}>
-              {history.map((h, i) => (
-                <div key={h.id} style={{ marginBottom: 12, position: "relative" }}>
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: -22,
-                      top: 2,
-                      width: 12,
-                      height: 12,
-                      borderRadius: "50%",
-                      background: i === history.length - 1 ? "var(--gold)" : "var(--gray-300)",
-                      border: "2px solid white"
-                    }}
-                  />
-                  <div style={{ fontSize: 12, color: "var(--gray-500)" }}>{h.occurred_on}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>
-                    {h.stage}
-                    {h.note && (
-                      <>
-                        {" — "}
-                        <span style={{ fontWeight: 400, color: "var(--gray-600)" }}>{h.note}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
 
             {specialists.length > 0 && (
               <div style={{ marginBottom: 16 }}>

@@ -11,6 +11,25 @@ content.
 
 ---
 
+## 2026-07-14 — Stage History removed from the UI (deferred to a later version)
+
+Removed the "Stage History" section from the deal detail modal
+(`DealDetailModal.tsx`) and its two mentions in `PageHelp.tsx`. Reason: the
+feature never actually worked — nothing in the app (or import) ever wrote to
+`deal_stage_history`, so the timeline was always empty, and it can't be made
+to work for import-driven stage changes until deal identity across uploads is
+solved (deals get a fresh UUID on every import; no external/reference id —
+same unresolved problem as contact matching / S-11, but on the Pipeline side;
+noted in the earlier Stage-History discussion, not yet a tracked spec item).
+
+**Deliberately left intact for a clean reintroduction later:** the
+`deal_stage_history` table + its RLS (untouched in prod), the
+`DealStageHistory` type, and `DealRecord.stage_history`. Only the UI render,
+the now-unused fetch/state, and the inaccurate help copy ("changes are
+recorded in deal_stage_history") were removed.
+
+---
+
 ## 2026-07-10 (later) — Tiffany's decisions on the three pending items
 
 Replied to Jeff's recap email (sent to the full office-admin distribution
