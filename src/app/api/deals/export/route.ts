@@ -32,6 +32,7 @@ function rowFor(d: DealRecord, brokerEmailById: Map<string, string>): string[] {
     property_type: d.property_type,
     deal_value: d.deal_value,
     stage: d.stage,
+    sub_status: d.sub_status,
     broker_email,
     broker_name: d.assigned_broker_name,
     seller_name: d.seller_name,

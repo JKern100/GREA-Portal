@@ -279,6 +279,7 @@ export async function POST(request: Request): Promise<NextResponse<ImportRespons
       om_link: r.om_link,
       date_added: r.date_added,
       notes: r.notes,
+      sub_status: r.sub_status,
       is_confidential: r.is_confidential,
       created_by: profile.id
     });

@@ -11,6 +11,16 @@ content.
 
 ---
 
+## 2026-07-14 — Deal Sub-status (Won/Lost) added to import/export (S-13)
+
+Found while reviewing a real pipeline export: `sub_status` (Won/Lost) was
+DB+UI only, set exclusively by seed data — no import/export column, no edit
+UI. Real Closed deals would never show Won/Lost, and an export→Replace-all
+cycle would silently drop it. Jeff chose option 1 (dedicated Sub-status
+column, not folding into Stage). Built + verified — see spec doc S-13.
+Note: still no in-app UI to set Won/Lost on an existing deal (import-only);
+left as a separate future feature by choice.
+
 ## 2026-07-14 — Stage History removed from the UI (deferred to a later version)
 
 Removed the "Stage History" section from the deal detail modal

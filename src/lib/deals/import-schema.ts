@@ -9,7 +9,7 @@
  * (always the admin's own office) so it is not part of the template.
  */
 
-import { DEAL_STAGES, type DealStage } from "@/lib/types";
+import { DEAL_STAGES, type DealStage, type DealSubStatus } from "@/lib/types";
 import { parseImportDate } from "@/lib/importDate";
 
 export interface TemplateColumn {
@@ -25,6 +25,7 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "property_type", header: "Property Type", required: false, hint: "Optional. e.g. Multifamily, Mixed-Use." },
   { key: "deal_value", header: "Amount ($)", required: false, hint: "Optional. Numeric, e.g. 12500000 or 12,500,000." },
   { key: "stage", header: "Stage", required: true, hint: `Required. One of: ${DEAL_STAGES.join(", ")}.` },
+  { key: "sub_status", header: "Sub-status", required: false, hint: "Optional. Won or Lost — only used when Stage is Closed. Leave blank otherwise." },
   { key: "broker_email", header: "Broker Email", required: false, hint: "Optional. Email of the broker in your office to link to their account. If they aren't a registered user yet, the row still imports — use Broker Name to show who owns it." },
   { key: "broker_name", header: "Broker Name", required: false, hint: "Optional. Broker's display name. Used when the broker isn't a registered user yet." },
   { key: "seller_name", header: "Seller", required: false, hint: "Optional." },
@@ -45,6 +46,7 @@ export const TEMPLATE_SAMPLE_ROW: string[] = [
   "Multifamily",
   "12500000",
   "Listing",
+  "",
   "broker@grea.com",
   "Sam Broker",
   "Goldberg Family Trust",
@@ -65,6 +67,7 @@ export interface ParsedRow {
   property_type: string | null;
   deal_value: number | null;
   stage: DealStage;
+  sub_status: DealSubStatus | null;
   broker_email: string | null;
   broker_name: string | null;
   seller_name: string | null;
@@ -129,6 +132,18 @@ function parseStage(v: unknown): { value: DealStage; error?: string } {
   return { value: matched };
 }
 
+const SUBSTATUS_BY_LOWER: Record<string, DealSubStatus> = { won: "Won", lost: "Lost" };
+
+function parseSubStatus(v: unknown): { value: DealSubStatus | null; error?: string } {
+  const s = nullable(v);
+  if (!s) return { value: null };
+  const matched = SUBSTATUS_BY_LOWER[s.toLowerCase()];
+  if (!matched) {
+    return { value: null, error: `Invalid sub-status "${s}" — use Won, Lost, or leave blank.` };
+  }
+  return { value: matched };
+}
+
 /**
  * Normalise a header string for matching ("Deal Name " → "deal_name").
  * Accepts both the human header ("Deal Name") and the underlying key
@@ -158,6 +173,7 @@ const HEADER_TO_KEY: Record<string, string> = (() => {
   m[normaliseHeader("Amount")] = "deal_value";
   m[normaliseHeader("amount_$")] = "deal_value";
   m[normaliseHeader("Broker")] = "broker_email";
+  m[normaliseHeader("Won/Lost")] = "sub_status";
   return m;
 })();
 
@@ -197,6 +213,14 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
   const stageRes = parseStage(raw.stage);
   if (stageRes.error) errors.push(stageRes.error);
 
+  const subStatusRes = parseSubStatus(raw.sub_status);
+  if (subStatusRes.error) errors.push(subStatusRes.error);
+  // Won/Lost is only meaningful for a Closed deal. Reject it on any other
+  // stage rather than silently storing a nonsensical combination.
+  if (subStatusRes.value && stageRes.value !== "Closed") {
+    errors.push(`sub-status "${subStatusRes.value}" only applies when Stage is Closed.`);
+  }
+
   const date = nullable(raw.date_added);
   let date_added = "";
   if (!date) {
@@ -227,6 +251,7 @@ export function parseRow(rowNumber: number, raw: Record<string, string>): Parsed
     property_type: nullable(raw.property_type),
     deal_value: amount.value,
     stage: stageRes.value,
+    sub_status: subStatusRes.value,
     broker_email,
     broker_name: nullable(raw.broker_name),
     seller_name: nullable(raw.seller_name),

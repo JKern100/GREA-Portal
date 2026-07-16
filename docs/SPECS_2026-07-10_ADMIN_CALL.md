@@ -360,6 +360,42 @@ committed to in the recap email.
 
 ---
 
+## S-13 · Deal Sub-status (Won/Lost) in the import/export template (Done — session-discovered 2026-07-14)
+
+**Surfaced by:** reviewing a real pipeline export with Jeff. `sub_status`
+(the Won/Lost enum on `deals`, shown as a badge on Closed deals in the
+Pipeline board and deal modal) existed in the DB and UI but was **only ever
+set by seed data** — no import column, no export column, no edit UI. So on
+real data every Closed deal would show no Won/Lost, and — worse — an
+export→edit→Replace-all cycle would silently wipe any Won/Lost that did
+exist, since it wasn't in the file. A quiet data-loss trap right before real
+imports.
+
+**Chosen fix (Jeff picked option 1):** add a dedicated **Sub-status** column
+to the deals import/export template rather than folding Won/Lost into the
+Stage vocabulary.
+
+**Built (`deals/import-schema.ts`, `deals/import` + `deals/export` routes):**
+1. New optional `Sub-status` column (position 5, right after Stage).
+2. `parseSubStatus` accepts `Won`/`Lost` (case-insensitive) or blank;
+   anything else is a per-row error.
+3. Cross-field guard: Won/Lost on a non-Closed stage is rejected
+   ("only applies when Stage is Closed").
+4. `Won/Lost` accepted as an alias header.
+5. Threaded through import insert and export (round-trips cleanly — export
+   now emits it, import reads it back).
+
+**Still not addressed (deliberately):** there's no in-app UI to *set*
+sub_status on an existing deal — it's still import-only, same as most other
+deal fields. If admins need to flip a deal Won/Lost without a re-import,
+that's a separate small feature. Not built now.
+
+**Verified:** parser exercised against Closed+Won, Closed+lost (normalizes),
+Listing+Won (rejected), Closed+blank (null), Closed+garbage (rejected), and
+the Won/Lost alias mapping — all pass.
+
+---
+
 ## Parking lot (logged, explicitly not now)
 
 | Idea | Source | Why parked |
@@ -383,3 +419,4 @@ committed to in the recap email.
 | S-10 | **Done** (migration not yet applied to prod — see note) | none for the mechanism; exact 1–3 criteria still open |
 | S-11 | Direction confirmed, rule pending | Jeff (nail the exact precedence before building) |
 | S-12 | Gap confirmed, not built | none — ready to write |
+| S-13 | **Done** | none (in-app Won/Lost editor still absent, by choice) |
