@@ -11,6 +11,20 @@ content.
 
 ---
 
+## 2026-07-14 — Superadmin Feedback CSV export (S-14)
+
+Added an "Export CSV" button on the Feedback page, superadmin-only, so Jeff
+can export the whole ticket backlog (with comments) and share it back for
+review. New route `src/app/api/feedback/export/route.ts` (GET, superadmin-
+gated, session client so RLS still applies — superadmin sees all tickets +
+comments per 0005_feedback). One row per ticket: Title, Category, Status,
+Office (submitter's), Submitted By, Submitter Email, Assigned To, Created,
+Resolved, Context URL, Body, Comments (all comments concatenated
+"Name (date): body", newline-separated in one quoted cell). Uses the
+existing escapeFormula/csvCell formula-injection guard. Verified round-trip
+(quotes/commas/newlines) + injection neutralization with a standalone test.
+Button lives next to "+ Submit Feedback", gated on isSuperadmin.
+
 ## 2026-07-14 — Deal Sub-status (Won/Lost) added to import/export (S-13)
 
 Found while reviewing a real pipeline export: `sub_status` (Won/Lost) was

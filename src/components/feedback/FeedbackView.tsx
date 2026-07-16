@@ -232,9 +232,21 @@ export default function FeedbackView({ profile, initialItems, profiles, offices 
             Bugs, questions, ideas — all go here. Office admins triage for their office; Ariel (superadmin) resolves everything else.
           </p>
         </div>
-        <button className="btn-primary" style={{ marginLeft: "auto" }} onClick={() => setShowSubmit(true)}>
-          + Submit Feedback
-        </button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          {isSuperadmin && (
+            <a
+              className="btn-outline"
+              href="/api/feedback/export"
+              title="Download all feedback tickets (with comments) as a CSV"
+              style={{ display: "inline-flex", alignItems: "center" }}
+            >
+              Export CSV
+            </a>
+          )}
+          <button className="btn-primary" onClick={() => setShowSubmit(true)}>
+            + Submit Feedback
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: 14 }}>
