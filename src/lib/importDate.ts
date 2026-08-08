@@ -17,6 +17,11 @@
  *   11-1-2025
  *   Nov 1, 2025  November 1 2025
  *   1-Nov-2025   1 Nov 2025
+ *
+ * A trailing clock time is ignored, so datetime cells straight out of a CRM
+ * export work as-is:
+ *   7/30/2026 16:31        2026-07-30T16:31:00Z
+ *   7/30/2026 4:31 PM      2026-07-30 16:31:00
  */
 
 const MONTHS: Record<string, number> = {
@@ -42,16 +47,27 @@ function fullYear(y: number): number {
   return y < 100 ? 2000 + y : y;
 }
 
+/**
+ * Strip a trailing clock time so a datetime cell parses as its date.
+ * CRM exports routinely emit "7/30/2026 16:31" or "2026-07-30T16:31:00Z";
+ * the portal only stores a date, so the time is dropped rather than
+ * rejecting the whole row. Matches an optional ISO "T" or space separator,
+ * optional seconds/fractional seconds, optional AM/PM, optional timezone.
+ */
+const TRAILING_TIME =
+  /[T\s]+\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*(?:[ap]\.?m\.?)?\s*(?:Z|[+-]\d{2}:?\d{2})?$/i;
+
 export function parseImportDate(input: unknown): { value?: string; error?: string } {
-  const s = input == null ? "" : String(input).trim();
-  if (!s) return {};
+  const original = input == null ? "" : String(input).trim();
+  if (!original) return {};
+  const s = original.replace(TRAILING_TIME, "").trim() || original;
 
   let m: RegExpExecArray | null;
 
   // ISO / year-first numeric: 2025-11-01, 2025/11/1
   if ((m = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(s))) {
     const r = iso(+m[1], +m[2], +m[3]);
-    return r ? { value: r } : { error: `"${s}" is not a valid date.` };
+    return r ? { value: r } : { error: `"${original}" is not a valid date.` };
   }
 
   // US month-first numeric: 11/1/2025, 11-01-25
@@ -59,7 +75,7 @@ export function parseImportDate(input: unknown): { value?: string; error?: strin
     const r = iso(fullYear(+m[3]), +m[1], +m[2]);
     return r
       ? { value: r }
-      : { error: `"${s}" is not a valid date (read as month/day/year).` };
+      : { error: `"${original}" is not a valid date (read as month/day/year).` };
   }
 
   // Month name first: "Nov 1, 2025", "November 1 2025"
@@ -81,6 +97,6 @@ export function parseImportDate(input: unknown): { value?: string; error?: strin
   }
 
   return {
-    error: `"${s}" isn't a recognized date — use YYYY-MM-DD (e.g. 2025-11-01) or M/D/YYYY.`
+    error: `"${original}" isn't a recognized date — use YYYY-MM-DD (e.g. 2025-11-01) or M/D/YYYY.`
   };
 }

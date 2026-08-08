@@ -32,7 +32,7 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "buyer_name", header: "Buyer", required: false, hint: "Optional." },
   { key: "sectors", header: "Sectors", required: false, hint: "Optional. Semicolon-separated, e.g. 'Multifamily; General'." },
   { key: "om_link", header: "OM Link", required: false, hint: "Optional. URL to the offering memorandum." },
-  { key: "date_added", header: "List Date", required: true, hint: "Required. YYYY-MM-DD preferred; M/D/YYYY also accepted." },
+  { key: "date_added", header: "List Date", required: true, hint: "Required. YYYY-MM-DD preferred; M/D/YYYY also accepted. If the cell includes a time, the time is ignored." },
   { key: "notes", header: "Notes", required: false, hint: "Optional free-text notes." },
   { key: "is_confidential", header: "Confidential", required: false, hint: "Optional. true / false. Defaults to false." }
 ];

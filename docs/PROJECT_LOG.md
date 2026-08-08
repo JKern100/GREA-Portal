@@ -21,6 +21,28 @@ notes on records + tag broker/office in a comment), raised independently by
 Ellie and Annamaria. Refer to it when scoping the next version. Standardization
 decisions (Tiffany's) and bugs are explicitly excluded from it.
 
+## 2026-08-06 — Import date parser now tolerates datetime cells
+
+PHL's first real contact uploads failed **100%** (0 of 382 rows across two
+files). Root cause was ours, not theirs: `parseImportDate`'s patterns were
+anchored `^...$`, so a trailing clock time (`7/30/2026 16:31`) — which every
+CRM export emits — was rejected outright. Fixed by stripping a trailing time
+before matching (handles space or ISO `T` separator, optional seconds,
+AM/PM, timezone). Error messages now echo the original input, not the
+stripped value. Template hints in both contacts and deals schemas updated to
+say the time is ignored.
+
+Verified against the real PHL files: Student Housing went 0/348 → **348/348**;
+Affordable went 0/34 → **20/34** (the remaining 14 are genuine data problems
+on their side — 11 blank Contact Name, 6 `(No value)` in the date column).
+16-case parser test incl. negatives ("(No value)", "13/45/2026 10:00",
+"2026-02-30") all pass.
+
+Deliberately NOT handled: the literal `(No value)` placeholder their CRM
+exports for empty cells. That's real junk data (it also lands in
+Account/Company, where it would display as the company name), so silently
+swallowing it would mask a problem the office should fix at source.
+
 ## 2026-07-14 — Superadmin Feedback CSV export (S-14)
 
 Added an "Export CSV" button on the Feedback page, superadmin-only, so Jeff

@@ -31,7 +31,7 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "note", header: "Note", required: false, hint: "Optional free-text note." },
   { key: "tags", header: "Tags", required: false, hint: "Optional. Semicolon-separated, e.g. 'Client; Active'." },
   { key: "sectors", header: "Sectors", required: false, hint: "Optional. Semicolon-separated, e.g. 'Multifamily; General'." },
-  { key: "last_contact_date", header: "Last Contact Date", required: false, hint: "Optional. YYYY-MM-DD preferred; M/D/YYYY also accepted." },
+  { key: "last_contact_date", header: "Last Contact Date", required: false, hint: "Optional. YYYY-MM-DD preferred; M/D/YYYY also accepted. If the cell includes a time, the time is ignored." },
   { key: "is_confidential", header: "Confidential", required: false, hint: "Optional. true / false. Defaults to false." }
 ];
 
