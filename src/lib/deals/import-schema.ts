@@ -9,7 +9,7 @@
  * (always the admin's own office) so it is not part of the template.
  */
 
-import { DEAL_STAGES, type DealStage, type DealSubStatus } from "@/lib/types";
+import { DEAL_STAGES, SECTOR_OPTIONS, type DealStage, type DealSubStatus } from "@/lib/types";
 import { parseImportDate } from "@/lib/importDate";
 
 export interface TemplateColumn {
@@ -30,7 +30,7 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "broker_name", header: "Broker Name", required: false, hint: "Optional. Broker's display name. Used when the broker isn't a registered user yet." },
   { key: "seller_name", header: "Seller", required: false, hint: "Optional." },
   { key: "buyer_name", header: "Buyer", required: false, hint: "Optional." },
-  { key: "sectors", header: "Sectors", required: false, hint: "Optional. Semicolon-separated, e.g. 'Multifamily; General'." },
+  { key: "sectors", header: "Sectors", required: false, hint: `Optional. Semicolon-separated. Use one or more of: ${SECTOR_OPTIONS.join(", ")}.` },
   { key: "om_link", header: "OM Link", required: false, hint: "Optional. URL to the offering memorandum." },
   { key: "date_added", header: "List Date", required: true, hint: "Required. YYYY-MM-DD preferred; M/D/YYYY also accepted. If the cell includes a time, the time is ignored." },
   { key: "notes", header: "Notes", required: false, hint: "Optional free-text notes." },

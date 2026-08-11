@@ -9,6 +9,7 @@
  */
 
 import { parseImportDate } from "@/lib/importDate";
+import { SECTOR_OPTIONS, TAG_OPTIONS } from "@/lib/types";
 
 export interface TemplateColumn {
   key: string;
@@ -29,8 +30,8 @@ export const TEMPLATE_COLUMNS: TemplateColumn[] = [
   { key: "relationship_strength", header: "Relationship Strength", required: false, hint: "Optional. 1-3, where 3 is the strongest relationship. Leave blank if unsure." },
   { key: "listing", header: "Listing", required: false, hint: "Optional. Associated listing or property." },
   { key: "note", header: "Note", required: false, hint: "Optional free-text note." },
-  { key: "tags", header: "Tags", required: false, hint: "Optional. Semicolon-separated, e.g. 'Client; Active'." },
-  { key: "sectors", header: "Sectors", required: false, hint: "Optional. Semicolon-separated, e.g. 'Multifamily; General'." },
+  { key: "tags", header: "Tags", required: false, hint: `Optional. Semicolon-separated. Use one or more of: ${TAG_OPTIONS.join(", ")}.` },
+  { key: "sectors", header: "Sectors", required: false, hint: `Optional. Semicolon-separated. Use one or more of: ${SECTOR_OPTIONS.join(", ")}.` },
   { key: "last_contact_date", header: "Last Contact Date", required: false, hint: "Optional. YYYY-MM-DD preferred; M/D/YYYY also accepted. If the cell includes a time, the time is ignored." },
   { key: "is_confidential", header: "Confidential", required: false, hint: "Optional. true / false. Defaults to false." }
 ];
