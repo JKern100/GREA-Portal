@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ColumnReference from "@/components/office-admin/ColumnReference";
+import { TEMPLATE_COLUMNS } from "@/lib/deals/import-schema";
 
 type Mode = "replace" | "add_on";
 
@@ -88,6 +90,8 @@ export default function DealsImportModal({ onClose }: Props) {
 
         {!result && (
           <>
+            <ColumnReference columns={TEMPLATE_COLUMNS} />
+
             <div style={{ marginBottom: 14 }}>
               <label className="form-label">File</label>
               <input
