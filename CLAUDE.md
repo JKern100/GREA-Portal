@@ -26,3 +26,13 @@ When a session produces a decision, plan, or piece of context worth keeping
 (not just a code change visible in the diff), append a dated entry to that
 file before ending the session — newest entries at the top. Keep entries
 short: link to commits/files rather than repeating their content in full.
+
+## Other docs worth knowing
+
+- `docs/OFFICE_DATA_ONBOARDING.md` — read this before helping any GREA office
+  get their CRM data into the portal. Covers the recurring export problems and
+  the field mapping. Use `scripts/check_import_file.js` to dry-run an office's
+  CSV against the real import schema rather than reviewing it by eye.
+- `docs/SPECS_2026-07-10_ADMIN_CALL.md` — spec list (S-1…S-13) from the office
+  admin calls, with status per item.
+- `docs/WISHLIST.md` — features deliberately deferred to a future version.

@@ -21,6 +21,60 @@ notes on records + tag broker/office in a comment), raised independently by
 Ellie and Annamaria. Refer to it when scoping the next version. Standardization
 decisions (Tiffany's) and bugs are explicitly excluded from it.
 
+## 2026-08-13 — Import guidance surfaced in-app; onboarding playbook added
+
+**New: `docs/OFFICE_DATA_ONBOARDING.md` + `scripts/check_import_file.js`.**
+Read the playbook before helping any office with their data. The script
+dry-runs a CSV against the real import schema and reports pass/fail per row
+plus silent-degradation warnings — use it instead of eyeballing files.
+
+**Shipped:**
+- `e7eb941` — Sectors/Tags template hints now enumerate the valid values
+  (generated from `SECTOR_OPTIONS`/`TAG_OPTIONS`, so they can't drift).
+- `a4a2fc6` — collapsible "Show column reference" in both import modals,
+  driven by `TEMPLATE_COLUMNS`.
+
+**Architectural gotcha found:** every "Download template" button in the UI
+requests `?format=csv`, and the CSV is only a header row plus a sample row.
+The Instructions sheet exists solely in `buildXlsx()`, which **nothing links
+to** — so per-column guidance was unreachable for admins, which plausibly
+caused several of PHL's data problems. That's why the reference now lives in
+the modal. The `?format=xlsx` endpoint is currently dead code; decide later
+whether to wire it up or delete it.
+
+Also rejected, for the record: a dropdown in the template (Annamaria's
+request). Data validation is an xlsx feature, uploads are CSV-only, so it is
+stripped by Save As CSV — and offices build files from CRM exports anyway.
+In-app guidance was the workable answer.
+
+**Open commitment:** Jeff's email to Annamaria promises the importer will
+"flag any sector value it doesn't recognize." **Not built.** Agreed shape:
+alias obvious variants (`Affordable` → `Affordable Housing`) + aggregate
+warning for the rest, mirroring the unmatched-broker-email pattern. Must NOT
+reject the row — Sectors is optional and killing a whole contact over it is
+disproportionate.
+
+**Production DB state:**
+- `deal_imports` **does not exist** in production — migration
+  `0016_deal_imports.sql` was never applied. The audit insert is caught and
+  logged only, so imports still work, but there is **no audit trail for deal
+  imports**. Worth applying; it would have answered "did NYC upload?" in one
+  query instead of six.
+- `0024_contact_relationship_strength.sql` **has** been applied manually.
+- Contacts were bulk-deleted for non-ATL offices (`date_added < 2026-07-01`);
+  DTW/HOU/PDX/PHL now have zero contacts.
+
+**Working style (external comms):**
+- Jeff writes emails; drafts should be delivered as a **styled HTML file** he
+  opens and copy-pastes — markdown loses formatting pasting into Gmail.
+- **No em dashes** in anything drafted for external audiences.
+- **Do not take blame on GREA's behalf.** State what changed and why; don't
+  editorialize it as our failure. The date format *was* documented and the
+  office deviated from it; widening the parser was an accommodation, not a
+  mea culpa. Over-apologising also sets an expectation that every
+  CRM-vs-portal mismatch is ours to absorb, which undercuts the
+  standardization effort.
+
 ## 2026-08-06 — Import date parser now tolerates datetime cells
 
 PHL's first real contact uploads failed **100%** (0 of 382 rows across two
