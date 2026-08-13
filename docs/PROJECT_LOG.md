@@ -21,6 +21,20 @@ notes on records + tag broker/office in a comment), raised independently by
 Ellie and Annamaria. Refer to it when scoping the next version. Standardization
 decisions (Tiffany's) and bugs are explicitly excluded from it.
 
+## 2026-08-13 (later) — Import API spec drafted
+
+`docs/SPECS_IMPORT_API.md` — v1 spec for the push API (Phase 3). Four design
+decisions locked with Jeff via Q&A: offices **push** to us (no pull
+connectors); **replace-per-sync** semantics (Jeff explicitly chose plain
+replace over reserving external IDs — upsert/record-identity is a v2
+contract change, see spec §11); designed for the **weakest integrator**
+(CSV and JSON both accepted); API **strips contact phone/email server-side**
+per the first-stage sharing policy, behind an `app_settings` flag so lifting
+the policy is config, not code. Key dependencies called out in the spec:
+apply `0016_deal_imports.sql` before the deals endpoint ships; extract the
+shared import core out of the two existing routes. Not yet implemented —
+spec only, pending review.
+
 ## 2026-08-13 — Import guidance surfaced in-app; onboarding playbook added
 
 **New: `docs/OFFICE_DATA_ONBOARDING.md` + `scripts/check_import_file.js`.**
