@@ -27,7 +27,8 @@ export interface ConvertOptions {
   /** Contact owner name → portal login email. */
   brokerEmails: Record<string, string>;
   dropTestRecords: boolean;
-  dropInternalStaff: boolean;
+  /** Drop rows where the contact IS the owner (someone filed themselves). */
+  dropSelfRecords: boolean;
   dropDuplicates: boolean;
   /** Keep the HubSpot Code taxonomy in the Note column rather than losing it. */
   preserveCodesInNote: boolean;
@@ -54,6 +55,12 @@ const NO_VALUE = /^\(no value\)$/i;
 /** Company values that mean "no company", not a real company name. */
 const PLACEHOLDER_COMPANY = /^(n\/?a|none|na|not registed|nil|null|\.|-|—|_)$/i;
 const TEST_RECORD = /^(fdsa|dsnb|dracos|asdf|qwerty|test|sjmsjkd)\b/i;
+/**
+ * Companies that indicate the contact is a GREA/Ariel colleague. These are
+ * only ever *flagged for review*, never dropped: a colleague can legitimately
+ * be a contact (a referral source, a co-broker), so deciding whether the
+ * record belongs is the office's call, not this tool's.
+ */
 const INTERNAL_COMPANY = /^(grea|ariel property advisors)$/i;
 const FALLBACK_COMPANY = "Individual";
 
@@ -167,6 +174,7 @@ export function convertHubspotContacts(
     return { csv: "", rows: [], sourceRows: rows.length, outputRows: 0, dropped, warnings, owners: [] };
   }
 
+  const internalStaff: string[] = [];
   let emailsInCompany = 0;
   let placeholderCompanies = 0;
   let mojibakeFixed = 0;
@@ -206,11 +214,19 @@ export function convertHubspotContacts(
       placeholderCompanies++;
       company = "";
     }
-    if (opts.dropInternalStaff && company && INTERNAL_COMPANY.test(company)) {
-      dropped.push({ row: rowNum, name: contactName, reason: `GREA/Ariel staff member (${company})` });
-      return;
+    // A colleague listed as a contact is worth a look, but it is not
+    // automatically wrong — flag it and let the office judge.
+    if (company && INTERNAL_COMPANY.test(company)) {
+      internalStaff.push(`${contactName} (${company})`);
     }
     if (!company) company = FALLBACK_COMPANY;
+
+    // Someone filing themselves as their own contact is unambiguously a
+    // stray record, and is caught on that basis rather than on employer.
+    if (opts.dropSelfRecords && owner && contactName.toLowerCase() === owner.toLowerCase()) {
+      dropped.push({ row: rowNum, name: contactName, reason: "Contact is the same person as the contact owner" });
+      return;
+    }
 
     if (opts.dropDuplicates) {
       const key = `${contactName.toLowerCase()}|${company.toLowerCase()}`;
@@ -253,6 +269,11 @@ export function convertHubspotContacts(
   if (unmapped.length) {
     warnings.push(
       `No portal email set for: ${unmapped.join(", ")}. Those rows will fail on import — Broker Email is required.`
+    );
+  }
+  if (internalStaff.length) {
+    warnings.push(
+      `${internalStaff.length} contact(s) list a GREA/Ariel company and may be colleagues rather than clients — kept in, worth a look: ${internalStaff.join("; ")}.`
     );
   }
   if (placeholderCompanies) {

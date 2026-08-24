@@ -26,7 +26,7 @@ export default function HubspotContactConverter() {
   const [owners, setOwners] = useState<string[]>([]);
   const [brokerEmails, setBrokerEmails] = useState<Record<string, string>>({});
   const [dropTestRecords, setDropTestRecords] = useState(true);
-  const [dropInternalStaff, setDropInternalStaff] = useState(true);
+  const [dropSelfRecords, setDropSelfRecords] = useState(true);
   const [dropDuplicates, setDropDuplicates] = useState(true);
   const [preserveCodesInNote, setPreserveCodesInNote] = useState(true);
   const [result, setResult] = useState<ConvertResult | null>(null);
@@ -58,7 +58,7 @@ export default function HubspotContactConverter() {
       setResult(
         convertHubspotContacts(
           text,
-          { brokerEmails, dropTestRecords, dropInternalStaff, dropDuplicates, preserveCodesInNote },
+          { brokerEmails, dropTestRecords, dropSelfRecords, dropDuplicates, preserveCodesInNote },
           parse
         )
       );
@@ -144,7 +144,7 @@ export default function HubspotContactConverter() {
             Options
           </div>
           {checkbox("Drop obvious test records", "Names like “fdsa fdsa” or “First Last”.", dropTestRecords, setDropTestRecords)}
-          {checkbox("Drop GREA / Ariel staff", "Colleagues entered as contacts rather than clients.", dropInternalStaff, setDropInternalStaff)}
+          {checkbox("Drop self-records", "A broker filed as their own contact. Colleagues at GREA/Ariel are kept and flagged for you to review, not removed.", dropSelfRecords, setDropSelfRecords)}
           {checkbox("Drop duplicates", "Same contact name and company appearing more than once.", dropDuplicates, setDropDuplicates)}
           {checkbox("Keep HubSpot codes in the Note column", "Preserves categories like “800 - Large Owner/Investor” that the portal has no field for.", preserveCodesInNote, setPreserveCodesInNote)}
           <button className="btn-primary" style={{ marginTop: 6 }} onClick={convert}>
