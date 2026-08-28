@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GREA Portal — Automatic Data Sync (API) Guide</title>
+<!--
+  Office-facing guide for the v1 import API.
+  SOURCE OF TRUTH: keep this file in the repo and regenerate the PDF from it,
+  so the guide can't drift from the implementation the way the first-import
+  guide did. Technical reference: docs/SPECS_IMPORT_API.md.
+-->
+<style>
+  @page { margin: 18mm 16mm; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1a2540; font-size: 11pt; line-height: 1.5; }
+  h1 { font-size: 21pt; color: #16213e; margin-bottom: 2px; border-bottom: 3px solid #c9a04f; padding-bottom: 9px; }
+  .subtitle { font-size: 11.5pt; color: #555; margin-top: 6px; margin-bottom: 20px; font-style: italic; }
+  h2 { font-size: 14.5pt; color: #16213e; margin-top: 26px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #d8d8d8; }
+  h3 { font-size: 12pt; color: #16213e; margin-top: 16px; margin-bottom: 5px; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 9.5pt; }
+  pre { background: #16213e; color: #e8eaf0; padding: 11px 13px; border-radius: 5px; font-family: 'Courier New', monospace;
+        font-size: 8.8pt; line-height: 1.45; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin: 8px 0 14px; }
+  pre .c { color: #9fb3c8; }
+  .callout { background: #fdf8ec; border-left: 4px solid #c9a04f; padding: 10px 13px; margin: 13px 0; font-size: 10.5pt; }
+  .callout strong { color: #8a6d1f; }
+  .warn { background: #fef2f2; border-left: 4px solid #dc2626; padding: 10px 13px; margin: 13px 0; font-size: 10.5pt; }
+  .warn strong { color: #991b1b; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 9.8pt; }
+  th, td { border: 1px solid #d8d8d8; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #16213e; color: white; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.4px; }
+  tr:nth-child(even) td { background: #f8f8f8; }
+  .req { color: #991b1b; font-weight: bold; }
+  .footer { margin-top: 30px; padding-top: 11px; border-top: 1px solid #d8d8d8; font-size: 9pt; color: #888; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Automatic Data Sync</h1>
+<div class="subtitle">Sending your office's Contacts and Pipeline to the GREA Portal without uploading files by hand</div>
+
+<p>Today you export a file from your CRM and upload it through the portal. This
+guide covers the alternative: having that same file sent automatically on a
+schedule, so the portal stays current without anyone remembering to do it.</p>
+
+<p><strong>You don't need a developer.</strong> If your office produces a
+spreadsheet today, the whole setup is one command in a scheduled task. If your
+office has technical people or a system like Salesforce, they can connect more
+directly — the same instructions apply either way.</p>
+
+<div class="callout">
+<strong>Nothing changes about your file.</strong> The API accepts exactly the
+same CSV you already prepare for manual upload — same columns, same rules. If a
+file imports through the portal today, it imports through the API too.
+</div>
+
+<h2>Before you start</h2>
+
+<p>Ask Jeff for your office's <strong>API key</strong>. It looks like this:</p>
+<pre>grea_live_7Kd2mQ...</pre>
+
+<div class="warn">
+<strong>Treat the key like a password.</strong> It lets whoever holds it replace
+your office's data. Don't email it around, don't put it in a shared document,
+and don't paste it into a message thread. Store it the way you'd store a
+password. If it's ever exposed, tell Jeff and he'll cancel it and issue a new
+one — same as a password reset. A key only ever works for <em>your</em> office;
+it cannot touch another office's data.
+</div>
+
+<h2>The one thing to understand first</h2>
+
+<div class="warn">
+<strong>Every sync replaces all of your office's data for that type.</strong>
+Each time you send contacts, the portal deletes your existing contacts and
+loads the file you sent. It does not add to what's there.
+<br><br>
+This means: <strong>always send your complete current list</strong>, never just
+the new or changed records. If you send 10 contacts, you will have 10 contacts.
+<br><br>
+This is deliberate. On an automatic schedule, an "add to what's there" mode
+would duplicate your entire list every single run.
+</div>
+
+<p>Contacts and Pipeline are separate. Sending contacts never affects your
+pipeline, and vice versa.</p>
+
+<h2>Step 1 — Check your key works</h2>
+
+<p>Start here. This touches no data at all; it just confirms the key is valid
+and tells you which office it belongs to.</p>
+
+<p><strong>Windows (PowerShell):</strong></p>
+<pre>curl.exe -H "Authorization: Bearer YOUR_KEY_HERE" `
+  https://grea-portal.vercel.app/api/v1/whoami</pre>
+
+<p><strong>Mac or Linux:</strong></p>
+<pre>curl -H "Authorization: Bearer YOUR_KEY_HERE" \
+  https://grea-portal.vercel.app/api/v1/whoami</pre>
+
+<p>You should get back:</p>
+<pre>{"ok":true,"office":"PHL","keyLabel":"Weekly HubSpot sync"}</pre>
+
+<p>If the office code shown isn't yours, stop and tell Jeff.</p>
+
+<h2>Step 2 — Test your file without changing anything</h2>
+
+<p>Add <code>?dry_run=1</code> and the portal will check your entire file and
+report exactly what would happen — <strong>without writing anything</strong>.
+Use this until the result looks right.</p>
+
+<p><strong>Windows (PowerShell):</strong></p>
+<pre>curl.exe -X POST `
+  -H "Authorization: Bearer YOUR_KEY_HERE" `
+  -H "Content-Type: text/csv" `
+  --data-binary "@C:\path\to\contacts.csv" `
+  "https://grea-portal.vercel.app/api/v1/import/contacts?dry_run=1"</pre>
+
+<p><strong>Mac or Linux:</strong></p>
+<pre>curl -X POST \
+  -H "Authorization: Bearer YOUR_KEY_HERE" \
+  -H "Content-Type: text/csv" \
+  --data-binary @contacts.csv \
+  "https://grea-portal.vercel.app/api/v1/import/contacts?dry_run=1"</pre>
+
+<p>For pipeline data, change <code>contacts</code> to <code>deals</code> in the
+web address.</p>
+
+<h2>Step 3 — Go live</h2>
+
+<p>Exactly the same command with <code>?dry_run=1</code> removed. That's the
+only difference.</p>
+
+<pre>curl -X POST \
+  -H "Authorization: Bearer YOUR_KEY_HERE" \
+  -H "Content-Type: text/csv" \
+  --data-binary @contacts.csv \
+  https://grea-portal.vercel.app/api/v1/import/contacts</pre>
+
+<div class="page-break"></div>
+
+<h2>Reading the result</h2>
+
+<pre>{
+  "ok": true,
+  "dryRun": false,
+  "office": "PHL",
+  "entity": "contacts",
+  "received": 352,     <span class="c">// rows found in your file</span>
+  "imported": 350,     <span class="c">// rows now in the portal</span>
+  "deleted": 340,      <span class="c">// previous rows replaced</span>
+  "skipped": 2,        <span class="c">// rows with problems (listed below)</span>
+  "skippedRows": [
+    { "row": 17, "errors": ["contact_name is required"] }
+  ],
+  "warnings": [ "..." ]
+}</pre>
+
+<table>
+  <tr><th>Field</th><th>Meaning</th></tr>
+  <tr><td><code>imported</code></td><td>How many records your office now has. This is the number to watch.</td></tr>
+  <tr><td><code>skipped</code></td><td>Rows that couldn't be imported. Each one is listed with the reason and its row number.</td></tr>
+  <tr><td><code>deleted</code></td><td>How many previous records were replaced. Expected — see the replace note above.</td></tr>
+  <tr><td><code>warnings</code></td><td>Things worth knowing that didn't stop the import — an unrecognised broker email, contact details removed, and so on.</td></tr>
+</table>
+
+<div class="callout">
+<strong>A few skipped rows is normal and safe.</strong> Good rows still import;
+only the problem rows are left out, and each is named so you can fix it at
+source. What you should never ignore is <code>"ok": false</code> — that means
+nothing was written at all.
+</div>
+
+<h2>Required columns</h2>
+
+<p>Same as the manual upload. The full list, with the accepted values for every
+column, is in the portal: <strong>My Office → Contacts (or Pipeline) → Upload →
+Show column reference</strong>.</p>
+
+<table>
+  <tr><th>Contacts</th><th>Pipeline</th></tr>
+  <tr>
+    <td>
+      <span class="req">Contact Name</span><br>
+      <span class="req">Account / Company</span><br>
+      <span class="req">Broker Email</span><br>
+      <span class="req">Broker Name</span><br>
+      <em>…plus optional columns</em>
+    </td>
+    <td>
+      <span class="req">Deal Name</span><br>
+      <span class="req">Stage</span><br>
+      <span class="req">List Date</span><br>
+      <em>…plus optional columns</em>
+    </td>
+  </tr>
+</table>
+
+<p><strong>Broker Email</strong> is what links a record to a broker's portal
+account, so it needs to match the email they log in with. If it doesn't match a
+registered user the record still imports, showing the Broker Name as plain
+text, and links automatically on a later sync once that person is set up.</p>
+
+<h2>Contact phone numbers and email addresses</h2>
+
+<p>Under the current network-wide guidelines, offices share a contact's
+<strong>name and company only</strong>. The portal enforces this automatically:
+if your file happens to contain contact phone numbers or email addresses, they
+are removed before anything is saved, and the response tells you how many were
+removed.</p>
+
+<p>You don't need to strip them out of your export. Nothing is rejected because
+of them.</p>
+
+<h2>Running it automatically</h2>
+
+<h3>Windows — Task Scheduler</h3>
+<ol>
+  <li>Save your command into a <code>.bat</code> file, with your CRM export
+  saved to a fixed path each time.</li>
+  <li>Open Task Scheduler → Create Basic Task.</li>
+  <li>Set it to run weekly on your chosen day.</li>
+  <li>Point the action at your <code>.bat</code> file.</li>
+</ol>
+
+<h3>Mac or Linux — cron</h3>
+<pre><span class="c"># Every Monday at 6am</span>
+0 6 * * 1 /path/to/sync-contacts.sh</pre>
+
+<h3>No scripting at all</h3>
+<p>Tools like Zapier or Make can send a scheduled request without any code.
+Point them at the same web address, with the same <code>Authorization</code>
+header and your file as the body.</p>
+
+<h3>Salesforce and similar systems</h3>
+<p>A scheduled export feeding the same command works well. If you have a
+developer, they can post JSON instead of CSV — see the note at the end.</p>
+
+<h2>Checking that a sync actually ran</h2>
+
+<pre>curl -H "Authorization: Bearer YOUR_KEY_HERE" \
+  https://grea-portal.vercel.app/api/v1/imports</pre>
+
+<p>Returns your recent syncs with dates and row counts, so you can confirm last
+night's run landed without logging in.</p>
+
+<h2>When something goes wrong</h2>
+
+<table>
+  <tr><th>You see</th><th>What it means</th><th>What to do</th></tr>
+  <tr><td>401</td><td>The key is missing, mistyped, or wrong</td><td>Check the <code>Authorization</code> header, then ask Jeff for a new key</td></tr>
+  <tr><td>403</td><td>The key was cancelled</td><td>Ask Jeff to issue a new one</td></tr>
+  <tr><td>413</td><td>File is over 5 MB or 10,000 rows</td><td>Split it, or narrow the export</td></tr>
+  <tr><td>415</td><td>Wrong <code>Content-Type</code></td><td>Use <code>text/csv</code></td></tr>
+  <tr><td>422</td><td>A required column is missing, or no row was usable</td><td>Read the error text; nothing was written</td></tr>
+  <tr><td>429</td><td>Too many syncs in one hour</td><td>Wait. The limit is 10 real syncs an hour, and 50 dry runs</td></tr>
+</table>
+
+<div class="callout">
+<strong>Your data is never left half-updated.</strong> If a file is rejected —
+a missing column, or no usable rows — the portal writes nothing and your
+existing data stays exactly as it was. A broken export can't wipe your office.
+</div>
+
+<h2>For developers</h2>
+
+<p>Instead of CSV, you can send <code>Content-Type: application/json</code> with
+a body of <code>{"rows": [ ... ]}</code>, using the template's underlying field
+names (<code>contact_name</code>, <code>account_name</code>,
+<code>broker_email</code>, and so on). List fields accept either a JSON array or
+a semicolon-separated string; <code>Confidential</code> accepts a real boolean.
+Validation is identical to the CSV path.</p>
+
+<div class="footer">
+GREA Portal — Automatic Data Sync Guide · Base address: https://grea-portal.vercel.app ·
+Questions? Use the in-app Feedback button, or reach out to Jeff directly.
+</div>
+
+</body>
+</html>
