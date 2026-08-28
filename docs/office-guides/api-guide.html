@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>GREA Portal — Automatic Data Upload (API) Guide</title>
+<title>GREA Portal — Sending Data to the Portal (API Guide)</title>
 <!--
   Office-facing guide for the v1 import API.
   SOURCE OF TRUTH: keep this file in the repo and regenerate the PDF from it,
@@ -38,31 +38,62 @@
 </head>
 <body>
 
-<h1>Automatic Data Upload</h1>
-<div class="subtitle">Sending your office's Contacts and Pipeline to the GREA Portal without uploading files by hand</div>
+<h1>Sending Data to the GREA Portal</h1>
+<div class="subtitle">A standard web API that any system can send your office's Contacts and Pipeline to, automatically</div>
 
-<p>Today you export a file from your CRM and upload it through the portal. This
-guide covers the alternative: having that same file sent automatically on a
-schedule, so the portal stays current without anyone remembering to do it.</p>
+<p>The portal accepts data over a normal HTTP API. Any system that can make a
+web request can send to it — a CRM, an in-house database, a script, an
+automation tool. Nothing is specific to one product, and the portal never
+connects to or logs into your systems; your side sends, we receive.</p>
+
+<p>Today someone exports a file and uploads it by hand. This replaces that with
+something that runs on its own.</p>
+
+<h2>Two ways to send</h2>
+
+<p>Both go to the same endpoint and are validated identically. Pick whichever
+suits what you already have.</p>
+
+<table>
+  <tr><th></th><th>Send JSON directly</th><th>Send a CSV file</th></tr>
+  <tr>
+    <td><strong>Good when</strong></td>
+    <td>Your system can make an outbound web request — most CRMs and anything
+    custom-built</td>
+    <td>You already produce an export file and don't have a developer</td>
+  </tr>
+  <tr>
+    <td><strong>Needs</strong></td>
+    <td>Someone who can configure an API call in your system</td>
+    <td>A scheduled task running one command</td>
+  </tr>
+  <tr>
+    <td><strong>Content-Type</strong></td>
+    <td><code>application/json</code></td>
+    <td><code>text/csv</code></td>
+  </tr>
+</table>
+
+<div class="callout">
+<strong>There is no file involved in the JSON path.</strong> Your system builds
+the records and posts them straight to the portal. The CSV option exists for
+offices without a developer — it is a convenience, not the intended shape.
+</div>
 
 <h2>Who does what</h2>
 
-<p><strong>Setting this up is a technical task.</strong> It involves a command
-line and a scheduled job — not difficult for someone who does that kind of
-work, but not something you should expect to do yourself unless you're
-comfortable with it. Be honest about that up front rather than discovering it
-halfway through.</p>
-
-<p>The good news is that it's a <strong>one-time job</strong>. Once it's
-running, nothing is required from you week to week — no export, no upload, no
-reminder.</p>
+<p><strong>Setting this up is a technical task</strong> — not difficult for
+someone who does that kind of work, but not something to expect of yourself
+unless you're comfortable with it. The good news is it's a <strong>one-time
+job</strong>: once running, nothing is needed from you week to week.</p>
 
 <table>
   <tr><th>Role</th><th>What they do</th></tr>
   <tr>
     <td><strong>You, the office admin</strong></td>
-    <td>Read the next two sections. Request the key from Jeff, keep it safe, and
-    decide who will do the setup. Afterwards, keep an eye on the upload results.</td>
+    <td>Read as far as "the one thing to understand". Request the key from Jeff,
+    keep it safe, and decide who will do the setup. Afterwards, keep an eye on
+    the results.</td>
   </tr>
   <tr>
     <td><strong>Whoever sets it up</strong></td>
@@ -73,10 +104,10 @@ reminder.</p>
 
 <div class="callout">
 <strong>You don't have to work it out unaided.</strong> Jeff is available to
-answer questions from whoever you nominate and to help troubleshoot if an upload
+answer questions from whoever you nominate and to help troubleshoot if a run
 doesn't behave — but the setup itself runs on your systems, so it needs someone
 on your side to do it. If you're not sure who that is yet, the manual upload
-below keeps working in the meantime.
+keeps working in the meantime.
 </div>
 
 <div class="warn">
@@ -86,12 +117,27 @@ is not doing anything wrong. Automate when it's worth the setup effort to you,
 not because it's expected.
 </div>
 
-<div class="callout">
-<strong>Nothing changes about your file.</strong> This uses exactly the same CSV
-you already prepare for manual upload — same columns, same rules. If a file
-imports through the portal today, it imports this way too. Whoever sets this up
-does not need to understand your CRM or reshape your data.
+<h2>The one thing to understand first</h2>
+
+<div class="warn">
+<strong>Every call replaces all of your office's data for that type.</strong>
+The portal deletes your existing contacts and stores what you sent in their
+place. Unlike the manual upload in the portal, there is no "add to what's
+already there" option here.
+<br><br>
+This means: <strong>always send your complete current list</strong>, never just
+the new or changed records. If you send 10 contacts, you will have 10 contacts.
+<br><br>
+This is deliberate. On an automatic schedule, an "add to what's there" mode
+would duplicate your entire list on every run.
 </div>
+
+<p>So this is a <em>whole-list</em> interface, not a record-by-record one. Don't
+wire it to fire when a single record changes in your system — have it send the
+full current list on a schedule.</p>
+
+<p>Contacts and Pipeline are separate. Sending contacts never affects your
+pipeline, and vice versa.</p>
 
 <h2>Before you start</h2>
 
@@ -101,102 +147,117 @@ does not need to understand your CRM or reshape your data.
 <div class="warn">
 <strong>Treat the key like a password.</strong> It lets whoever holds it replace
 your office's data. Don't email it around, don't put it in a shared document,
-and don't paste it into a message thread. Store it the way you'd store a
-password. If it's ever exposed, tell Jeff and he'll cancel it and issue a new
-one — same as a password reset. A key only ever works for <em>your</em> office;
-it cannot touch another office's data.
+and don't paste it into a message thread. If it's ever exposed, tell Jeff and
+he'll cancel it and issue a new one — same as a password reset. A key only ever
+works for <em>your</em> office; it cannot touch another office's data.
 </div>
-
-<h2>The one thing to understand first</h2>
-
-<div class="warn">
-<strong>Every automatic upload replaces all of your office's data for that
-type.</strong> Each time you send contacts, the portal deletes your existing
-contacts and loads the file you sent. Unlike the manual upload in the portal,
-there is no "add to what's already there" option here.
-<br><br>
-This means: <strong>always send your complete current list</strong>, never just
-the new or changed records. If you send 10 contacts, you will have 10 contacts.
-<br><br>
-This is deliberate. On an automatic schedule, an "add to what's there" mode
-would duplicate your entire list every single run.
-</div>
-
-<p>Contacts and Pipeline are separate. Sending contacts never affects your
-pipeline, and vice versa.</p>
 
 <div class="callout">
 <strong>From here on, this is for whoever is doing the setup.</strong> As the
-office admin you don't need to follow the commands below — though the sections
-on reading results and required columns are worth a look, since those are what
+office admin you don't need to follow the technical detail below — though
+"Reading the result" and "The fields" are worth a look, since those are what
 you'll see week to week.
 </div>
 
-<h2>Step 1 — Check your key works</h2>
+<div class="page-break"></div>
 
-<p>Start here. This touches no data at all; it just confirms the key is valid
-and tells you which office it belongs to.</p>
+<h2>The API</h2>
 
-<p><strong>Windows (PowerShell):</strong></p>
-<pre>curl.exe -H "Authorization: Bearer YOUR_KEY_HERE" `
-  https://grea-portal.vercel.app/api/v1/whoami</pre>
+<p>Base address: <code>https://grea-portal.vercel.app</code>. Every request
+carries the key in a header, and every response is JSON.</p>
 
-<p><strong>Mac or Linux:</strong></p>
+<pre>Authorization: Bearer grea_live_...</pre>
+
+<table>
+  <tr><th>Method</th><th>Path</th><th>What it does</th></tr>
+  <tr><td>GET</td><td><code>/api/v1/whoami</code></td><td>Confirms the key works and names the office. Touches no data.</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/import/contacts</code></td><td>Replaces the office's contacts</td></tr>
+  <tr><td>POST</td><td><code>/api/v1/import/deals</code></td><td>Replaces the office's pipeline</td></tr>
+  <tr><td>GET</td><td><code>/api/v1/imports</code></td><td>Recent runs, with dates and row counts</td></tr>
+</table>
+
+<p>Add <code>?dry_run=1</code> to either POST and the portal validates
+everything and reports exactly what <em>would</em> happen, <strong>without
+writing anything</strong>. Build against dry-run first; switch it off only when
+the numbers look right.</p>
+
+<h2>Sending JSON</h2>
+
+<p>POST to the endpoint with <code>Content-Type: application/json</code> and a
+body shaped like this:</p>
+
+<pre>{
+  "rows": [
+    {
+      "contact_name": "Jane Doe",
+      "account_name": "Acme Holdings",
+      "broker_email": "sramos@grea.com",
+      "broker_name": "Steffan Ramos",
+      "sectors": ["Student Housing", "Multifamily"],
+      "relationship_status": "Active",
+      "last_contact_date": "2026-08-14",
+      "is_confidential": false
+    }
+  ]
+}</pre>
+
+<p>Notes on the format:</p>
+<ul>
+  <li>List fields (<code>sectors</code>, <code>tags</code>) accept a real JSON
+  array or a semicolon-separated string.</li>
+  <li><code>is_confidential</code> accepts a real boolean.</li>
+  <li>Dates are <code>YYYY-MM-DD</code>. A timestamp is accepted; the time is
+  ignored.</li>
+  <li>Unknown keys are ignored, and omitted optional fields are treated as
+  blank — so you can send a superset of what we use.</li>
+</ul>
+
+<p>Deals use the same envelope with the pipeline fields. Both are listed under
+"The fields" below.</p>
+
+<h2>Sending a CSV instead</h2>
+
+<p>If you'd rather send the export file you already produce, POST it with
+<code>Content-Type: text/csv</code>. It's the same template as the manual
+upload — same headers, same rules. Whoever sets this up doesn't need to
+understand your CRM or reshape anything.</p>
+
+<p><strong>Check the key first</strong> (Mac or Linux; on Windows PowerShell use
+<code>curl.exe</code> and a backtick instead of the backslash):</p>
 <pre>curl -H "Authorization: Bearer YOUR_KEY_HERE" \
   https://grea-portal.vercel.app/api/v1/whoami</pre>
 
 <p>You should get back:</p>
-<pre>{"ok":true,"office":"PHL","keyLabel":"Weekly HubSpot upload"}</pre>
+<pre>{"ok":true,"office":"PHL","keyLabel":"Weekly export"}</pre>
 
 <p>If the office code shown isn't yours, stop and tell Jeff.</p>
 
-<h2>Step 2 — Test your file without changing anything</h2>
-
-<p>Add <code>?dry_run=1</code> and the portal will check your entire file and
-report exactly what would happen — <strong>without writing anything</strong>.
-Use this until the result looks right.</p>
-
-<p><strong>Windows (PowerShell):</strong></p>
-<pre>curl.exe -X POST `
-  -H "Authorization: Bearer YOUR_KEY_HERE" `
-  -H "Content-Type: text/csv" `
-  --data-binary "@C:\path\to\contacts.csv" `
-  "https://grea-portal.vercel.app/api/v1/import/contacts?dry_run=1"</pre>
-
-<p><strong>Mac or Linux:</strong></p>
+<p><strong>Then test the file, writing nothing:</strong></p>
 <pre>curl -X POST \
   -H "Authorization: Bearer YOUR_KEY_HERE" \
   -H "Content-Type: text/csv" \
   --data-binary @contacts.csv \
   "https://grea-portal.vercel.app/api/v1/import/contacts?dry_run=1"</pre>
 
-<p>For pipeline data, change <code>contacts</code> to <code>deals</code> in the
-web address.</p>
-
-<h2>Step 3 — Go live</h2>
-
-<p>Exactly the same command with <code>?dry_run=1</code> removed. That's the
-only difference.</p>
-
-<pre>curl -X POST \
-  -H "Authorization: Bearer YOUR_KEY_HERE" \
-  -H "Content-Type: text/csv" \
-  --data-binary @contacts.csv \
-  https://grea-portal.vercel.app/api/v1/import/contacts</pre>
+<p><strong>Then go live</strong> — the identical command with
+<code>?dry_run=1</code> removed. That is the only difference. For pipeline data,
+change <code>contacts</code> to <code>deals</code>.</p>
 
 <div class="page-break"></div>
 
 <h2>Reading the result</h2>
+
+<p>Every call returns the same report, whichever format you sent.</p>
 
 <pre>{
   "ok": true,
   "dryRun": false,
   "office": "PHL",
   "entity": "contacts",
-  "received": 352,     <span class="c">// rows found in your file</span>
-  "imported": 350,     <span class="c">// rows now in the portal</span>
-  "deleted": 340,      <span class="c">// previous rows replaced</span>
-  "skipped": 2,        <span class="c">// rows with problems (listed below)</span>
+  "received": 352,     <span class="c">// records you sent</span>
+  "imported": 350,     <span class="c">// records now in the portal</span>
+  "deleted": 340,      <span class="c">// previous records replaced</span>
+  "skipped": 2,        <span class="c">// records with problems (listed below)</span>
   "skippedRows": [
     { "row": 17, "errors": ["contact_name is required"] }
   ],
@@ -206,91 +267,102 @@ only difference.</p>
 <table>
   <tr><th>Field</th><th>Meaning</th></tr>
   <tr><td><code>imported</code></td><td>How many records your office now has. This is the number to watch.</td></tr>
-  <tr><td><code>skipped</code></td><td>Rows that couldn't be imported. Each one is listed with the reason and its row number.</td></tr>
+  <tr><td><code>skipped</code></td><td>Records that couldn't be imported. Each is listed with the reason and its position.</td></tr>
   <tr><td><code>deleted</code></td><td>How many previous records were replaced. Expected — see the replace note above.</td></tr>
-  <tr><td><code>warnings</code></td><td>Things worth knowing that didn't stop the import — an unrecognised broker email, contact details removed, and so on.</td></tr>
+  <tr><td><code>warnings</code></td><td>Things worth knowing that didn't stop the run — an unrecognised broker email, contact details removed, and so on.</td></tr>
 </table>
 
 <div class="callout">
-<strong>A few skipped rows is normal and safe.</strong> Good rows still import;
-only the problem rows are left out, and each is named so you can fix it at
-source. What you should never ignore is <code>"ok": false</code> — that means
+<strong>A few skipped records is normal and safe.</strong> Good records still
+import; only the problem ones are left out, and each is named so you can fix it
+at source. What you should never ignore is <code>"ok": false</code> — that means
 nothing was written at all.
 </div>
 
-<h2>Required columns</h2>
+<p>Whatever you build, <strong>make sure a human sees at least the summary
+line</strong>. A scheduled job that fails silently is worse than no job.</p>
 
-<p>Same as the manual upload. The full list, with the accepted values for every
-column, is in the portal: <strong>My Office → Contacts (or Pipeline) → Upload →
-Show column reference</strong>.</p>
+<h2>The fields</h2>
+
+<p>The JSON keys and the CSV headers are the same fields under two names. The
+full reference, with accepted values for every field, is in the portal:
+<strong>My Office → Contacts (or Pipeline) → Upload → Show column
+reference</strong>.</p>
 
 <table>
-  <tr><th>Contacts</th><th>Pipeline</th></tr>
+  <tr><th></th><th>Contacts</th><th>Pipeline</th></tr>
   <tr>
+    <td><strong>Required</strong></td>
     <td>
-      <span class="req">Contact Name</span><br>
-      <span class="req">Account / Company</span><br>
-      <span class="req">Broker Email</span><br>
-      <span class="req">Broker Name</span><br>
-      <em>…plus optional columns</em>
+      <code>contact_name</code><br>
+      <code>account_name</code><br>
+      <code>broker_email</code><br>
+      <code>broker_name</code>
     </td>
     <td>
-      <span class="req">Deal Name</span><br>
-      <span class="req">Stage</span><br>
-      <span class="req">List Date</span><br>
-      <em>…plus optional columns</em>
+      <code>deal_name</code><br>
+      <code>stage</code><br>
+      <code>date_added</code> <em>(List Date)</em>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Optional</strong></td>
+    <td>
+      <code>relationship_status</code>, <code>relationship_strength</code>,
+      <code>listing</code>, <code>note</code>, <code>tags</code>,
+      <code>sectors</code>, <code>last_contact_date</code>,
+      <code>is_confidential</code>, <code>broker_phone</code>
+    </td>
+    <td>
+      <code>property_address</code>, <code>property_type</code>,
+      <code>deal_value</code>, <code>sub_status</code>,
+      <code>broker_email</code>, <code>broker_name</code>,
+      <code>seller_name</code>, <code>buyer_name</code>, <code>sectors</code>,
+      <code>om_link</code>, <code>notes</code>, <code>is_confidential</code>
     </td>
   </tr>
 </table>
 
 <p><strong>Broker Email</strong> is what links a record to a broker's portal
 account, so it needs to match the email they log in with. If it doesn't match a
-registered user the record still imports, showing the Broker Name as plain
-text, and links automatically on a later upload once that person is set up.</p>
+registered user the record still imports, showing the Broker Name as plain text,
+and links automatically on a later run once that person is set up.</p>
 
 <h2>Contact phone numbers and email addresses</h2>
 
 <p>Under the current network-wide guidelines, offices share a contact's
 <strong>name and company only</strong>. The portal enforces this automatically:
-if your file happens to contain contact phone numbers or email addresses, they
-are removed before anything is saved, and the response tells you how many were
-removed.</p>
+if what you send contains contact phone numbers or email addresses, they are
+removed before anything is saved, and the response reports how many.</p>
 
-<p>You don't need to strip them out of your export. Nothing is rejected because
-of them.</p>
+<p>You don't need to strip them out first. Nothing is rejected because of
+them.</p>
 
-<h2>Running it automatically</h2>
+<h2>Running it on a schedule</h2>
 
-<h3>Windows — Task Scheduler</h3>
-<ol>
-  <li>Save your command into a <code>.bat</code> file, with your CRM export
-  saved to a fixed path each time.</li>
-  <li>Open Task Scheduler → Create Basic Task.</li>
-  <li>Set it to run weekly on your chosen day.</li>
-  <li>Point the action at your <code>.bat</code> file.</li>
-</ol>
+<p>How you schedule it depends on what's sending.</p>
 
-<h3>Mac or Linux — cron</h3>
-<pre><span class="c"># Every Monday at 6am</span>
-0 6 * * 1 /path/to/upload-contacts.sh</pre>
+<table>
+  <tr><th>If you have</th><th>Typical approach</th></tr>
+  <tr><td>A CRM with outbound calls or automation</td><td>A scheduled job in the CRM that gathers the full list and posts it as JSON</td></tr>
+  <tr><td>A developer and any system</td><td>A small script on whatever runs your other scheduled work</td></tr>
+  <tr><td>No developer</td><td>Zapier, Make or similar can send a scheduled request without programming. Still needs configuring once, but avoids scripts</td></tr>
+  <tr><td>Only an export file</td><td>Windows Task Scheduler or cron running the curl command above, against an export saved to a fixed path</td></tr>
+</table>
 
-<h3>Without writing code</h3>
-<p>Tools like Zapier or Make can send a scheduled request without any
-programming. They still need configuring, and someone has to connect them to
-wherever your export file lands, but it avoids scripts and scheduled tasks
-entirely. A reasonable middle option if your office has no IT support.</p>
+<pre><span class="c"># cron — every Monday at 6am</span>
+0 6 * * 1 /path/to/send-contacts.sh</pre>
 
-<h3>Salesforce and similar systems</h3>
-<p>A scheduled export feeding the same command works well. If you have a
-developer, they can post JSON instead of CSV — see the note at the end.</p>
+<p>Weekly suits most offices. There's no benefit to running it more often than
+your data actually changes.</p>
 
-<h2>Checking that an upload actually ran</h2>
+<h2>Checking that a run happened</h2>
 
 <pre>curl -H "Authorization: Bearer YOUR_KEY_HERE" \
   https://grea-portal.vercel.app/api/v1/imports</pre>
 
-<p>Returns your recent uploads with dates and row counts, so you can confirm last
-night's run landed without logging in.</p>
+<p>Returns recent runs with dates and row counts, so you can confirm last
+night's job landed without logging in.</p>
 
 <h2>When something goes wrong</h2>
 
@@ -298,29 +370,20 @@ night's run landed without logging in.</p>
   <tr><th>You see</th><th>What it means</th><th>What to do</th></tr>
   <tr><td>401</td><td>The key is missing, mistyped, or wrong</td><td>Check the <code>Authorization</code> header, then ask Jeff for a new key</td></tr>
   <tr><td>403</td><td>The key was cancelled</td><td>Ask Jeff to issue a new one</td></tr>
-  <tr><td>413</td><td>File is over 5 MB or 10,000 rows</td><td>Split it, or narrow the export</td></tr>
-  <tr><td>415</td><td>Wrong <code>Content-Type</code></td><td>Use <code>text/csv</code></td></tr>
-  <tr><td>422</td><td>A required column is missing, or no row was usable</td><td>Read the error text; nothing was written</td></tr>
-  <tr><td>429</td><td>Too many uploads in one hour</td><td>Wait. The limit is 10 real uploads an hour, and 50 dry runs</td></tr>
+  <tr><td>413</td><td>Over 5 MB, or more than 10,000 records</td><td>Narrow the export, or send in batches</td></tr>
+  <tr><td>415</td><td>Wrong <code>Content-Type</code></td><td>Use <code>application/json</code> or <code>text/csv</code></td></tr>
+  <tr><td>422</td><td>A required field is missing, or no record was usable</td><td>Read the error text; nothing was written</td></tr>
+  <tr><td>429</td><td>Too many calls in one hour</td><td>Wait. The limit is 10 real runs an hour, and 50 dry runs</td></tr>
 </table>
 
 <div class="callout">
-<strong>Your data is never left half-updated.</strong> If a file is rejected —
-a missing column, or no usable rows — the portal writes nothing and your
+<strong>Your data is never left half-updated.</strong> If a request is rejected —
+a missing field, or no usable records — the portal writes nothing and your
 existing data stays exactly as it was. A broken export can't wipe your office.
 </div>
 
-<h2>For developers</h2>
-
-<p>Instead of CSV, you can send <code>Content-Type: application/json</code> with
-a body of <code>{"rows": [ ... ]}</code>, using the template's underlying field
-names (<code>contact_name</code>, <code>account_name</code>,
-<code>broker_email</code>, and so on). List fields accept either a JSON array or
-a semicolon-separated string; <code>Confidential</code> accepts a real boolean.
-Validation is identical to the CSV path.</p>
-
 <div class="footer">
-GREA Portal — Automatic Data Upload Guide · Base address: https://grea-portal.vercel.app ·
+GREA Portal — Sending Data to the Portal (API guide) · Base address: https://grea-portal.vercel.app ·
 Questions? Use the in-app Feedback button, or reach out to Jeff directly.
 </div>
 
