@@ -1,6 +1,10 @@
 # GREA Portal — Import API specification (v1)
 
-*Status: DRAFT for review · 2026-08-13 · Owner: Jeff*
+*Status: **BUILT** 2026-08-24 (commit `d32005d`) · spec drafted 2026-08-13 · Owner: Jeff*
+
+> **Before use:** migrations `0016_deal_imports.sql` and `0025_api_keys.sql`
+> must be applied to production. No API key can be issued until 0025 is in.
+> Remaining from §12: office-facing integration docs, and the pilot.
 
 The programmatic way for offices to load Contacts and Pipeline data into the
 portal — the "Phase 3 / API" step of the original roadmap (manual uploads →

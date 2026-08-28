@@ -21,6 +21,34 @@ notes on records + tag broker/office in a comment), raised independently by
 Ellie and Annamaria. Refer to it when scoping the next version. Standardization
 decisions (Tiffany's) and bugs are explicitly excluded from it.
 
+## 2026-08-24 — Import API v1 BUILT (`d32005d`)
+
+Tiffany approved all three business decisions (weekly cadence expectation;
+office admin holds the key and gets the sync report; contact-sharing policy
+revisited later, no date). Spec implemented — see `docs/SPECS_IMPORT_API.md`.
+
+**Structural change worth knowing:** the two manual upload routes were
+refactored to call a new shared core (`src/lib/import/core.ts`). The API uses
+the same core, so there is now exactly one validation/replace/audit path.
+Insert shapes and the UI response shape were preserved deliberately, so the
+import modals were untouched. If you change import behaviour, change it in
+the core — not in a route.
+
+**Shipped:** `POST /api/v1/import/{contacts,deals}` (replace-only, CSV or
+JSON, `?dry_run=1`), `GET /api/v1/whoami`, `GET /api/v1/imports`, per-office
+hashed bearer keys (migration `0025_api_keys.sql`), superadmin **API Keys**
+screen, and the `contacts.share_contact_details` flag (seeded `false`) that
+strips contact phone/email on *both* the API and manual paths.
+
+**BLOCKERS before the API is usable in production — two migrations unapplied:**
+- `0016_deal_imports.sql` — still missing (known since 2026-08-13). The deals
+  endpoint's audit trail and `/api/v1/imports` depend on it.
+- `0025_api_keys.sql` — new. **No key can be issued until this is applied.**
+
+**Still to do from the spec's checklist:** office-facing integration docs
+(§10 patterns), and the pilot — NYC/Ariel first (their transformation exists
+already), then PHL on the spreadsheet pattern.
+
 ## 2026-08-13 (later) — Import API spec drafted
 
 `docs/SPECS_IMPORT_API.md` — v1 spec for the push API (Phase 3). Four design
