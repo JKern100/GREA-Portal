@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>GREA Portal — Automatic Data Sync (API) Guide</title>
+<title>GREA Portal — Automatic Data Upload (API) Guide</title>
 <!--
   Office-facing guide for the v1 import API.
   SOURCE OF TRUTH: keep this file in the repo and regenerate the PDF from it,
@@ -38,7 +38,7 @@
 </head>
 <body>
 
-<h1>Automatic Data Sync</h1>
+<h1>Automatic Data Upload</h1>
 <div class="subtitle">Sending your office's Contacts and Pipeline to the GREA Portal without uploading files by hand</div>
 
 <p>Today you export a file from your CRM and upload it through the portal. This
@@ -62,7 +62,7 @@ reminder.</p>
   <tr>
     <td><strong>You, the office admin</strong></td>
     <td>Read the next two sections. Request the key from Jeff, keep it safe, and
-    decide who will do the setup. Afterwards, keep an eye on the sync results.</td>
+    decide who will do the setup. Afterwards, keep an eye on the upload results.</td>
   </tr>
   <tr>
     <td><strong>Whoever sets it up</strong></td>
@@ -73,7 +73,7 @@ reminder.</p>
 
 <div class="callout">
 <strong>You don't have to work it out unaided.</strong> Jeff is available to
-answer questions from whoever you nominate and to help troubleshoot if a sync
+answer questions from whoever you nominate and to help troubleshoot if an upload
 doesn't behave — but the setup itself runs on your systems, so it needs someone
 on your side to do it. If you're not sure who that is yet, the manual upload
 below keeps working in the meantime.
@@ -110,9 +110,10 @@ it cannot touch another office's data.
 <h2>The one thing to understand first</h2>
 
 <div class="warn">
-<strong>Every sync replaces all of your office's data for that type.</strong>
-Each time you send contacts, the portal deletes your existing contacts and
-loads the file you sent. It does not add to what's there.
+<strong>Every automatic upload replaces all of your office's data for that
+type.</strong> Each time you send contacts, the portal deletes your existing
+contacts and loads the file you sent. Unlike the manual upload in the portal,
+there is no "add to what's already there" option here.
 <br><br>
 This means: <strong>always send your complete current list</strong>, never just
 the new or changed records. If you send 10 contacts, you will have 10 contacts.
@@ -145,7 +146,7 @@ and tells you which office it belongs to.</p>
   https://grea-portal.vercel.app/api/v1/whoami</pre>
 
 <p>You should get back:</p>
-<pre>{"ok":true,"office":"PHL","keyLabel":"Weekly HubSpot sync"}</pre>
+<pre>{"ok":true,"office":"PHL","keyLabel":"Weekly HubSpot upload"}</pre>
 
 <p>If the office code shown isn't yours, stop and tell Jeff.</p>
 
@@ -245,7 +246,7 @@ Show column reference</strong>.</p>
 <p><strong>Broker Email</strong> is what links a record to a broker's portal
 account, so it needs to match the email they log in with. If it doesn't match a
 registered user the record still imports, showing the Broker Name as plain
-text, and links automatically on a later sync once that person is set up.</p>
+text, and links automatically on a later upload once that person is set up.</p>
 
 <h2>Contact phone numbers and email addresses</h2>
 
@@ -271,7 +272,7 @@ of them.</p>
 
 <h3>Mac or Linux — cron</h3>
 <pre><span class="c"># Every Monday at 6am</span>
-0 6 * * 1 /path/to/sync-contacts.sh</pre>
+0 6 * * 1 /path/to/upload-contacts.sh</pre>
 
 <h3>Without writing code</h3>
 <p>Tools like Zapier or Make can send a scheduled request without any
@@ -283,12 +284,12 @@ entirely. A reasonable middle option if your office has no IT support.</p>
 <p>A scheduled export feeding the same command works well. If you have a
 developer, they can post JSON instead of CSV — see the note at the end.</p>
 
-<h2>Checking that a sync actually ran</h2>
+<h2>Checking that an upload actually ran</h2>
 
 <pre>curl -H "Authorization: Bearer YOUR_KEY_HERE" \
   https://grea-portal.vercel.app/api/v1/imports</pre>
 
-<p>Returns your recent syncs with dates and row counts, so you can confirm last
+<p>Returns your recent uploads with dates and row counts, so you can confirm last
 night's run landed without logging in.</p>
 
 <h2>When something goes wrong</h2>
@@ -300,7 +301,7 @@ night's run landed without logging in.</p>
   <tr><td>413</td><td>File is over 5 MB or 10,000 rows</td><td>Split it, or narrow the export</td></tr>
   <tr><td>415</td><td>Wrong <code>Content-Type</code></td><td>Use <code>text/csv</code></td></tr>
   <tr><td>422</td><td>A required column is missing, or no row was usable</td><td>Read the error text; nothing was written</td></tr>
-  <tr><td>429</td><td>Too many syncs in one hour</td><td>Wait. The limit is 10 real syncs an hour, and 50 dry runs</td></tr>
+  <tr><td>429</td><td>Too many uploads in one hour</td><td>Wait. The limit is 10 real uploads an hour, and 50 dry runs</td></tr>
 </table>
 
 <div class="callout">
@@ -319,7 +320,7 @@ a semicolon-separated string; <code>Confidential</code> accepts a real boolean.
 Validation is identical to the CSV path.</p>
 
 <div class="footer">
-GREA Portal — Automatic Data Sync Guide · Base address: https://grea-portal.vercel.app ·
+GREA Portal — Automatic Data Upload Guide · Base address: https://grea-portal.vercel.app ·
 Questions? Use the in-app Feedback button, or reach out to Jeff directly.
 </div>
 
