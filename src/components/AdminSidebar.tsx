@@ -41,6 +41,12 @@ const iconProps = {
 };
 
 const ICON = {
+  key: (
+    <svg {...iconProps}>
+      <circle cx="7.5" cy="15.5" r="3.5" />
+      <path d="M10 13 20 3M17 6l2.5 2.5M14.5 8.5 17 11" />
+    </svg>
+  ),
   utilities: (
     <svg {...iconProps}>
       <path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 1 5.4-5.4l-2.6 2.6-1.4-1.4Z" />
@@ -118,6 +124,7 @@ const SUPERADMIN_TABS: Tab[] = [
   { href: "/admin/offices", label: "Offices", icon: ICON.building },
   { href: "/admin/activity", label: "Activity", icon: ICON.activity },
   { href: "/admin/settings", label: "Settings", icon: ICON.settings },
+  { href: "/admin/api-keys", label: "API Keys", icon: ICON.key },
   { href: "/admin/utilities", label: "Utilities", icon: ICON.utilities },
   { href: "/feedback", label: "Feedback", icon: ICON.feedback }
 ];
