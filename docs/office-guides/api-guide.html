@@ -45,15 +45,50 @@
 guide covers the alternative: having that same file sent automatically on a
 schedule, so the portal stays current without anyone remembering to do it.</p>
 
-<p><strong>You don't need a developer.</strong> If your office produces a
-spreadsheet today, the whole setup is one command in a scheduled task. If your
-office has technical people or a system like Salesforce, they can connect more
-directly — the same instructions apply either way.</p>
+<h2>Who does what</h2>
+
+<p><strong>Setting this up is a technical task.</strong> It involves a command
+line and a scheduled job — not difficult for someone who does that kind of
+work, but not something you should expect to do yourself unless you're
+comfortable with it. Be honest about that up front rather than discovering it
+halfway through.</p>
+
+<p>The good news is that it's a <strong>one-time job</strong>. Once it's
+running, nothing is required from you week to week — no export, no upload, no
+reminder.</p>
+
+<table>
+  <tr><th>Role</th><th>What they do</th></tr>
+  <tr>
+    <td><strong>You, the office admin</strong></td>
+    <td>Read the next two sections. Request the key from Jeff, keep it safe, and
+    decide who will do the setup. Afterwards, keep an eye on the sync results.</td>
+  </tr>
+  <tr>
+    <td><strong>Whoever sets it up</strong></td>
+    <td>Works through the rest of this guide. That might be someone technical in
+    your office, your outside IT provider, or Jeff.</td>
+  </tr>
+</table>
 
 <div class="callout">
-<strong>Nothing changes about your file.</strong> The API accepts exactly the
-same CSV you already prepare for manual upload — same columns, same rules. If a
-file imports through the portal today, it imports through the API too.
+<strong>Not sure who that would be? Talk to Jeff before doing anything else.</strong>
+He can either walk your IT person through it or set it up with you directly.
+There's no expectation that every office figures this out alone.
+</div>
+
+<div class="warn">
+<strong>Staying with manual uploads is a perfectly good choice.</strong> The
+upload button in My Office isn't going away, and an office that keeps using it
+is not doing anything wrong. Automate when it's worth the setup effort to you,
+not because it's expected.
+</div>
+
+<div class="callout">
+<strong>Nothing changes about your file.</strong> This uses exactly the same CSV
+you already prepare for manual upload — same columns, same rules. If a file
+imports through the portal today, it imports this way too. Whoever sets this up
+does not need to understand your CRM or reshape your data.
 </div>
 
 <h2>Before you start</h2>
@@ -86,6 +121,13 @@ would duplicate your entire list every single run.
 
 <p>Contacts and Pipeline are separate. Sending contacts never affects your
 pipeline, and vice versa.</p>
+
+<div class="callout">
+<strong>From here on, this is for whoever is doing the setup.</strong> As the
+office admin you don't need to follow the commands below — though the sections
+on reading results and required columns are worth a look, since those are what
+you'll see week to week.
+</div>
 
 <h2>Step 1 — Check your key works</h2>
 
@@ -229,10 +271,11 @@ of them.</p>
 <pre><span class="c"># Every Monday at 6am</span>
 0 6 * * 1 /path/to/sync-contacts.sh</pre>
 
-<h3>No scripting at all</h3>
-<p>Tools like Zapier or Make can send a scheduled request without any code.
-Point them at the same web address, with the same <code>Authorization</code>
-header and your file as the body.</p>
+<h3>Without writing code</h3>
+<p>Tools like Zapier or Make can send a scheduled request without any
+programming. They still need configuring, and someone has to connect them to
+wherever your export file lands, but it avoids scripts and scheduled tasks
+entirely. A reasonable middle option if your office has no IT support.</p>
 
 <h3>Salesforce and similar systems</h3>
 <p>A scheduled export feeding the same command works well. If you have a
