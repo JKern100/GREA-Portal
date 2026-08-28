@@ -35,6 +35,10 @@ short: link to commits/files rather than repeating their content in full.
   CSV against the real import schema rather than reviewing it by eye.
 - `docs/SPECS_2026-07-10_ADMIN_CALL.md` — spec list (S-1…S-13) from the office
   admin calls, with status per item.
-- `docs/SPECS_IMPORT_API.md` — v1 spec for the push import API (draft, not
-  yet implemented).
+- `docs/MIGRATIONS.md` — **which SQL migrations are actually applied to
+  production.** There is no migration runner; Jeff applies SQL by hand, so
+  the files in `supabase/migrations/` are intent, not state. Check this file
+  before telling him to run anything, and update it when he confirms he has.
+- `docs/SPECS_IMPORT_API.md` — v1 spec for the push import API (built
+  2026-08-24; blocked on migrations 0016 and 0025).
 - `docs/WISHLIST.md` — features deliberately deferred to a future version.
