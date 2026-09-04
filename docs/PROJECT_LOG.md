@@ -11,6 +11,41 @@ content.
 
 ---
 
+## 2026-09-01 — Import Mapper spec; commercial position on it
+
+Admin call 2026-08-31: every office asked for a column-mapping wizard
+(upload their raw export, match columns to ours, see problems before
+anything is saved). Spec written: `docs/SPECS_IMPORT_MAPPER.md`.
+
+**Commercial position (Jeff's, stated to Tiffany in writing):** a mapper was
+never in the agreed scope. Phase 2 was fixed-price and is already paid; the
+mapper is *not* being framed as Phase 2 delivery. Jeff is building the core
+wizard (Phase A) at no charge as a **one-time exception**, explicitly to
+avoid a slippery slope. Phases B (saved mappings) and C (value mapping for
+Stage/Sectors/Tags) are **not included** and are new work if requested. Do
+not let A grow into B/C without Jeff saying so. The ask made in return: a
+date by which all six offices have a first upload in.
+
+**Rollout decision:** Phase A ships **superadmin-only under Utilities**
+(office picker, since superadmins have no office), replacing the PHL HubSpot
+converter, which will be deleted once PHL's latest export goes through the
+mapper clean. Built as a reusable `ImportMapperWizard` with `fixedOfficeId`
+so embedding in the office-admin Upload flow later is a small, separately
+scoped step.
+
+**Design points worth remembering:** the mapper is a thin layer over
+`runImport()` and adds no validation rules; every step before the final
+click is a dry run (note dry run returns `inserted: 0, deleted: 0`, so the
+UI derives counts); it never lets anyone edit data in the portal, because
+replace-per-upload would undo it next week; problems are grouped by error
+type, not by row, with a problem-rows CSV download in the file's original
+columns.
+
+Also this session: API guide rewritten to lead with the JSON API rather than
+CSV/curl (`58b6a9a`), after Jeff pointed out the doc made a general-purpose
+API read like a file courier. "Sync" wording dropped; Jeff positioned as
+support, not implementer.
+
 ## 2026-07-14 — Created docs/WISHLIST.md (future-version feature list)
 
 Consolidated the deferred/"future version" items — from the office-admin

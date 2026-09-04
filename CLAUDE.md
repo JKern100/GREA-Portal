@@ -41,4 +41,7 @@ short: link to commits/files rather than repeating their content in full.
   before telling him to run anything, and update it when he confirms he has.
 - `docs/SPECS_IMPORT_API.md` — v1 spec for the push import API (built
   2026-08-24; blocked on migrations 0016 and 0025).
+- `docs/SPECS_IMPORT_MAPPER.md` — spec for the column-mapping import wizard
+  (Phase A superadmin-only under Utilities). Read the commercial note at the
+  top before expanding its scope.
 - `docs/WISHLIST.md` — features deliberately deferred to a future version.
