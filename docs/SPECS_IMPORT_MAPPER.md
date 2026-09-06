@@ -133,9 +133,10 @@ POST to the mapper route with `dryRun: true` (§4). Render the result as:
    error, no Import button, back to Step 1.
 
 ### Step 3 — Confirm
-- Mode: **Replace all** / **Add on**, defaulting to *Replace all* (the mapper
-  is for whole-list uploads; add-on is the exception here, the reverse of the
-  manual dialog's default — say so in a one-line hint).
+- Mode: **Add on** / **Replace all**. **Neither is pre-selected**; the admin
+  must choose before the Import button enables. Same one-line explanation of
+  each as the manual dialog ("Replace all" = safe way to correct or update a
+  full list; "Add on" = only for genuinely new records).
 - Replace requires the same acknowledgement checkbox as the manual dialog,
   with the count in the sentence: *"I understand this will permanently delete
   the 340 contacts currently in PHL before importing."*
