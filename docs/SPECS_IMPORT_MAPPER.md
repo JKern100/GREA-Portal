@@ -1,6 +1,13 @@
 # Import Mapper — column-mapping wizard for office data
 
-*Status: **SPEC — ready to build (Phase A)** · drafted 2026-09-01 · Owner: Jeff*
+*Status: **Phase A BUILT** 2026-09-10 (`ccdf9e2`) · spec drafted 2026-09-01 · Owner: Jeff*
+
+> **Outstanding on Phase A:** the HubSpot converter is unlinked from
+> Utilities but its source files are still in the repo — deleting them is
+> gated on running PHL's real export through the mapper first (§9). Acceptance
+> criterion 1 (parity with `check_import_file.js` on PHL's actual file) is
+> likewise unverified: it passed against a synthetic HubSpot-shaped file, not
+> the real one. Everything else in §10 is met.
 
 > **Commercial context (do not lose this):** a mapping tool was never part of
 > the agreed scope. Jeff is building the core wizard (Phase A) at no charge as

@@ -11,6 +11,35 @@ content.
 
 ---
 
+## 2026-09-10 — Import Mapper Phase A built (`ccdf9e2`)
+
+Spec implemented as written; see `docs/SPECS_IMPORT_MAPPER.md`. Superadmin →
+Utilities now renders `ImportMapperWizard` instead of the HubSpot converter.
+
+**Structure worth knowing:** three new pure modules under `src/lib/import/`
+(`headerAliases.ts`, `autoMatch.ts`, `applyMapping.ts`) plus a deliberately
+thin route at `/api/admin/import-mapper`. All validation still happens in
+`runImport` — the mapper only reshapes a sheet into template order before
+handing it over, so mapped and hand-prepared files are validated identically.
+Unit tests in `scripts/test_mapper.js` (21 cases, `node scripts/test_mapper.js`).
+
+**Deliberate choice:** the alias table is NOT wired into `mapHeaders`. The
+plain upload path stays strict so a mis-named column is reported rather than
+silently absorbed; the mapper is where a human confirms the interpretation.
+Revisit only as an explicit decision.
+
+**Two things left open, both needing PHL's real export file:**
+- `HubspotContactConverter.tsx` and `src/lib/converters/hubspotContacts.ts`
+  are unlinked but still in the repo. Spec §9 gates deletion on PHL's actual
+  export going through the mapper clean. Verified only against a synthetic
+  HubSpot-shaped file so far.
+- Acceptance criterion 1 (mapper preview counts match
+  `scripts/check_import_file.js` on the real file) is unverified for the same
+  reason.
+
+Phases B (saved mappings) and C (value mapping) remain **not included** — see
+the commercial note at the top of the spec before touching them.
+
 ## 2026-09-01 — Import Mapper spec; commercial position on it
 
 Admin call 2026-08-31: every office asked for a column-mapping wizard
