@@ -198,6 +198,34 @@ const HELP_BY_PATH: Array<{ match: (p: string) => boolean; entry: HelpEntry }> =
     }
   },
   {
+    match: (p) => p === "/my-office/import",
+    entry: {
+      title: "My Office — Import from export",
+      intro:
+        "Upload the file your own system produces, match its columns to the portal's fields, and preview the result before anything is saved.",
+      sections: [
+        {
+          heading: "How it works",
+          bullets: [
+            "Step 1 — choose Contacts or Pipeline and drop your CSV. Nothing is written yet.",
+            "Step 2 — match columns. We pre-fill what we can; check the sample values under each match, they come straight from your file. Fields marked 'suggested' deserve a second look.",
+            "Step 3 — preview. See how many rows will import and why the rest won't, grouped by problem. Download the problem rows to fix in your own system.",
+            "Step 4 — choose Add on or Replace all, then import."
+          ]
+        },
+        {
+          heading: "Good to know",
+          bullets: [
+            "Names split across two columns (First Name / Last Name) can be combined using 'Combine two columns' on the Contact Name row.",
+            "Columns we don't use are listed and simply ignored — nothing disappears silently.",
+            "The file is checked by exactly the same rules as the regular Upload button."
+          ]
+        }
+      ],
+      tip: "Already have a file in the portal's template? The Upload button on the Contacts or Pipeline page is the quicker route."
+    }
+  },
+  {
     match: (p) => p === "/my-office/deals",
     entry: {
       title: "My Office — Pipeline",

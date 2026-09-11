@@ -53,8 +53,12 @@ interface RunResult {
 }
 
 interface Props {
+  /** Superadmin mode: pick any office. */
   offices?: Office[];
+  /** Office admin mode: locked to this office, no picker. */
   fixedOfficeId?: string;
+  /** Display code for the fixed office (e.g. "PHL"). */
+  officeCode?: string;
 }
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -109,7 +113,7 @@ const box: React.CSSProperties = {
   marginBottom: 12
 };
 
-export default function ImportMapperWizard({ offices, fixedOfficeId }: Props) {
+export default function ImportMapperWizard({ offices, fixedOfficeId, officeCode }: Props) {
   const [step, setStep] = useState<Step>(0);
   const [officeId, setOfficeId] = useState(fixedOfficeId ?? "");
   const [entity, setEntity] = useState<Entity>("contacts");
@@ -139,7 +143,7 @@ export default function ImportMapperWizard({ offices, fixedOfficeId }: Props) {
     [headers, mapping, sheet.length]
   );
   const officeName =
-    offices?.find((o) => o.id === officeId)?.code ?? (fixedOfficeId ? "this office" : "");
+    offices?.find((o) => o.id === officeId)?.code ?? officeCode ?? (fixedOfficeId ? "your office" : "");
 
   function resetFile() {
     setSheet([]);

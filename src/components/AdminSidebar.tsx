@@ -142,7 +142,8 @@ const OFFICE_ADMIN_TABS: Tab[] = [
 
 const OFFICE_ADMIN_SHARED_TABS: Tab[] = [
   { href: "/my-office/deals", label: "Pipeline", icon: ICON.pipeline },
-  { href: "/my-office/contacts", label: "Contacts", icon: ICON.contact }
+  { href: "/my-office/contacts", label: "Contacts", icon: ICON.contact },
+  { href: "/my-office/import", label: "Import from export", icon: ICON.utilities }
 ];
 
 const cardStyle: React.CSSProperties = {

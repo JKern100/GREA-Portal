@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { getRealProfile } from "@/lib/data";
+import { getCurrentProfile, getRealProfile } from "@/lib/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runImport, type ImportEntity, type ImportMode } from "@/lib/import/core";
 import { loadShareContactDetails } from "@/lib/import/apiKeys";
@@ -15,9 +15,12 @@ const MAX_BYTES = 5 * 1024 * 1024; // 5 MB, matching the manual upload and API
  * Import Mapper — reshape an office's own export into our template and run it
  * through the shared import core.
  *
- * Phase A is superadmin-only (see docs/SPECS_IMPORT_MAPPER.md §1). The real
- * profile is checked, not the effective one, so a superadmin impersonating an
- * office admin cannot import through this route while impersonating.
+ * Who may call it (docs/SPECS_IMPORT_MAPPER.md §1, §11):
+ *   - an office admin, for their own office only — the office comes from
+ *     their profile and any officeId in the body is ignored. This mirrors the
+ *     manual upload route, including that a superadmin impersonating an
+ *     office admin acts as that admin.
+ *   - a real (non-impersonating) superadmin, for any office they name.
  *
  * This route is deliberately thin: mapping semantics live in `applyMapping`,
  * and every validation rule lives in `runImport`. A mapped file is therefore
@@ -25,7 +28,13 @@ const MAX_BYTES = 5 * 1024 * 1024; // 5 MB, matching the manual upload and API
  */
 export async function POST(request: Request) {
   const real = await getRealProfile();
-  if (!real || real.role !== "superadmin") {
+  if (!real) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const profile = await getCurrentProfile();
+  if (!profile) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+
+  const isSuperadmin = profile.role === "superadmin";
+  const isOfficeAdmin = profile.role === "office_admin" && !!profile.office_id;
+  if (!isSuperadmin && !isOfficeAdmin) {
     return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
   }
 
@@ -53,7 +62,9 @@ export async function POST(request: Request) {
   if (!entity) {
     return NextResponse.json({ ok: false, error: 'entity must be "contacts" or "deals".' }, { status: 400 });
   }
-  const officeId = body.officeId?.trim();
+  // Office scoping is derived from who is calling, never trusted from the body
+  // for an office admin.
+  const officeId = isSuperadmin ? body.officeId?.trim() : profile.office_id ?? undefined;
   if (!officeId) {
     return NextResponse.json({ ok: false, error: "Choose an office." }, { status: 400 });
   }
@@ -88,8 +99,8 @@ export async function POST(request: Request) {
   const result = await runImport({
     entity: entity as ImportEntity,
     officeId,
-    actorId: real.id,
-    actorName: real.name ?? "",
+    actorId: profile.id,
+    actorName: profile.name ?? "",
     rows: mapped.rows,
     mode,
     fileName: `${fileName} (via mapper)`,

@@ -93,6 +93,9 @@ export default function MyOfficeDeals({ deals: initial, officeId }: Props) {
           <a className="btn-outline" href="/api/deals/template?format=csv">
             Download template
           </a>
+          <a className="btn-outline" href="/my-office/import" title="Upload your own system's export and match its columns">
+            Import from export
+          </a>
           <button className="btn-primary" onClick={() => setShowImport(true)}>
             Upload pipeline
           </button>

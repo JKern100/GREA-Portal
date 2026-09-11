@@ -87,6 +87,9 @@ export default function MyOfficeContacts({ contacts: initial, officeId }: Props)
           <a className="btn-outline" href="/api/contacts/template?format=csv">
             Download template
           </a>
+          <a className="btn-outline" href="/my-office/import" title="Upload your own system's export and match its columns">
+            Import from export
+          </a>
           <button className="btn-primary" onClick={() => setShowImport(true)}>
             Upload contacts
           </button>
