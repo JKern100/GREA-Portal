@@ -1,6 +1,6 @@
 # Import Mapper — column-mapping wizard for office data
 
-*Status: **Phase A BUILT** 2026-09-10 (`ccdf9e2`) · spec drafted 2026-09-01 · Owner: Jeff*
+*Status: **Phase A BUILT** 2026-09-10 (`ccdf9e2`); **opened to office admins** 2026-09-11 at `/my-office/import` (§11 done) · spec drafted 2026-09-01 · Owner: Jeff*
 
 > **Outstanding on Phase A:** the HubSpot converter is unlinked from
 > Utilities but its source files are still in the repo — deleting them is

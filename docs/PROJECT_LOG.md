@@ -11,6 +11,20 @@ content.
 
 ---
 
+## 2026-09-11 — Mapper opened to office admins; pilot email to admins
+
+Jeff asked to invite all office admins to try the mapper and the API, and to
+confirm the mapper was available to office admins. It was not (Phase A was
+superadmin-only by his earlier instruction), so it was opened the same day:
+`/my-office/import` (sidebar tab "Import from export" + button beside Upload
+on Contacts and Pipeline). The route now accepts an office admin for their
+own office, deriving the office from the profile and ignoring any body
+`officeId`; a real superadmin still picks any office from Utilities.
+
+Office-facing guide added: `docs/office-guides/mapper-guide.html` (regenerate
+the PDF from it). Pilot email drafted for the admin distribution list with
+both guides attached.
+
 ## 2026-09-10 — Import Mapper Phase A built (`ccdf9e2`)
 
 Spec implemented as written; see `docs/SPECS_IMPORT_MAPPER.md`. Superadmin →

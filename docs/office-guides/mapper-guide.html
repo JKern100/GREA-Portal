@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GREA Portal — Import from Your Own Export (Mapper Guide)</title>
+<!--
+  Office-facing guide for the Import Mapper (docs/SPECS_IMPORT_MAPPER.md).
+  SOURCE OF TRUTH: keep this file in the repo and regenerate the PDF from it.
+-->
+<style>
+  @page { margin: 18mm 16mm; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1a2540; font-size: 11pt; line-height: 1.5; }
+  h1 { font-size: 21pt; color: #16213e; margin-bottom: 2px; border-bottom: 3px solid #c9a04f; padding-bottom: 9px; }
+  .subtitle { font-size: 11.5pt; color: #555; margin-top: 6px; margin-bottom: 20px; font-style: italic; }
+  h2 { font-size: 14.5pt; color: #16213e; margin-top: 26px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #d8d8d8; }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 9.5pt; }
+  .callout { background: #fdf8ec; border-left: 4px solid #c9a04f; padding: 10px 13px; margin: 13px 0; font-size: 10.5pt; }
+  .callout strong { color: #8a6d1f; }
+  .warn { background: #fef2f2; border-left: 4px solid #dc2626; padding: 10px 13px; margin: 13px 0; font-size: 10.5pt; }
+  .warn strong { color: #991b1b; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 9.8pt; }
+  th, td { border: 1px solid #d8d8d8; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #16213e; color: white; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.4px; }
+  tr:nth-child(even) td { background: #f8f8f8; }
+  .footer { margin-top: 30px; padding-top: 11px; border-top: 1px solid #d8d8d8; font-size: 9pt; color: #888; }
+</style>
+</head>
+<body>
+
+<h1>Import from Your Own Export</h1>
+<div class="subtitle">Upload the file your system already produces. Match the columns. See the result before anything is saved.</div>
+
+<p>Until now, getting data into the portal meant reshaping your export to fit
+our template first. This tool removes that step. You upload the file exactly as
+your CRM or spreadsheet exports it, tell the portal which of your columns is
+which, and it shows you precisely what would happen before you commit.</p>
+
+<p>It uses the same rules as the regular Upload button. Nothing about what the
+portal accepts has changed; only the way you get there.</p>
+
+<h2>Where to find it</h2>
+
+<p>Sign in as your office's admin and open <strong>My Office</strong>. You'll
+see it in two places:</p>
+<ul>
+  <li>The <strong>Import from export</strong> tab in the left-hand menu.</li>
+  <li>An <strong>Import from export</strong> button next to Upload on the
+  Contacts and Pipeline pages.</li>
+</ul>
+
+<h2>Before you start</h2>
+
+<ul>
+  <li>Export your contacts or your pipeline from your system as a
+  <strong>CSV</strong> file. Excel files are not accepted; use Save As → CSV
+  if needed.</li>
+  <li>Export <strong>everything</strong>, not a filtered view. See the note on
+  Replace below.</li>
+  <li>Keep the file under 5 MB and 10,000 rows.</li>
+</ul>
+
+<h2>The four steps</h2>
+
+<h3>1. Choose and upload</h3>
+<p>Pick <strong>Contacts</strong> or <strong>Pipeline</strong>, then choose your
+file. The portal reads it and tells you how many rows and columns it found.
+Nothing has been saved.</p>
+
+<h3>2. Match the columns</h3>
+<p>You'll see a table with one row for each portal field. For each one, the
+portal has tried to guess which of your columns feeds it.</p>
+
+<table>
+  <tr><th>You'll see</th><th>What it means</th><th>What to do</th></tr>
+  <tr><td>✅ matched</td><td>We're confident this is right</td><td>Glance at the sample values to be sure</td></tr>
+  <tr><td>🟡 suggested</td><td>Probably right, but a guess</td><td>Check the sample values. Change it if they look wrong</td></tr>
+  <tr><td>⚪ needs a column</td><td>A required field with nothing feeding it</td><td>Pick the right column from the dropdown. You can't continue until this is done</td></tr>
+  <tr><td>⚪ not mapped</td><td>An optional field with nothing feeding it</td><td>Leave it, or pick a column if you have one</td></tr>
+</table>
+
+<div class="callout">
+<strong>The sample values are the point.</strong> Under every match you'll see
+three real values from your file. If the "Contact Name" row shows company names,
+the match is wrong. Fix it there and then, using the dropdown.
+</div>
+
+<p>Two things worth knowing on this screen:</p>
+<ul>
+  <li><strong>Names in two columns.</strong> If your export has First Name and
+  Last Name separately, the portal usually spots this and combines them. If it
+  doesn't, click <em>Combine two columns…</em> on the Contact Name row.</li>
+  <li><strong>Columns we don't use</strong> are listed at the bottom as "will be
+  ignored." That's fine and expected. Nothing disappears without being
+  named.</li>
+</ul>
+
+<h3>3. Preview</h3>
+<p>Click <strong>Preview</strong>. The portal checks every row and reports, for
+example: <em>352 rows in the file. 338 will import. 14 will be skipped.</em>
+Still nothing has been saved.</p>
+
+<p>Below that, any problems are grouped by <em>type</em> rather than listed one
+row at a time. Fourteen skipped rows with two kinds of problem is two things to
+fix, not fourteen.</p>
+
+<p><strong>Download the problem rows.</strong> This gives you a file containing
+just the rows that would be skipped, in your original columns, with a
+<em>Problem</em> column at the front saying what's wrong with each. Fix those in
+your own system, re-export, and run the import again.</p>
+
+<div class="warn">
+<strong>Why you can't fix rows inside the portal.</strong> Every upload replaces
+what's there. A correction made in the portal would be undone the next time you
+import. Fixing at source means it's fixed for good.
+</div>
+
+<p>You'll also see a "worth knowing" box for things that don't stop anything: a
+broker email we don't recognise yet, contact phone numbers removed under the
+current sharing guidelines, and so on.</p>
+
+<h3>4. Import</h3>
+<p>Choose how to apply the records:</p>
+<ul>
+  <li><strong>Add on</strong> keeps what's already there and adds these. Only
+  for genuinely new records; using it twice with the same file gives you
+  duplicates.</li>
+  <li><strong>Replace all</strong> deletes your office's existing records
+  first, then loads the file. The safe way to correct or refresh a full
+  list. You'll be asked to tick a confirmation.</li>
+</ul>
+<p>The button tells you exactly what will happen, for instance <em>Replace 340
+with 338</em>. Click it, and the import runs.</p>
+
+<div class="callout">
+<strong>Send your complete list.</strong> If you choose Replace all and the file
+holds 10 contacts, you'll have 10 contacts. Always export the whole list, never
+just what changed.
+</div>
+
+<h2>If something doesn't work</h2>
+
+<table>
+  <tr><th>You see</th><th>Likely cause</th><th>What to do</th></tr>
+  <tr><td>"Excel files aren't supported"</td><td>An .xlsx file</td><td>Save As → CSV in Excel, then upload the .csv</td></tr>
+  <tr><td>"… still needs a column"</td><td>A required field has no match</td><td>Pick a column on that row. If your file genuinely lacks it, add it at source</td></tr>
+  <tr><td>Many rows skipped for the same reason</td><td>A column matched to the wrong field</td><td>Go back to step 2 and check the sample values on that row</td></tr>
+  <tr><td>"No rows would import"</td><td>Usually a wrong match on a required field</td><td>Same as above. Nothing has been written</td></tr>
+  <tr><td>Odd characters like <code>â€™</code> in sample values</td><td>The file was saved in the wrong encoding</td><td>Re-export or re-save as CSV UTF-8</td></tr>
+</table>
+
+<p>Anything else: use the Feedback button in the portal. This is a pilot, and
+what you run into is exactly what we want to hear about.</p>
+
+<div class="footer">
+GREA Portal — Import from Your Own Export · Questions or problems? Use the in-app Feedback button, or reach out to Jeff.
+</div>
+
+</body>
+</html>
