@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/fetchAll";
 import { cookies } from "next/headers";
 import type {
   ContactRecord,
@@ -105,20 +106,29 @@ export async function listProfiles(): Promise<Profile[]> {
 
 export async function listContacts(): Promise<ContactRecord[]> {
   const supabase = createClient();
-  const { data } = await supabase
-    .from("contacts")
-    .select("*")
-    .order("contact_name", { ascending: true });
-  return (data as ContactRecord[]) ?? [];
+  // Paged: a single request is capped at 1,000 rows (see fetchAll.ts).
+  const { data } = await fetchAll<ContactRecord>((from, to) =>
+    supabase
+      .from("contacts")
+      .select("*")
+      .order("contact_name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  return data;
 }
 
 export async function listDeals(): Promise<DealRecord[]> {
   const supabase = createClient();
-  const { data } = await supabase
-    .from("deals")
-    .select("*")
-    .order("created_at", { ascending: false });
-  return (data as DealRecord[]) ?? [];
+  const { data } = await fetchAll<DealRecord>((from, to) =>
+    supabase
+      .from("deals")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  return data;
 }
 
 export async function listMailingListEntries(): Promise<MailingListEntry[]> {

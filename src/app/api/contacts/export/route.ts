@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getCurrentProfile } from "@/lib/data";
+import { fetchAll } from "@/lib/fetchAll";
 import { createClient } from "@/lib/supabase/server";
 import { TEMPLATE_COLUMNS } from "@/lib/contacts/import-schema";
 import { escapeFormula } from "@/lib/csvSafety";
@@ -70,11 +71,15 @@ export async function GET(request: Request) {
     // shouldn't depend on) the service-role key for a read-only operation.
     const supabase = createClient();
 
-    const { data: contacts, error } = await supabase
-      .from("contacts")
-      .select("*")
-      .eq("office_id", profile.office_id)
-      .order("contact_name", { ascending: true });
+    const { data: contacts, error } = await fetchAll<ContactRecord>((from, to) =>
+      supabase
+        .from("contacts")
+        .select("*")
+        .eq("office_id", profile.office_id!)
+        .order("contact_name", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+    );
 
     if (error) {
       return NextResponse.json({ error: `Could not load contacts: ${error.message}` }, { status: 500 });

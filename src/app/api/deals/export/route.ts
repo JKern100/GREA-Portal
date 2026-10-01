@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getCurrentProfile } from "@/lib/data";
+import { fetchAll } from "@/lib/fetchAll";
 import { createClient } from "@/lib/supabase/server";
 import { TEMPLATE_COLUMNS } from "@/lib/deals/import-schema";
 import { escapeFormula } from "@/lib/csvSafety";
@@ -67,11 +68,15 @@ export async function GET(request: Request) {
 
     const supabase = createClient();
 
-    const { data: deals, error } = await supabase
-      .from("deals")
-      .select("*")
-      .eq("office_id", profile.office_id)
-      .order("deal_name", { ascending: true });
+    const { data: deals, error } = await fetchAll<DealRecord>((from, to) =>
+      supabase
+        .from("deals")
+        .select("*")
+        .eq("office_id", profile.office_id!)
+        .order("deal_name", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+    );
 
     if (error) {
       return NextResponse.json({ error: `Could not load deals: ${error.message}` }, { status: 500 });
