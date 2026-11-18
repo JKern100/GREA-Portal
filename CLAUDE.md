@@ -44,4 +44,7 @@ short: link to commits/files rather than repeating their content in full.
 - `docs/SPECS_IMPORT_MAPPER.md` — spec for the column-mapping import wizard
   (Phase A superadmin-only under Utilities). Read the commercial note at the
   top before expanding its scope.
+- `docs/SPECS_DEAL_NOTES_AND_CONTACT_LINK.md` — spec for notes on deals, the
+  stable deal key that lets notes survive uploads, and deal↔contact
+  association. Not built; needs Jeff's go-ahead (separately priced project).
 - `docs/WISHLIST.md` — features deliberately deferred to a future version.

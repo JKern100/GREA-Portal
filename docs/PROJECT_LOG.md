@@ -11,6 +11,38 @@ content.
 
 ---
 
+## 2026-11-18 — Spec: deal notes, stable deal key, deal↔contact association
+
+Tiffany asked for (1) notes on pipeline deals and (2) the pipeline to show
+when a loaded contact is associated with a deal. Spec:
+`docs/SPECS_DEAL_NOTES_AND_CONTACT_LINK.md`. **Not built. Not yet approved or
+priced with Tiffany** — do not start until Jeff says so.
+
+**Key design decision:** replace-per-upload stays. Deals get a stable
+`deal_key` (office's own ID when the file has one, else normalised name +
+address) and notes attach to `(office_id, deal_key)`, not to the deal row.
+True upsert was considered and rejected as unnecessary for this. Notes that
+lose their deal are kept as "unattached" and can be re-attached by the admin.
+Contact association is derived at read time by exact normalised match
+(seller/buyer ↔ company or contact name; listing ↔ deal), nothing stored.
+
+**Commercial:** both items are wishlist "future version" features (§1, §3),
+outside the original $24k build and outside the $1k/month support. Jeff is
+proposing them as a separately priced fixed-fee project. Earlier (Nov 6) he
+offered Tiffany "small, contained improvements" within support (usage
+tracking, dashboard, GREA updates page); this project is explicitly not in
+that bucket.
+
+**Also since the last entry (not logged at the time):**
+- 2026-10-01: fixed the 1,000-row Supabase cap that truncated contact/deal
+  lists (`6990753`, `src/lib/fetchAll.ts`). Any new unbounded query on
+  contacts/deals must use `fetchAll`.
+- Activity page shows last *sign-in*, not last *activity* (sessions renew
+  silently). A "last active" tracker was sized (~1 hour + migration) but not
+  built; it is one of the candidate in-support improvements.
+- Migration 0023 (promote jeff.kern@gmail.com to protected superadmin) looks
+  unapplied: the Activity page showed that account as office_admin.
+
 ## 2026-09-11 — Mapper opened to office admins; pilot email to admins
 
 Jeff asked to invite all office admins to try the mapper and the API, and to
