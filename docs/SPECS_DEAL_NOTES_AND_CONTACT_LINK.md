@@ -1,6 +1,6 @@
 # Deal notes, stable deal matching, and deal ↔ contact association
 
-*Status: **SPEC — not built, not yet priced/approved** · drafted 2026-11-18 · Owner: Jeff*
+*Status: **SPEC — not built, not yet approved.** Groundwork prepared 2026-11-18 (see "Prepared in advance" below) · Owner: Jeff*
 
 > **Commercial context:** both features were logged as "future version" items
 > (`docs/WISHLIST.md` §1 and §3) and are outside the original build and outside
@@ -12,6 +12,24 @@ Requested by Tiffany (Nov 2026):
 1. Attach notes to any pipeline deal.
 2. *"We are just wanting the pipeline to identify if one of our loaded contacts
    is associated with it."*
+
+## Prepared in advance (nothing live uses any of it)
+
+While waiting for Tiffany's answer, the parts that could be written and
+tested in isolation were:
+
+| Piece | Where | Tested by |
+|---|---|---|
+| Deal key rules (A-2) | `src/lib/deals/dealKey.ts` | `node scripts/test_deal_matching.js` |
+| Contact matching rules (C) | `src/lib/deals/contactMatch.ts` | same script (28 cases in total) |
+| Database change (A-1, B-1, B-2) | `supabase/drafts/0026_deal_key_and_notes.sql` — a **draft**, deliberately not in `migrations/` | `scripts/test_migrations_local.sh supabase/drafts/0026_deal_key_and_notes.sql supabase/drafts/0026_test.sql` (21 checks incl. access rules) |
+
+Neither module is imported anywhere and the draft SQL has not been applied to
+any real database. If the project is declined, delete those four files.
+
+Still to build if approved: wiring the key into the import core, the notes
+routes and screens, the unattached-notes panel, the contact-match UI, export
+of `Deal ID`, and the guide updates.
 
 Both collide with the same fact: **a deal has no identity that survives an
 upload.** Every import deletes the office's deals and inserts new rows with new
@@ -87,6 +105,8 @@ and the unit tests. No other code may compute a key.
   it, but notes exist for this office under the row's `nk:` key, re-key those
   notes to the `id:` key. This lets an office start supplying IDs later
   without orphaning anything.
+- After a Replace-all import, mark notes whose key is no longer present as
+  detached (B-2a).
 - **Dry run / preview** (manual upload, mapper, API) reports
   `notesAtRisk`: notes whose key will not exist after this upload, with deal
   names. Shown as a warning, not a block: *"3 deals with notes are not in this
@@ -120,6 +140,7 @@ create table public.deal_notes (
   author_id uuid references public.profiles(id) on delete set null,
   author_name text not null default '',
   author_office_id uuid references public.offices(id) on delete set null,
+  detached_at timestamptz,                        -- see B-2a
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -137,8 +158,26 @@ No foreign key to `deals` by design (see the decision above).
 | Edit / delete own note | The author |
 | Delete any note on the office's deals | That office's admin; superadmin anywhere |
 
-Enforced in RLS, not just the UI. If Tiffany wants "owning office only", it is
-a policy change, not a redesign.
+Reading is enforced by row-level security. **All writes go through server
+routes using the service role**; there are no insert/update/delete policies.
+That keeps author fields unspoofable and stops a client re-pointing a note at
+another deal. If Tiffany wants "owning office only", it is a change to one
+policy and one route check, not a redesign.
+
+### B-2a Safeguard: no automatic re-attachment after a gap
+
+When a Replace-all upload no longer contains a note's deal key, the import
+sets `detached_at` on those notes. A detached note:
+
+- is hidden from other offices and from the deal screen,
+- appears in the office's Unattached notes panel,
+- stays detached **even if a deal with the same key appears in a later
+  upload**. Only an admin re-attaching it clears `detached_at`.
+
+Without this, a property that leaves the pipeline and is relisted a year
+later under the same name and address would silently inherit the old deal's
+notes. That is the one failure of name-and-address matching that nobody
+would notice, so it is closed off by rule. Add-on uploads never detach.
 
 ### B-3 UI
 
@@ -242,6 +281,15 @@ this file, so contact matches can't be shown for these deals."*
 3. Update the two office guides: optional `Deal ID`, what the notes warning
    means, and that Seller/Buyer drive contact matches.
 4. One short note to office admins. No action required of them.
+
+## Phasing note (2026-11-18)
+
+Jeff's email to Tiffany presents name-and-address matching as the starting
+point and ID matching as "a later addition". The optional `Deal ID` column
+is small and is already covered by the prepared key rules and draft SQL, so
+whether it ships in the first release or later is Jeff's call when the
+project starts. If postponed: leave `external_id` in the schema, omit the
+template column, mapper aliases and export column.
 
 ## Open questions for Tiffany
 

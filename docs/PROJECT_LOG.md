@@ -11,6 +11,36 @@ content.
 
 ---
 
+## 2026-11-18 (later) — Groundwork prepared while waiting on Tiffany
+
+Jeff is waiting for Tiffany's yes/no on the notes project and asked for
+anything that could be prepared meanwhile. Done, all inert (nothing live
+imports or runs any of it):
+
+- `src/lib/deals/dealKey.ts`, `src/lib/deals/contactMatch.ts` — pure rules,
+  **not wired in**. Tests: `node scripts/test_deal_matching.js` (28).
+- `supabase/drafts/0026_deal_key_and_notes.sql` + `0026_test.sql` — draft,
+  kept out of `migrations/` on purpose. 21 checks pass locally.
+- **New, useful regardless:** `scripts/test_migrations_local.sh` runs every
+  migration against a throwaway local Postgres (Supabase imitated by
+  `supabase/local/supabase_stubs.sql`). First time the full set has been
+  proven to apply from empty: all 25 pass. Use it to rehearse any new SQL
+  before Jeff pastes it into Supabase.
+- `scripts/build_staging_bootstrap.sh` + `docs/STAGING_SETUP.md` — staging
+  plan (branches `production` + `main`, second free Supabase project, no new
+  server). **Not carried out.** Branch naming to be confirmed against Jeff's
+  Schulwise project.
+
+Spec gained B-2a: once a note's deal drops out of an upload the note stays
+detached until an admin re-attaches it, even if the same key returns. This
+closes the "relisted property inherits old notes" risk Jeff and I discussed.
+
+Found along the way: `supabase/seed.sql` no longer loads (predates 0007).
+
+**Pricing told to Tiffany (email drafted, not confirmed sent):** $6,000 for
+both features, with one month's $1,000 support fee credited as a one-time
+courtesy, so $5,000 additional. ID matching described as a later addition.
+
 ## 2026-11-18 — Spec: deal notes, stable deal key, deal↔contact association
 
 Tiffany asked for (1) notes on pipeline deals and (2) the pipeline to show

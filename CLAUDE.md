@@ -47,4 +47,9 @@ short: link to commits/files rather than repeating their content in full.
 - `docs/SPECS_DEAL_NOTES_AND_CONTACT_LINK.md` — spec for notes on deals, the
   stable deal key that lets notes survive uploads, and deal↔contact
   association. Not built; needs Jeff's go-ahead (separately priced project).
+- `docs/STAGING_SETUP.md` — prepared checklist for a staging site (`main`)
+  alongside production (`production`). **Not carried out yet**; until Jeff
+  says it is, `main` is still the live site.
+- `scripts/test_migrations_local.sh` — rehearse SQL against a throwaway local
+  Postgres before asking Jeff to run it in Supabase.
 - `docs/WISHLIST.md` — features deliberately deferred to a future version.
